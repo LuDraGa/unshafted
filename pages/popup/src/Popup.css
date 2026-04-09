@@ -88,4 +88,43 @@
   font-size: 12px;
   font-weight: 700;
   padding: 0;
+  transition: transform 140ms ease;
+}
+
+.popup-link-button:hover {
+  transform: translateY(-1px);
+}
+
+.popup-input {
+  width: 100%;
+  border: 1px solid rgba(120, 113, 108, 0.22);
+  background: rgba(255, 253, 250, 0.95);
+  border-radius: 12px;
+  padding: 8px 10px;
+  font-size: 13px;
+  color: #1c1917;
+  outline: none;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.popup-input:focus {
+  border-color: rgba(180, 83, 9, 0.65);
+  box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.15);
+}
+
+.popup-spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  border: 2.5px solid rgba(120, 113, 108, 0.18);
+  border-top-color: #b45309;
+  animation: popup-spin 900ms linear infinite;
+}
+
+@keyframes popup-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }

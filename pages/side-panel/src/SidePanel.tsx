@@ -45,7 +45,7 @@ import {
 } from '@extension/storage';
 import { cn, ErrorDisplay, LoadingSpinner } from '@extension/ui';
 import { type ChangeEvent, useEffect, useRef, useState } from 'react';
-import { runDeepAnalysis, runQuickScan } from './lib/analysis-workflow';
+import { runDeepAnalysis, runQuickScan } from '@extension/shared';
 
 const verdictToneClasses: Record<'LOW' | 'CAUTION' | 'HIGH' | 'DANGER', string> = {
   LOW: 'border-emerald-300 bg-emerald-50 text-emerald-900',
@@ -205,7 +205,8 @@ const SidePanel = () => {
   }, [pendingAction.type]);
 
   useEffect(() => {
-    if (!currentAnalysis || currentAnalysis.status !== 'ready' || currentAnalysis.quickScan || !settings.apiKey.trim()) {
+    const activeKey = settings.provider === 'openai' ? settings.openaiApiKey : settings.apiKey;
+    if (!currentAnalysis || currentAnalysis.status !== 'ready' || currentAnalysis.quickScan || !activeKey.trim()) {
       return;
     }
 
@@ -215,7 +216,7 @@ const SidePanel = () => {
 
     autoQuickScanRef.current = currentAnalysis.id;
     void startQuickScan(currentAnalysis);
-  }, [currentAnalysis, settings.apiKey]);
+  }, [currentAnalysis, settings.apiKey, settings.openaiApiKey, settings.provider]);
 
   useEffect(() => {
     if (currentAnalysis?.status !== 'deep-running') {
@@ -406,7 +407,7 @@ const SidePanel = () => {
           <section className="mt-5 rounded-3xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-900">{panelError}</section>
         ) : null}
 
-        {!settings.apiKey.trim() ? (
+        {!(settings.provider === 'openai' ? settings.openaiApiKey.trim() : settings.apiKey.trim()) ? (
           <section className="mt-5 rounded-3xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-950">
             <p className="font-semibold">OpenRouter key required</p>
             <p className="mt-1 leading-6">

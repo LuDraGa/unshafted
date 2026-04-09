@@ -2,7 +2,11 @@ import { z } from 'zod';
 import {
   DEFAULT_DEEP_MODEL,
   DEFAULT_MONTHLY_SOFT_LIMIT,
+  DEFAULT_OPENAI_API_KEY,
+  DEFAULT_OPENAI_DEEP_MODEL,
+  DEFAULT_OPENAI_QUICK_MODEL,
   DEFAULT_OPENROUTER_API_KEY,
+  DEFAULT_PROVIDER,
   DEFAULT_QUICK_MODEL,
   DEFAULT_TEMPERATURE,
   DISCLAIMER_LINE,
@@ -38,12 +42,12 @@ export const QuickScanResultSchema = z.object({
   summary: z.string().min(1),
   roughRiskLevel: RiskLevelSchema,
   cautionLine: z.string().min(1),
-  parties: z.array(PartySchema).max(8).default([]),
-  likelyRoles: z.array(z.string().min(1)).min(1).max(8),
-  topics: z.array(z.string().min(1)).max(10).default([]),
-  redFlags: z.array(QuickFlagSchema).max(6).default([]),
-  keyObligations: z.array(z.string().min(1)).max(8).default([]),
-  extractionConcerns: z.array(z.string().min(1)).max(4).default([]),
+  parties: z.array(PartySchema).default([]),
+  likelyRoles: z.array(z.string().min(1)).min(1),
+  topics: z.array(z.string().min(1)).default([]),
+  redFlags: z.array(QuickFlagSchema).default([]),
+  keyObligations: z.array(z.string().min(1)).default([]),
+  extractionConcerns: z.array(z.string().min(1)).default([]),
 });
 
 export const DetailedFindingSchema = z.object({
@@ -102,7 +106,7 @@ export const PotentialAdvantageSchema = z.object({
 
 export const ChecklistGroupSchema = z.object({
   label: z.string().min(1),
-  items: z.array(z.string().min(1)).min(1).max(8),
+  items: z.array(z.string().min(1)).min(1),
 });
 
 export const DeepAnalysisResultSchema = z.object({
@@ -110,19 +114,19 @@ export const DeepAnalysisResultSchema = z.object({
   overallRiskLevel: RiskLevelSchema,
   rolePerspective: z.string().min(1),
   bottomLine: z.string().min(1),
-  immediateWorries: z.array(DetailedFindingSchema).max(5).default([]),
-  oneSidedClauses: z.array(DetailedFindingSchema).max(8).default([]),
-  missingProtections: z.array(MissingProtectionSchema).max(8).default([]),
-  timingAndLockIn: z.array(DetailedFindingSchema).max(6).default([]),
-  topicConcerns: z.array(TopicConcernSchema).max(14).default([]),
-  negotiationIdeas: z.array(NegotiationIdeaSchema).max(8).default([]),
-  suggestedEdits: z.array(SuggestedEditSchema).max(8).default([]),
-  questionsToAsk: z.array(z.string().min(1)).max(10).default([]),
-  couldShaftYouLater: z.array(DetailedFindingSchema).max(6).default([]),
-  potentialAdvantages: z.array(PotentialAdvantageSchema).max(6).default([]),
-  protectionChecklist: z.array(ChecklistGroupSchema).max(4).default([]),
-  assumptionsAndUnknowns: z.array(z.string().min(1)).max(6).default([]),
-  clauseReferenceNotes: z.array(z.string().min(1)).max(8).default([]),
+  immediateWorries: z.array(DetailedFindingSchema).default([]),
+  oneSidedClauses: z.array(DetailedFindingSchema).default([]),
+  missingProtections: z.array(MissingProtectionSchema).default([]),
+  timingAndLockIn: z.array(DetailedFindingSchema).default([]),
+  topicConcerns: z.array(TopicConcernSchema).default([]),
+  negotiationIdeas: z.array(NegotiationIdeaSchema).default([]),
+  suggestedEdits: z.array(SuggestedEditSchema).default([]),
+  questionsToAsk: z.array(z.string().min(1)).default([]),
+  couldShaftYouLater: z.array(DetailedFindingSchema).default([]),
+  potentialAdvantages: z.array(PotentialAdvantageSchema).default([]),
+  protectionChecklist: z.array(ChecklistGroupSchema).default([]),
+  assumptionsAndUnknowns: z.array(z.string().min(1)).default([]),
+  clauseReferenceNotes: z.array(z.string().min(1)).default([]),
   disclaimer: z.string().min(1).default(DISCLAIMER_LINE),
 });
 
@@ -158,10 +162,16 @@ export const IngestedDocumentSchema = z.object({
 
 export const HistorySourceSchema = IngestedDocumentSchema.omit({ text: true });
 
+export const ProviderSchema = z.enum(['openrouter', 'openai']);
+
 export const AppSettingsSchema = z.object({
+  provider: ProviderSchema.default(DEFAULT_PROVIDER),
   apiKey: z.string().default(DEFAULT_OPENROUTER_API_KEY),
   quickModel: z.string().min(1).default(DEFAULT_QUICK_MODEL),
   deepModel: z.string().min(1).default(DEFAULT_DEEP_MODEL),
+  openaiApiKey: z.string().default(DEFAULT_OPENAI_API_KEY),
+  openaiQuickModel: z.string().min(1).default(DEFAULT_OPENAI_QUICK_MODEL),
+  openaiDeepModel: z.string().min(1).default(DEFAULT_OPENAI_DEEP_MODEL),
   temperature: z.number().min(0).max(1).default(DEFAULT_TEMPERATURE),
   monthlySoftLimit: z.number().int().positive().default(DEFAULT_MONTHLY_SOFT_LIMIT),
 });
