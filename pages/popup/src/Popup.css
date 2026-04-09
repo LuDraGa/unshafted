@@ -1,30 +1,91 @@
-.App {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  text-align: center;
-  height: 100%;
-  padding: 1rem;
+.popup-shell {
+  min-height: 100%;
+  background:
+    radial-gradient(circle at top right, rgba(234, 88, 12, 0.12), transparent 28%),
+    linear-gradient(180deg, #f7f2ea 0%, #efe5d6 100%);
 }
 
-.App-logo {
-  height: 50vmin;
-  margin-bottom: 1rem;
+.popup-frame {
+  min-height: 100%;
+  padding: 20px;
 }
 
-.App-header {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-end;
-  font-size: 0.75rem;
+.popup-card {
+  border: 1px solid rgba(120, 113, 108, 0.18);
+  background: rgba(255, 252, 247, 0.82);
+  border-radius: 20px;
+  padding: 16px;
+  box-shadow: 0 16px 40px rgba(28, 25, 23, 0.06);
+  backdrop-filter: blur(12px);
 }
 
-code {
-  background: rgba(148, 163, 184, 0.5);
-  border-radius: 0.25rem;
-  padding: 0.2rem 0.5rem;
+.popup-eyebrow {
+  margin: 0;
+  color: #a16207;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
+.popup-title {
+  margin: 0;
+  color: #1c1917;
+  font-size: 26px;
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+}
+
+.popup-subtitle {
+  margin: 0;
+  color: #57534e;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.popup-primary-button,
+.popup-secondary-button {
+  width: 100%;
+  border: 0;
+  border-radius: 14px;
+  padding: 11px 14px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    transform 140ms ease,
+    opacity 140ms ease,
+    background 140ms ease;
+}
+
+.popup-primary-button {
+  background: #1f2937;
+  color: #fafaf9;
+}
+
+.popup-secondary-button {
+  background: #ede7dc;
+  color: #292524;
+}
+
+.popup-primary-button:hover,
+.popup-secondary-button:hover {
+  transform: translateY(-1px);
+}
+
+.popup-primary-button:disabled,
+.popup-secondary-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none;
+}
+
+.popup-link-button {
+  border: 0;
+  background: transparent;
+  color: #92400e;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 0;
 }

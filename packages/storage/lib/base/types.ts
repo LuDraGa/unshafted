@@ -34,21 +34,12 @@ export type StorageConfigType<D = string> = {
    */
   serialization?: {
     /**
-     * convert non-native values to string to be saved in storage
+     * convert values before saving them into storage
      */
-    serialize: (value: D) => string;
+    serialize: (value: D) => unknown;
     /**
-     * convert string value from storage to non-native values
+     * convert values from storage back into the expected shape
      */
-    deserialize: (text: string) => D;
+    deserialize: (text: unknown) => D;
   };
-};
-
-export interface ThemeStateType {
-  theme: 'light' | 'dark';
-  isLight: boolean;
-}
-
-export type ThemeStorageType = BaseStorageType<ThemeStateType> & {
-  toggle: () => Promise<void>;
 };

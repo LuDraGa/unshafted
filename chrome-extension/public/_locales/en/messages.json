@@ -1,0 +1,10 @@
+{
+  "extensionDescription": {
+    "description": "Extension description",
+    "message": "Analyze contracts, terms, and licenses from your side of the table."
+  },
+  "extensionName": {
+    "description": "Extension name",
+    "message": "Unshafted"
+  }
+}

@@ -10,11 +10,11 @@
   ],
   "scripts": {
     "clean:bundle": "rimraf dist",
-    "clean:node_modules": "pnpx rimraf node_modules",
+    "clean:node_modules": "rimraf node_modules",
     "clean:turbo": "rimraf .turbo",
     "clean": "pnpm clean:bundle && pnpm clean:turbo && pnpm clean:node_modules",
-    "build": "tsx build.mts",
-    "dev": "tsx build.mts",
+    "build": "node --import tsx build.mts",
+    "dev": "node --import tsx build.mts",
     "lint": "eslint .",
     "lint:fix": "pnpm lint --fix",
     "format": "prettier . --write --ignore-path ../../.prettierignore",
@@ -23,7 +23,8 @@
   "dependencies": {
     "@extension/shared": "workspace:*",
     "@extension/storage": "workspace:*",
-    "@extension/env": "workspace:*"
+    "@extension/env": "workspace:*",
+    "@extension/unshafted-core": "workspace:*"
   },
   "devDependencies": {
     "@extension/hmr": "workspace:*",

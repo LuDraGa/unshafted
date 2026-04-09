@@ -1,8 +1,17 @@
 packages:
   - chrome-extension
-  - pages/*
-  - packages/*
-  - tests/*
+  - pages/content
+  - pages/options
+  - pages/popup
+  - pages/side-panel
+  - packages/env
+  - packages/hmr
+  - packages/shared
+  - packages/storage
+  - packages/tsconfig
+  - packages/ui
+  - packages/unshafted-core
+  - packages/vite-config
 
 onlyBuiltDependencies:
   - '@parcel/watcher'
