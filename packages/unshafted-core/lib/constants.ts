@@ -2,8 +2,13 @@ export const APP_NAME = 'Unshafted';
 export const APP_TAGLINE = "Reads contracts from your side of the table.";
 
 export const DEFAULT_OPENROUTER_API_KEY = process.env.CEB_OPENROUTER_API_KEY ?? process.env.OPENROUTER_API_KEY ?? '';
+export const DEFAULT_OPENAI_API_KEY = process.env.CEB_OPENAI_API_KEY ?? '';
+export const DEFAULT_PROVIDER: 'openrouter' | 'openai' = 'openrouter';
+
 export const DEFAULT_QUICK_MODEL = 'google/gemma-4-26b-a4b-it:free';
 export const DEFAULT_DEEP_MODEL = 'stepfun/step-3.5-flash:free';
+export const DEFAULT_OPENAI_QUICK_MODEL = 'gpt-5-nano';
+export const DEFAULT_OPENAI_DEEP_MODEL = 'gpt-5.4';
 export const DEFAULT_TEMPERATURE = 0.2;
 export const DEFAULT_MONTHLY_SOFT_LIMIT = 3;
 

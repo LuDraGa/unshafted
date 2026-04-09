@@ -1,6 +1,6 @@
 import '@src/Popup.css';
 import { buildDocumentFromFile, createCurrentAnalysis } from '@extension/unshafted-core';
-import { extractCurrentPageDocument, getCurrentActiveTab, getTabReadability, openUnshaftedSidePanel, useStorage } from '@extension/shared';
+import { extractCurrentPageDocument, getCurrentActiveTab, getTabReadability, useStorage } from '@extension/shared';
 import {
   analysisHistoryStorage,
   currentAnalysisStorage,
@@ -11,6 +11,7 @@ import {
 import { cn, ErrorDisplay, LoadingSpinner } from '@extension/ui';
 import { type ChangeEvent, useEffect, useRef, useState } from 'react';
 import { withErrorBoundary, withSuspense } from '@extension/shared';
+import { AnalysisWorkspace } from './components/AnalysisWorkspace';
 
 type PageState = {
   title: string;
@@ -20,13 +21,17 @@ type PageState = {
   reason: string;
 };
 
+type View = 'launcher' | 'workspace';
+
 const Popup = () => {
   const settings = useStorage(unshaftedSettingsStorage);
   const usage = useStorage(usageSnapshotStorage);
   const history = useStorage(analysisHistoryStorage);
+  const currentAnalysis = useStorage(currentAnalysisStorage);
 
+  const [view, setView] = useState<View>(() => (currentAnalysis ? 'workspace' : 'launcher'));
   const [pageState, setPageState] = useState<PageState>({
-    title: 'Checking current page…',
+    title: 'Checking current page...',
     url: '',
     supported: false,
     statusLabel: 'Checking',
@@ -52,20 +57,23 @@ const Popup = () => {
     })();
   }, []);
 
-  const openOptions = () => chrome.runtime.openOptionsPage();
+  // If analysis gets cleared externally, go back to launcher
+  useEffect(() => {
+    if (!currentAnalysis && view === 'workspace') {
+      setView('launcher');
+    }
+  }, [currentAnalysis, view]);
 
-  const finishLaunch = async () => {
-    await openUnshaftedSidePanel();
-    window.close();
-  };
+  const openOptions = () => chrome.runtime.openOptionsPage();
 
   const handleAnalyzeCurrentPage = async () => {
     setLaunchError('');
     setBusyAction('analyze');
 
     try {
-      if (!settings.apiKey.trim()) {
-        throw new Error('Add your OpenRouter API key in Options before analyzing.');
+      const activeKey = settings.provider === 'openai' ? settings.openaiApiKey : settings.apiKey;
+      if (!activeKey.trim()) {
+        throw new Error(`Add your ${settings.provider === 'openai' ? 'OpenAI' : 'OpenRouter'} API key in Options before analyzing.`);
       }
 
       const tab = await getCurrentActiveTab();
@@ -80,12 +88,8 @@ const Popup = () => {
       }
 
       await currentAnalysisStorage.set(createCurrentAnalysis(extracted.document));
-      await pendingActionStorage.set({
-        type: 'analyze-current-page',
-        requestedAt: new Date().toISOString(),
-      });
-
-      await finishLaunch();
+      await pendingActionStorage.set({ type: 'none' });
+      setView('workspace');
     } catch (error) {
       setLaunchError(error instanceof Error ? error.message : 'Unable to start page analysis.');
     } finally {
@@ -100,9 +104,7 @@ const Popup = () => {
 
   const handleFileChosen = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) {
-      return;
-    }
+    if (!file) return;
 
     setLaunchError('');
     setBusyAction('upload');
@@ -111,7 +113,7 @@ const Popup = () => {
       const document = await buildDocumentFromFile(file);
       await currentAnalysisStorage.set(createCurrentAnalysis(document));
       await pendingActionStorage.set({ type: 'none' });
-      await finishLaunch();
+      setView('workspace');
     } catch (error) {
       setLaunchError(error instanceof Error ? error.message : 'Unable to open this file.');
     } finally {
@@ -121,7 +123,19 @@ const Popup = () => {
   };
 
   const lastAnalysis = history[0];
-  const hasApiKey = Boolean(settings.apiKey.trim());
+  const hasApiKey = Boolean(
+    settings.provider === 'openai' ? settings.openaiApiKey.trim() : settings.apiKey.trim(),
+  );
+
+  if (view === 'workspace') {
+    return (
+      <div className="popup-shell">
+        <div className="popup-frame">
+          <AnalysisWorkspace onBack={() => setView('launcher')} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="popup-shell">
@@ -132,7 +146,7 @@ const Popup = () => {
             <div className="space-y-1">
               <p className="popup-eyebrow">Unshafted</p>
               <h1 className="popup-title">Contract risk, without the fog.</h1>
-              <p className="popup-subtitle">Analyze the current page or upload a clean local `.txt` contract into the side panel.</p>
+              <p className="popup-subtitle">Analyze the current page or upload a local `.txt` contract to review.</p>
             </div>
             <div
               className={cn(
@@ -169,10 +183,10 @@ const Popup = () => {
                 className="popup-primary-button"
                 onClick={handleAnalyzeCurrentPage}
                 disabled={!pageState.supported || busyAction !== null || !hasApiKey}>
-                {busyAction === 'analyze' ? 'Preparing page…' : 'Analyze this page'}
+                {busyAction === 'analyze' ? 'Preparing page...' : 'Analyze this page'}
               </button>
               <button className="popup-secondary-button" onClick={handleUploadFlow} disabled={busyAction !== null}>
-                {busyAction === 'upload' ? 'Loading contract…' : 'Upload `.txt`'}
+                {busyAction === 'upload' ? 'Loading contract...' : 'Upload `.txt`'}
               </button>
             </div>
           </section>

@@ -172,13 +172,3 @@ export const extractCurrentPageDocument = async (tabId: number): Promise<Extract
     };
   }
 };
-
-export const openUnshaftedSidePanel = async (): Promise<void> => {
-  const currentWindow = await chrome.windows.getCurrent();
-
-  if (!currentWindow.id) {
-    throw new Error('Unable to determine the current browser window.');
-  }
-
-  await chrome.sidePanel.open({ windowId: currentWindow.id });
-};
