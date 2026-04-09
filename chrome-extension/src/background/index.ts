@@ -1,9 +1,17 @@
 import 'webextension-polyfill';
-import { exampleThemeStorage } from '@extension/storage';
+import { pendingActionStorage, usageSnapshotStorage } from '@extension/storage';
 
-exampleThemeStorage.get().then(theme => {
-  console.log('theme', theme);
+const syncUsage = () => {
+  void usageSnapshotStorage.syncMonth();
+};
+
+chrome.runtime.onInstalled.addListener(() => {
+  syncUsage();
+  void pendingActionStorage.set({ type: 'none' });
 });
 
-console.log('Background loaded');
-console.log("Edit 'chrome-extension/src/background/index.ts' and save to reload.");
+chrome.runtime.onStartup.addListener(() => {
+  syncUsage();
+});
+
+console.info('[Unshafted] background worker ready');

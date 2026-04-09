@@ -1,34 +1,31 @@
 {
-  "name": "@extension/ui",
-  "version": "0.5.0",
-  "description": "chrome extension - ui components",
+  "name": "@extension/unshafted-core",
+  "version": "0.1.0",
+  "description": "Reusable analysis core for the Unshafted extension",
   "type": "module",
   "private": true,
-  "sideEffects": true,
+  "sideEffects": false,
   "files": [
     "dist/**"
   ],
-  "types": "index.ts",
-  "main": "dist/index.js",
+  "types": "index.mts",
+  "main": "dist/index.mjs",
   "scripts": {
     "clean:bundle": "rimraf dist",
     "clean:node_modules": "rimraf node_modules",
     "clean:turbo": "rimraf .turbo",
     "clean": "pnpm clean:bundle && pnpm clean:node_modules && pnpm clean:turbo",
-    "ready": "tsc -b && tsc-alias -p tsconfig.json",
+    "ready": "tsc -b",
     "lint": "eslint .",
     "lint:fix": "pnpm lint --fix",
     "format": "prettier . --write --ignore-path ../../.prettierignore",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test": "node --import tsx --test test/**/*.test.ts"
   },
   "dependencies": {
-    "@extension/shared": "workspace:*",
-    "@extension/storage": "workspace:*",
-    "clsx": "^2.1.1",
-    "tailwind-merge": "^3.3.0"
+    "zod": "^3.24.2"
   },
   "devDependencies": {
-    "@extension/tsconfig": "workspace:*",
-    "tsc-alias": "^1.8.16"
+    "@extension/tsconfig": "workspace:*"
   }
 }

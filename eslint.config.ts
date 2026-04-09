@@ -55,13 +55,6 @@ export default config(
       'prefer-const': 'error',
       'no-var': 'error',
       'func-style': ['error', 'expression', { allowArrowFunctions: true }],
-      'no-restricted-imports': [
-        'error',
-        {
-          name: 'type-fest',
-          message: 'Please import from `@extension/shared` instead of `type-fest`.',
-        },
-      ],
       'arrow-body-style': ['error', 'as-needed'],
       '@typescript-eslint/consistent-type-imports': 'error',
       '@typescript-eslint/consistent-type-exports': 'error',

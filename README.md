@@ -1,275 +1,237 @@
-<div align="center">
-
-<picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/99cb6303-64e4-4bed-bf3f-35735353e6de" />
-    <source media="(prefers-color-scheme: light)" srcset="https://github.com/user-attachments/assets/a5dbf71c-c509-4c4f-80f4-be88a1943b0a" />
-    <img alt="Logo" src="https://github.com/user-attachments/assets/99cb6303-64e4-4bed-bf3f-35735353e6de" />
-</picture>
-
-![](https://img.shields.io/badge/React-61DAFB?style=flat-square&logo=react&logoColor=black)
-![](https://img.shields.io/badge/Typescript-3178C6?style=flat-square&logo=typescript&logoColor=white)
-![](https://badges.aleen42.com/src/vitejs.svg)
-
-![GitHub action badge](https://github.com/Jonghakseo/chrome-extension-boilerplate-react-vite/actions/workflows/build-zip.yml/badge.svg)
-![GitHub action badge](https://github.com/Jonghakseo/chrome-extension-boilerplate-react-vite/actions/workflows/lint.yml/badge.svg)
-
-<a href="https://discord.gg/4ERQ6jgV9a" target="_blank"><img src="https://discord.com/api/guilds/1263404974830915637/widget.png"/></a>
-
-> This boilerplate
-> has [Legacy version](https://github.com/Jonghakseo/chrome-extension-boilerplate-react-vite/tree/legacy)
-
-</div>
-
-> [!NOTE]
-> This project is listed in the [Awesome Vite](https://github.com/vitejs/awesome-vite)
-
-> [!TIP]
-> Share storage state between all pages
->
-> https://github.com/user-attachments/assets/3b8e189f-6443-490e-a455-4f9570267f8c
-
-## Table of Contents
-
-- [Intro](#intro)
-- [Features](#features)
-- [Structure](#structure)
-    - [ChromeExtension](#structure-chrome-extension)
-    - [Packages](#structure-packages)
-    - [Pages](#structure-pages)
-- [Installation](#installation)
-    - [Chrome](#installation-chrome)
-    - [Firefox](#installation-firefox)
-- [Install dependency](#install-dependency)
-    - [For root](#install-dependency-for-root)
-    - [For module](#install-dependency-for-module)
-- [Environment variables](#env-variables)
-    - [Add new](#env-variables-new)
-    - [Set via CLI](#env-variables-cli-set)
-- [Troubleshooting](#troubleshooting)
-    - [Hot module reload seems to have frozen](#hot-module-reload-seems-to-have-frozen)
-    - [Imports not resolving correctly](#imports-not-resolving-correctly)
-- [Community](#community)
-- [Debugging](#debugging)
-- [Reference](#reference)
-- [Star History](#star-history)
-- [Contributors](#contributors)
-
-## Intro
-
-This boilerplate helps you create Chrome/Firefox extensions using React and Typescript. It improves
-the build speed and development experience by using Vite and Turborepo.
-
-## Features
-
-- [React](https://reactjs.org/)
-- [TypeScript](https://www.typescriptlang.org/)
-- [Tailwindcss](https://tailwindcss.com/)
-- [Vite](https://vitejs.dev/) with [Rollup](https://rollupjs.org/)
-- [Turborepo](https://turbo.build/repo)
-- [Prettier](https://prettier.io/)
-- [ESLint](https://eslint.org/)
-- [Chrome Extensions Manifest Version 3](https://developer.chrome.com/docs/extensions/mv3/intro/)
-- [Custom i18n package](/packages/i18n/)
-- [Custom HMR (Hot Module Rebuild) plugin](/packages/hmr)
-- [End-to-end testing with WebdriverIO](https://webdriver.io/)
-
-## Installation
-
-1. Clone this repository.( ```git clone https://github.com/Jonghakseo/chrome-extension-boilerplate-react-vite``` )
-2. Ensure your node version is >= than in `.nvmrc` file, recommend to use [nvm](https://github.com/nvm-sh/nvm?tab=readme-ov-file#intro)
-3. Edit `/packages/i18n/locales/`{your locale(s)}/`messages.json`
-4. In the objects `extensionDescription` and `extensionName`, change the `message` fields (leave `description` alone)
-5. Install pnpm globally: `npm install -g pnpm`
-6. Run `pnpm install`
-7. Check if you have that configuration in your IDE/Editor:
-    - <b>VS Code</b>:
-        - Installed [ESLint extension](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint)
-        - Installed [Prettier extension](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)
-        - Enabled `Typescript Workbench version` in settings:
-            - CTRL + SHIFT + P -> Search: `Typescript: Select Typescript version...` -> `Use Workbench version`
-            - [Read more](https://code.visualstudio.com/docs/languages/typescript#_using-newer-typescript-versions)
-        - Optional, for imports to work correctly in WSL, you might need to install the [Remote - WSL](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-wsl) extension and connect to WSL remotely from VS Code. See overview section in the extension page for more information.
-    - <b>WebStorm</b>:
-      - Configured [ESLint](https://www.jetbrains.com/help/webstorm/eslint.html#ws_eslint_configure_run_eslint_on_save)
-      - Configured [Prettier](https://prettier.io/docs/en/webstorm.html)
-      - Optional, but useful `File | Settings | Tools | Actions on Save`\
-      -> `Optimize imports` and `Reformat code`
-8. Run `pnpm update-version <version>` for change the `version` to the desired version of your extension.
-
-> [!IMPORTANT]
-> On Windows, make sure you have WSL enabled and Linux distribution (e.g. Ubuntu) installed on WSL.
-> 
-> [Installation Guide](https://learn.microsoft.com/en-us/windows/wsl/install)
+# Unshafted
+
+Unshafted is a Chrome extension MVP that reads contracts, licenses, and terms from the user's side of the table. It runs a fast first-pass scan, lets the user confirm the role they care about, and then produces a sharper role-aware analysis with risk, missing protections, negotiation ideas, and plain-English guidance.
+
+This repo builds the extension only. There is no backend, auth, billing, or web app in this MVP. Everything stays local except the OpenRouter API calls used for analysis.
+
+## Working Doctrine
+
+- Local first: the product accepts only local `.txt` files for uploads.
+- Browser detection is only for UX: if the current tab is a PDF or browser viewer, the extension explains the limitation and points to external conversion.
+- One primary action per screen: analyze the current page, upload a file, or read the result.
+- Two-stage analysis: quick scan first, deep analysis second.
+- Practical output over legal theater: explain the risk, the missing protection, and the leverage in plain language.
+- Keep the surface small: no login, billing, sync, web app, or speculative feature branches in the MVP.
+
+## Success Targets
+
+- The user can tell what the document is, who the parties are, and which role they should analyze from.
+- The user can upload a local `.txt` file and get a quick scan immediately.
+- The user can confirm role and priorities and receive a structured deep analysis.
+- Unsupported inputs fail clearly and tell the user the next move.
+- Results stay concise, grounded, and useful enough to make the user act.
+
+## Stack
+
+- Chrome Extension Manifest V3
+- React 19
+- TypeScript
+- Tailwind CSS
+- Turborepo-based extension scaffold
+- `zod` for schema validation
+- `chrome.storage.local` for local settings, history, session state, and usage counters
+- OpenRouter for quick and deep model calls
+
+## MVP Features
 
-<b>Then, depending on the target browser:</b>
+- Analyze current webpage text through a content script extractor
+- Upload local `.txt` files only
+- Automatic quick scan:
+  - probable document type
+  - detected parties
+  - likely role options
+  - rough risk level
+  - quick red flags
+- Role-aware deep analysis:
+  - plain-English summary
+  - overall risk level
+  - immediate worries
+  - one-sided clauses
+  - missing protections
+  - deadlines, renewals, and termination traps
+  - payment / liability / indemnity / IP / confidentiality / dispute concerns
+  - negotiation ideas
+  - suggested edits in plain English
+  - questions to ask before signing
+  - “could shaft you later”
+  - “potential advantage for you”
+  - clause reference notes
+- Local history for the last few completed analyses
+- Options page for OpenRouter API key, quick model, deep model, and connection testing
+- Demo contract fixture for UI testing without starting from a real contract
 
-### For Chrome: <a name="installation-chrome"></a>
+## Project Structure
 
-1. Run:
-    - Dev: `pnpm dev` (on Windows, you should run as administrator;
-      see [issue#456](https://github.com/Jonghakseo/chrome-extension-boilerplate-react-vite/issues/456))
-    - Prod: `pnpm build`
-2. Open in browser - `chrome://extensions`
-3. Check - <kbd>Developer mode</kbd>
-4. Click - <kbd>Load unpacked</kbd> in the upper left corner
-5. Select the `dist` directory from the boilerplate project
+- [chrome-extension/manifest.ts](/Users/abhiroopprasad/code/side-projects/Unshafted/chrome-extension/manifest.ts): MV3 manifest source
+- [chrome-extension/src/background/index.ts](/Users/abhiroopprasad/code/side-projects/Unshafted/chrome-extension/src/background/index.ts): service worker startup and usage sync
+- [pages/popup/src/Popup.tsx](/Users/abhiroopprasad/code/side-projects/Unshafted/pages/popup/src/Popup.tsx): compact launcher UI
+- [pages/side-panel/src/SidePanel.tsx](/Users/abhiroopprasad/code/side-projects/Unshafted/pages/side-panel/src/SidePanel.tsx): main product surface
+- [pages/options/src/Options.tsx](/Users/abhiroopprasad/code/side-projects/Unshafted/pages/options/src/Options.tsx): local settings and connection test
+- [pages/content/src/matches/all/index.ts](/Users/abhiroopprasad/code/side-projects/Unshafted/pages/content/src/matches/all/index.ts): current-page text extraction
+- [pages/side-panel/src/lib/analysis-workflow.ts](/Users/abhiroopprasad/code/side-projects/Unshafted/pages/side-panel/src/lib/analysis-workflow.ts): extension-side orchestration for quick and deep analysis
+- [packages/unshafted-core/lib](/Users/abhiroopprasad/code/side-projects/Unshafted/packages/unshafted-core/lib): reusable prompts, schemas, OpenRouter client, fixtures, and helpers intended to be portable to the future web app
+- [packages/storage/lib/impl](/Users/abhiroopprasad/code/side-projects/Unshafted/packages/storage/lib/impl): local settings, history, usage, and session stores
 
-### For Firefox: <a name="installation-firefox"></a>
+## OpenRouter Setup
 
-1. Run:
-    - Dev: `pnpm dev:firefox`
-    - Prod: `pnpm build:firefox`
-2. Open in browser - `about:debugging#/runtime/this-firefox`
-3. Click - <kbd>Load Temporary Add-on...</kbd> in the upper right corner
-4. Select the `./dist/manifest.json` file from the boilerplate project
+The extension expects a user-supplied OpenRouter API key.
 
-> [!NOTE]
-> In Firefox, you load add-ons in temporary mode. That means they'll disappear after each browser close. You have to
-> load the add-on on every browser launch.
+1. Create or use an OpenRouter account.
+2. Generate an API key.
+3. Load the extension in Chrome.
+4. Open `Options`.
+5. Paste the API key and save.
+6. Optionally adjust the quick and deep model IDs.
 
-## Install dependency for turborepo: <a name="install-dependency"></a>
+For local seeded defaults in this scaffold, use:
 
-### For root: <a name="install-dependency-for-root"></a>
+```bash
+CEB_OPENROUTER_API_KEY=your_key_here
+```
 
-1. Run `pnpm i <package> -w`
+Recommended defaults in this repo:
 
-### For module: <a name="install-dependency-for-module"></a>
+- Quick model: `google/gemma-4-26b-a4b-it:free`
+- Deep model: `stepfun/step-3.5-flash:free`
+- Temperature: `0.2`
 
-1. Run `pnpm i <package> -F <module name>`
+The options page also includes a `Test connection` action.
 
-`package` - Name of the package you want to install e.g. `nodemon` \
-`module-name` - You can find it inside each `package.json` under the key `name`, e.g. `@extension/content-script`, you
-can use only `content-script` without `@extension/` prefix
+## Install and Run
 
-## How do I disable modules I'm not using?
+### Prerequisites
 
-[Read here](packages/module-manager/README.md)
+- Node `>=22.15.1`
+- `pnpm` `>=10`
 
-## Environment variables
+### Install
 
-Read: [Env Documentation](packages/env/README.md)
+```bash
+pnpm install
+```
 
-## Boilerplate structure <a name="structure"></a>
+### Start development build
 
-### Chrome extension <a name="structure-chrome-extension"></a>
+```bash
+pnpm dev
+```
 
-The extension lives in the `chrome-extension` directory and includes the following files:
+### Production build
 
-- [`manifest.ts`](chrome-extension/manifest.ts) - script that outputs the `manifest.json`
-- [`src/background`](chrome-extension/src/background) - [background script](https://developer.chrome.com/docs/extensions/mv3/background_pages/)
-  (`background.service_worker` in manifest.json)
-- [`public`](chrome-extension/public/) - icons referenced in the manifest; content CSS for user's page injection
+```bash
+pnpm build
+```
 
-> [!IMPORTANT]
-> To facilitate development, the boilerplate is configured to "Read and change all your data on all websites".
-> In production, it's best practice to limit the premissions to only the strictly necessary websites. See
-> [Declaring permissions](https://developer.chrome.com/docs/extensions/develop/concepts/declare-permissions)
-> and edit `manifest.js` accordingly.
+### Load unpacked in Chrome
 
-### Pages <a name="structure-pages"></a>
+1. Open `chrome://extensions`
+2. Enable `Developer mode`
+3. Click `Load unpacked`
+4. Select the repo's `dist` directory
 
-Code that is transpiled to be part of the extension lives in the [pages](pages) directory.
+## How to Use
 
-- [`content`](pages/content) - Scripts injected into specified pages (You can see it in console)
-- [`content-ui`](pages/content-ui) - React Components injected into specified pages (You can see it at the very bottom of pages)
-- [`content-runtime`](pages/content-runtime/src/) - [injected content scripts](https://developer.chrome.com/docs/extensions/develop/concepts/content-scripts#functionality)
-  This can be injected from e.g. `popup` like standard `content`
-- [`devtools`](pages/devtools/) - [extend the browser DevTools](https://developer.chrome.com/docs/extensions/how-to/devtools/extend-devtools#creating)
-  (`devtools_page` in manifest.json)
-- [`devtools-panel`](pages/devtools-panel/) - [DevTools panel](https://developer.chrome.com/docs/extensions/reference/api/devtools/panels)
-  for [devtools](pages/devtools/src/index.ts)
-- [`new-tab`](pages/new-tab/) - [override the default New Tab page](https://developer.chrome.com/docs/extensions/develop/ui/override-chrome-pages)
-  (`chrome_url_overrides.newtab` in manifest.json)
-- [`options`](pages/options/) - [options page](https://developer.chrome.com/docs/extensions/develop/ui/options-page)
-  (`options_page` in manifest.json)
-- [`popup`](pages/popup/) - [popup](https://developer.chrome.com/docs/extensions/reference/api/action#popup) shown when
-  clicking the extension in the toolbar
-  (`action.default_popup` in manifest.json)
-- [`side-panel`](pages/side-panel/) - [sidepanel (Chrome 114+)](https://developer.chrome.com/docs/extensions/reference/api/sidePanel)
-  (`side_panel.default_path` in manifest.json)
+### Analyze the current page
 
-### Packages <a name="structure-packages"></a>
+1. Open a page containing terms, a contract, a policy, or a license.
+2. Click the Unshafted extension icon.
+3. Click `Analyze this page`.
+4. The popup routes you into the side panel and the quick scan runs automatically.
+5. Confirm the role and priorities.
+6. Run the detailed analysis.
 
-Some shared packages:
+### Upload a contract file
 
-- `dev-utils` - utilities for Chrome extension development (manifest-parser, logger)
-- `env` - exports object which contain all environment variables from `.env` and dynamically declared
-- `hmr` - custom HMR plugin for Vite, injection script for reload/refresh, HMR dev-server
-- `i18n` - custom internationalization package; provides i18n function with type safety and other validation
-- `shared` - shared code for the entire project (types, constants, custom hooks, components etc.)
-- `storage` - helpers for easier integration with [storage](https://developer.chrome.com/docs/extensions/reference/api/storage), e.g. local/session storages
-- `tailwind-config` - shared Tailwind config for entire project
-- `tsconfig` - shared tsconfig for the entire project
-- `ui` - function to merge your Tailwind config with the global one; you can save components here
-- `vite-config` - shared Vite config for the entire project
+1. Open the extension.
+2. Click `Upload .txt` from the popup or side panel.
+3. Choose a local `.txt` file.
+4. The quick scan runs automatically.
+5. Confirm role and priorities, then run the detailed analysis.
 
-Other useful packages:
+### Reopen local history
 
-- `zipper` - run `pnpm zip` to pack the `dist` folder into `extension-YYYYMMDD-HHmmss.zip` inside the newly created
-  `dist-zip`
-- `module-manager` - run `pnpm module-manager` to enable/disable modules
-- `e2e` - run `pnpm e2e` for end-to-end tests of your zipped extension on different browsers
+Completed analyses are cached in `chrome.storage.local`. Open the side panel and use the `Recent history` list to reopen prior results.
 
-## Troubleshooting
+## Prompts and Output Schema
 
-### Hot module reload seems to have frozen
+The reusable prompt and schema layer lives in [packages/unshafted-core/lib/prompts.ts](/Users/abhiroopprasad/code/side-projects/Unshafted/packages/unshafted-core/lib/prompts.ts) and [packages/unshafted-core/lib/schemas.ts](/Users/abhiroopprasad/code/side-projects/Unshafted/packages/unshafted-core/lib/schemas.ts).
 
-If saving source files doesn't cause the extension HMR code to trigger a reload of the browser page, try this:
+Highlights:
 
-1. Ctrl+C the development server and restart it (`pnpm run dev`)
-2. If you get a [`grpc` error](https://github.com/Jonghakseo/chrome-extension-boilerplate-react-vite/issues/612),
-   [kill the
-   `turbo` process](https://github.com/Jonghakseo/chrome-extension-boilerplate-react-vite/issues/612#issuecomment-2518982339)
-   and run `pnpm dev` again.
+- Quick scan prompt:
+  - classify document type
+  - detect parties and likely user roles
+  - flag obvious asymmetry and risk
+- Deep analysis prompt:
+  - reason from the text only
+  - avoid hallucinated citations
+  - separate explicit text from inference
+  - focus on obligations, traps, lock-in, missing protections, and leverage
+- Internal responses are JSON and validated with `zod`
 
-### Imports not resolving correctly
+## Fixtures and Tests
 
-If you are using WSL and imports are not resolving correctly, ensure that you have connected VS Code to WSL remotely using the [Remote - WSL](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-wsl) extension.
+Sample fixture data is included for development and testing:
 
-## Community
+- [packages/unshafted-core/lib/fixtures/sample-contract.ts](/Users/abhiroopprasad/code/side-projects/Unshafted/packages/unshafted-core/lib/fixtures/sample-contract.ts)
 
-To chat with other community members, you can join the [Discord](https://discord.gg/4ERQ6jgV9a) server.
-You can ask questions on that server, and you can also help others.
+Basic core tests:
 
-Also, suggest new features or share any challenges you've faced while developing Chrome extensions!
+```bash
+pnpm -F @extension/unshafted-core test
+```
 
-## Debugging
+## Verification Checklist
 
-If you're debugging one, you can use [Brie](https://go.briehq.com/github?utm_source=CEB) lets you capture screenshots, errors, and network activity, making it easier for us to help.
+### Automated checks
 
-## Reference
+```bash
+pnpm type-check
+pnpm build
+pnpm -F @extension/unshafted-core test
+```
 
-- [Chrome Extensions](https://developer.chrome.com/docs/extensions)
-- [Vite Plugin](https://vitejs.dev/guide/api-plugin.html)
-- [Rollup](https://rollupjs.org/guide/en/)
-- [Turborepo](https://turbo.build/repo/docs)
-- [Rollup-plugin-chrome-extension](https://www.extend-chrome.dev/rollup-plugin)
+### Manual checks
 
-## Star History <a name="star-history"></a>
+- Load the unpacked `dist` directory in Chrome.
+- Test `Analyze this page` on a normal HTML terms page.
+- Test a PDF tab and confirm it explains that only local `.txt` uploads are supported.
+- Upload a local `.txt` file and confirm the side panel opens with a quick scan.
+- Open `Options` and run `Test connection`.
+- If behavior looks wrong, inspect the popup, side panel, or background service worker through `chrome://extensions`.
 
-<a href="https://star-history.com/#Jonghakseo/chrome-extension-boilerplate-react-vite&Date">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=Jonghakseo/chrome-extension-boilerplate-react-vite&type=Date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=Jonghakseo/chrome-extension-boilerplate-react-vite&type=Date" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=Jonghakseo/chrome-extension-boilerplate-react-vite&type=Date" />
- </picture>
-</a>
+## Known Limitations
 
-## Contributors <a name="contributors"></a>
+- No PDF parsing
+- No DOCX parsing
+- No OCR or image support
+- No `.md` upload support
+- No login, billing, or sync
+- Long documents may be analyzed from balanced excerpts instead of the full text
+- Current-page extraction is heuristic and can still be noisy on some websites
+- Local history stores the analysis output and source metadata, not the full raw contract text
 
-This Boilerplate is made possible thanks to all of its contributors.
+## Architecture Notes
 
-<a href="https://github.com/Jonghakseo/chrome-extension-boilerplate-react-vite/graphs/contributors">
-  <img width="500px" src="https://contrib.rocks/image?repo=Jonghakseo/chrome-extension-boilerplate-react-vite" alt="All Contributors"/>
-</a>
+The repo is intentionally kept small now:
 
----
+- `chrome-extension/` holds the manifest and background worker
+- `pages/` only contains the four live entrypoints: `popup`, `options`, `side-panel`, and `content`
+- `packages/unshafted-core` contains the reusable analysis logic that a future web app can lift directly
+- `packages/storage`, `packages/shared`, and `packages/ui` are thin extension helpers, not a generic component platform
 
-## Special Thanks To
+The remaining split exists only where it materially helps reuse:
 
-| <a href="https://jb.gg/OpenSourceSupport"><img width="40" src="https://resources.jetbrains.com/storage/products/company/brand/logos/jb_beam.png" alt="JetBrains Logo (Main) logo."></a> | <a href="https://www.linkedin.com/in/j-acks0n"><img width="40" style="border-radius:50%" src='https://avatars.githubusercontent.com/u/23139754' alt='Jackson Hong'/></a> |
-|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+- `@extension/unshafted-core` contains prompts, schemas, parsing, fixtures, and the OpenRouter client
+- extension entrypoints contain Chrome-specific UX and orchestration
+- `@extension/storage` isolates the local persistence layer so it can later be swapped or mirrored server-side
 
----
+This keeps the future migration path straightforward:
 
-Made by [Jonghakseo](https://jonghakseo.github.io/)
+1. move the shared core into the web app workspace
+2. replace `chrome.storage.local` with backend-backed persistence
+3. keep the prompt and schema contract intact across extension and web surfaces
+
+## Disclaimer
+
+Unshafted is informational only and not legal advice. For critical or high-stakes matters, consult a qualified lawyer.

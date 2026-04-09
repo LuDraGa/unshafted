@@ -1,1 +1,4 @@
-export * from './example-theme-storage.js';
+export * from './unshafted-analysis-storage.js';
+export * from './unshafted-history-storage.js';
+export * from './unshafted-settings-storage.js';
+export * from './unshafted-usage-storage.js';

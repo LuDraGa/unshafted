@@ -1,61 +1,229 @@
 import '@src/Popup.css';
-import { t } from '@extension/i18n';
-import { PROJECT_URL_OBJECT, useStorage, withErrorBoundary, withSuspense } from '@extension/shared';
-import { exampleThemeStorage } from '@extension/storage';
-import { cn, ErrorDisplay, LoadingSpinner, ToggleButton } from '@extension/ui';
+import { buildDocumentFromFile, createCurrentAnalysis } from '@extension/unshafted-core';
+import { extractCurrentPageDocument, getCurrentActiveTab, getTabReadability, openUnshaftedSidePanel, useStorage } from '@extension/shared';
+import {
+  analysisHistoryStorage,
+  currentAnalysisStorage,
+  pendingActionStorage,
+  unshaftedSettingsStorage,
+  usageSnapshotStorage,
+} from '@extension/storage';
+import { cn, ErrorDisplay, LoadingSpinner } from '@extension/ui';
+import { type ChangeEvent, useEffect, useRef, useState } from 'react';
+import { withErrorBoundary, withSuspense } from '@extension/shared';
 
-const notificationOptions = {
-  type: 'basic',
-  iconUrl: chrome.runtime.getURL('icon-34.png'),
-  title: 'Injecting content script error',
-  message: 'You cannot inject script here!',
-} as const;
+type PageState = {
+  title: string;
+  url: string;
+  supported: boolean;
+  statusLabel: 'Checking' | 'Readable' | 'PDF' | 'Unsupported';
+  reason: string;
+};
 
 const Popup = () => {
-  const { isLight } = useStorage(exampleThemeStorage);
-  const logo = isLight ? 'popup/logo_vertical.svg' : 'popup/logo_vertical_dark.svg';
+  const settings = useStorage(unshaftedSettingsStorage);
+  const usage = useStorage(usageSnapshotStorage);
+  const history = useStorage(analysisHistoryStorage);
 
-  const goGithubSite = () => chrome.tabs.create(PROJECT_URL_OBJECT);
+  const [pageState, setPageState] = useState<PageState>({
+    title: 'Checking current page…',
+    url: '',
+    supported: false,
+    statusLabel: 'Checking',
+    reason: '',
+  });
+  const [launchError, setLaunchError] = useState('');
+  const [busyAction, setBusyAction] = useState<'analyze' | 'upload' | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const injectContentScript = async () => {
-    const [tab] = await chrome.tabs.query({ currentWindow: true, active: true });
+  useEffect(() => {
+    void usageSnapshotStorage.syncMonth();
 
-    if (tab.url!.startsWith('about:') || tab.url!.startsWith('chrome:')) {
-      chrome.notifications.create('inject-error', notificationOptions);
-    }
-
-    await chrome.scripting
-      .executeScript({
-        target: { tabId: tab.id! },
-        files: ['/content-runtime/example.iife.js', '/content-runtime/all.iife.js'],
-      })
-      .catch(err => {
-        // Handling errors related to other paths
-        if (err.message.includes('Cannot access a chrome:// URL')) {
-          chrome.notifications.create('inject-error', notificationOptions);
-        }
+    void (async () => {
+      const tab = await getCurrentActiveTab();
+      const readability = await getTabReadability(tab);
+      setPageState({
+        title: tab?.title || 'No active page detected',
+        url: tab?.url || '',
+        supported: readability.supported,
+        statusLabel: readability.label,
+        reason: readability.reason,
       });
+    })();
+  }, []);
+
+  const openOptions = () => chrome.runtime.openOptionsPage();
+
+  const finishLaunch = async () => {
+    await openUnshaftedSidePanel();
+    window.close();
   };
 
+  const handleAnalyzeCurrentPage = async () => {
+    setLaunchError('');
+    setBusyAction('analyze');
+
+    try {
+      if (!settings.apiKey.trim()) {
+        throw new Error('Add your OpenRouter API key in Options before analyzing.');
+      }
+
+      const tab = await getCurrentActiveTab();
+      const readability = await getTabReadability(tab);
+      if (!tab?.id || !readability.supported) {
+        throw new Error(readability.reason || 'This browser page cannot be analyzed directly.');
+      }
+
+      const extracted = await extractCurrentPageDocument(tab.id);
+      if (!extracted.ok) {
+        throw new Error(extracted.error);
+      }
+
+      await currentAnalysisStorage.set(createCurrentAnalysis(extracted.document));
+      await pendingActionStorage.set({
+        type: 'analyze-current-page',
+        requestedAt: new Date().toISOString(),
+      });
+
+      await finishLaunch();
+    } catch (error) {
+      setLaunchError(error instanceof Error ? error.message : 'Unable to start page analysis.');
+    } finally {
+      setBusyAction(null);
+    }
+  };
+
+  const handleUploadFlow = () => {
+    setLaunchError('');
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChosen = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    setLaunchError('');
+    setBusyAction('upload');
+
+    try {
+      const document = await buildDocumentFromFile(file);
+      await currentAnalysisStorage.set(createCurrentAnalysis(document));
+      await pendingActionStorage.set({ type: 'none' });
+      await finishLaunch();
+    } catch (error) {
+      setLaunchError(error instanceof Error ? error.message : 'Unable to open this file.');
+    } finally {
+      event.target.value = '';
+      setBusyAction(null);
+    }
+  };
+
+  const lastAnalysis = history[0];
+  const hasApiKey = Boolean(settings.apiKey.trim());
+
   return (
-    <div className={cn('App', isLight ? 'bg-slate-50' : 'bg-gray-800')}>
-      <header className={cn('App-header', isLight ? 'text-gray-900' : 'text-gray-100')}>
-        <button onClick={goGithubSite}>
-          <img src={chrome.runtime.getURL(logo)} className="App-logo" alt="logo" />
-        </button>
-        <p>
-          Edit <code>pages/popup/src/Popup.tsx</code>
-        </p>
-        <button
-          className={cn(
-            'mt-4 rounded px-4 py-1 font-bold shadow hover:scale-105',
-            isLight ? 'bg-blue-200 text-black' : 'bg-gray-700 text-white',
-          )}
-          onClick={injectContentScript}>
-          {t('injectButton')}
-        </button>
-        <ToggleButton>{t('toggleTheme')}</ToggleButton>
-      </header>
+    <div className="popup-shell">
+      <div className="popup-frame">
+        <input ref={fileInputRef} type="file" accept=".txt,text/plain" className="hidden" onChange={handleFileChosen} />
+        <div className="space-y-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="space-y-1">
+              <p className="popup-eyebrow">Unshafted</p>
+              <h1 className="popup-title">Contract risk, without the fog.</h1>
+              <p className="popup-subtitle">Analyze the current page or upload a clean local `.txt` contract into the side panel.</p>
+            </div>
+            <div
+              className={cn(
+                'rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]',
+                hasApiKey ? 'bg-emerald-100 text-emerald-800' : 'bg-stone-200 text-stone-700',
+              )}>
+              {hasApiKey ? 'Ready' : 'Setup'}
+            </div>
+          </div>
+
+          <section className="popup-card">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 space-y-1">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500">Current page</p>
+                <p className="line-clamp-2 text-sm font-semibold text-stone-900">{pageState.title}</p>
+                <p className="line-clamp-1 text-xs text-stone-500">{pageState.url || 'Open a terms page, agreement, or license to analyze it.'}</p>
+              </div>
+              <span
+                className={cn(
+                  'rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]',
+                  pageState.supported
+                    ? 'bg-stone-900 text-stone-50'
+                    : pageState.statusLabel === 'PDF'
+                      ? 'bg-amber-100 text-amber-800'
+                      : 'bg-stone-200 text-stone-600',
+                )}>
+                {pageState.statusLabel}
+              </span>
+            </div>
+            {!pageState.supported && pageState.reason ? <p className="mt-3 text-xs text-stone-600">{pageState.reason}</p> : null}
+
+            <div className="mt-4 grid gap-2">
+              <button
+                className="popup-primary-button"
+                onClick={handleAnalyzeCurrentPage}
+                disabled={!pageState.supported || busyAction !== null || !hasApiKey}>
+                {busyAction === 'analyze' ? 'Preparing page…' : 'Analyze this page'}
+              </button>
+              <button className="popup-secondary-button" onClick={handleUploadFlow} disabled={busyAction !== null}>
+                {busyAction === 'upload' ? 'Loading contract…' : 'Upload `.txt`'}
+              </button>
+            </div>
+          </section>
+
+          <section className="grid grid-cols-2 gap-3">
+            <div className="popup-card !p-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500">Suggested free quota</p>
+              <p className="mt-2 text-2xl font-semibold text-stone-950">
+                {usage.fullAnalysesUsed}
+                <span className="text-sm text-stone-500"> / {settings.monthlySoftLimit}</span>
+              </p>
+              <p className="mt-1 text-xs text-stone-500">Detailed reviews this month</p>
+            </div>
+
+            <div className="popup-card !p-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500">Last result</p>
+              <p className="mt-2 line-clamp-2 text-sm font-semibold text-stone-900">
+                {lastAnalysis?.source.name ?? 'Nothing yet'}
+              </p>
+              <p className="mt-1 text-xs text-stone-500">
+                {lastAnalysis?.deepAnalysis?.overallRiskLevel ?? lastAnalysis?.quickScan.roughRiskLevel ?? 'Run your first review'}
+              </p>
+            </div>
+          </section>
+
+          {!hasApiKey ? (
+            <section className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              <p className="font-semibold">OpenRouter key required</p>
+              <p className="mt-1 text-amber-800">
+                Save your API key in Options first. The key stays in `chrome.storage.local` for this MVP.
+              </p>
+              <button className="mt-3 popup-link-button" onClick={openOptions}>
+                Open Options
+              </button>
+            </section>
+          ) : null}
+
+          {launchError ? (
+            <section className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+              {launchError}
+            </section>
+          ) : null}
+
+          <div className="flex items-center justify-between text-xs text-stone-500">
+            <p>Informational only. Not legal advice.</p>
+            <button className="popup-link-button" onClick={openOptions}>
+              Options
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

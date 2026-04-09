@@ -16,7 +16,7 @@ const configs = Object.entries(getContentScriptEntries(matchesDir)).map(([name, 
         '@src': srcDir,
       },
     },
-    publicDir: resolve(rootDir, 'public'),
+    publicDir: false,
     plugins: [IS_DEV && makeEntryPointPlugin()],
     build: {
       lib: {
