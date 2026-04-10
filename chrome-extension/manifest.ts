@@ -8,7 +8,6 @@ const manifest = {
   name: '__MSG_extensionName__',
   version: packageJson.version,
   description: '__MSG_extensionDescription__',
-  host_permissions: ['<all_urls>'],
   permissions: ['storage', 'tabs', 'activeTab', 'scripting'],
   options_page: 'options/index.html',
   background: {
@@ -23,13 +22,6 @@ const manifest = {
     '34': 'icon-34.png',
     '128': 'icon-128.png',
   },
-  content_scripts: [
-    {
-      matches: ['<all_urls>'],
-      js: ['content/all.iife.js'],
-      run_at: 'document_idle',
-    },
-  ],
 } satisfies chrome.runtime.ManifestV3;
 
 export default manifest;
