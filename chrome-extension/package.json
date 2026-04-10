@@ -21,8 +21,7 @@
     "@extension/env": "workspace:*",
     "@extension/shared": "workspace:*",
     "@extension/storage": "workspace:*",
-    "@extension/unshafted-core": "workspace:*",
-    "webextension-polyfill": "^0.12.0"
+    "@extension/unshafted-core": "workspace:*"
   },
   "devDependencies": {
     "@extension/hmr": "workspace:*",
