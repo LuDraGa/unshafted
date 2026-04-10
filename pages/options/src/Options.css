@@ -23,22 +23,6 @@
   text-transform: uppercase;
 }
 
-.options-title {
-  margin: 0;
-  color: #1c1917;
-  font-size: clamp(2rem, 4vw, 3.2rem);
-  line-height: 0.95;
-  letter-spacing: -0.06em;
-}
-
-.options-copy {
-  margin: 0;
-  color: #57534e;
-  font-size: 15px;
-  line-height: 1.7;
-  max-width: 48ch;
-}
-
 .options-label {
   color: #44403c;
   font-size: 12px;
@@ -111,4 +95,13 @@
   background: transparent;
   color: #92400e;
   border: 1px solid rgba(180, 83, 9, 0.2);
+}
+
+.options-chevron {
+  font-size: 14px;
+  transition: transform 200ms ease;
+}
+
+.options-advanced[open] .options-chevron {
+  transform: rotate(180deg);
 }

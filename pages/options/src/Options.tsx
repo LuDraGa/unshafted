@@ -171,59 +171,84 @@ const Options = () => {
 
   return (
     <div className="options-shell">
-      <div className="mx-auto max-w-4xl px-6 py-12">
-        <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-          <section className="options-panel">
-            <div className="space-y-3">
-              <p className="options-eyebrow">Unshafted setup</p>
-              <h1 className="options-title">Keep the setup small. Keep the output sharp.</h1>
-              <p className="options-copy">
-                This MVP stores your API key and model choices locally in the extension. No account, backend, or cloud sync yet.
-              </p>
+      <div className="mx-auto max-w-lg px-6 py-12">
+        <section className="options-panel">
+          <div className="space-y-4">
+            <p className="options-eyebrow">Unshafted</p>
+            <hr className="border-stone-200" />
+          </div>
+
+          <div className="mt-8 grid gap-5">
+            {/* Provider toggle */}
+            <div className="grid gap-2">
+              <span className="options-label">Provider</span>
+              <div className="flex gap-2">
+                {(['openrouter', 'openai'] as const).map(p => (
+                  <button
+                    key={p}
+                    type="button"
+                    className={cn(
+                      'rounded-xl px-4 py-2.5 text-sm font-semibold transition',
+                      form.provider === p
+                        ? 'bg-stone-900 text-stone-50'
+                        : 'bg-stone-100 text-stone-700 hover:bg-stone-200',
+                    )}
+                    onClick={() => setField('provider', p)}>
+                    {p === 'openrouter' ? 'OpenRouter' : 'OpenAI'}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            <div className="mt-8 grid gap-5">
-              {/* Provider toggle */}
-              <div className="grid gap-2">
-                <span className="options-label">Provider</span>
-                <div className="flex gap-2">
-                  {(['openrouter', 'openai'] as const).map(p => (
-                    <button
-                      key={p}
-                      type="button"
-                      className={cn(
-                        'rounded-xl px-4 py-2.5 text-sm font-semibold transition',
-                        form.provider === p
-                          ? 'bg-stone-900 text-stone-50'
-                          : 'bg-stone-100 text-stone-700 hover:bg-stone-200',
-                      )}
-                      onClick={() => setField('provider', p)}>
-                      {p === 'openrouter' ? 'OpenRouter' : 'OpenAI'}
-                    </button>
-                  ))}
-                </div>
+            {/* API key */}
+            <label className="grid gap-2">
+              <span className="options-label">{isOpenAI ? 'OpenAI' : 'OpenRouter'} API key</span>
+              <div className="flex gap-3">
+                <input
+                  className="options-input flex-1"
+                  type={showApiKey ? 'text' : 'password'}
+                  value={isOpenAI ? form.openaiApiKey : form.apiKey}
+                  onChange={event => setField(isOpenAI ? 'openaiApiKey' : 'apiKey', event.target.value)}
+                  placeholder={isOpenAI ? 'sk-proj-...' : 'sk-or-...'}
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+                <button className="options-toggle" onClick={() => setShowApiKey(current => !current)} type="button">
+                  {showApiKey ? 'Hide' : 'Show'}
+                </button>
               </div>
+            </label>
+          </div>
 
-              {/* API key */}
-              <label className="grid gap-2">
-                <span className="options-label">{isOpenAI ? 'OpenAI' : 'OpenRouter'} API key</span>
-                <div className="flex gap-3">
-                  <input
-                    className="options-input flex-1"
-                    type={showApiKey ? 'text' : 'password'}
-                    value={isOpenAI ? form.openaiApiKey : form.apiKey}
-                    onChange={event => setField(isOpenAI ? 'openaiApiKey' : 'apiKey', event.target.value)}
-                    placeholder={isOpenAI ? 'sk-proj-...' : 'sk-or-...'}
-                    autoComplete="off"
-                    spellCheck={false}
-                  />
-                  <button className="options-toggle" onClick={() => setShowApiKey(current => !current)} type="button">
-                    {showApiKey ? 'Hide' : 'Show'}
-                  </button>
-                </div>
-              </label>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <button className="options-primary-button" onClick={save} type="button" disabled={isSaving || isTesting}>
+              {isSaving ? 'Saving...' : 'Save settings'}
+            </button>
+            <button className="options-secondary-button" onClick={testConnection} type="button" disabled={isSaving || isTesting}>
+              {isTesting ? 'Testing...' : 'Test connection'}
+            </button>
+          </div>
 
-              {/* Models */}
+          {status.message ? (
+            <div
+              className={cn(
+                'mt-5 rounded-2xl border px-4 py-3 text-sm',
+                status.tone === 'success'
+                  ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+                  : 'border-rose-200 bg-rose-50 text-rose-900',
+              )}>
+              {status.message}
+            </div>
+          ) : null}
+
+          {/* Advanced settings */}
+          <details className="options-advanced mt-8 rounded-2xl border border-stone-200 bg-white/60 p-5">
+            <summary className="cursor-pointer list-none flex items-center justify-between">
+              <span className="options-label">Advanced</span>
+              <span className="options-chevron text-stone-400">&#9662;</span>
+            </summary>
+            <hr className="mt-4 border-stone-200" />
+            <div className="mt-5 grid gap-5">
               <div className="grid gap-5 md:grid-cols-2">
                 <label className="grid gap-2">
                   <span className="options-label">Quick model</span>
@@ -259,93 +284,14 @@ const Options = () => {
                     inputMode="decimal"
                   />
                 </label>
-              ) : (
-                <div className="rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-xs text-stone-600">
-                  GPT-5 models use <strong className="text-stone-900">reasoning effort</strong> instead of temperature.
-                  Quick scan uses low effort, deep analysis uses high effort.
-                </div>
-              )}
-            </div>
+              ) : null}
 
-            <div className="mt-8 flex flex-wrap gap-3">
-              <button className="options-primary-button" onClick={save} type="button" disabled={isSaving || isTesting}>
-                {isSaving ? 'Saving...' : 'Save settings'}
-              </button>
-              <button className="options-secondary-button" onClick={testConnection} type="button" disabled={isSaving || isTesting}>
-                {isTesting ? 'Testing...' : 'Test connection'}
-              </button>
               <button className="options-ghost-button" onClick={resetDefaults} type="button" disabled={isSaving || isTesting}>
                 Reset defaults
               </button>
             </div>
-
-            {status.message ? (
-              <div
-                className={cn(
-                  'mt-5 rounded-2xl border px-4 py-3 text-sm',
-                  status.tone === 'success'
-                    ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
-                    : 'border-rose-200 bg-rose-50 text-rose-900',
-                )}>
-                {status.message}
-              </div>
-            ) : null}
-          </section>
-
-          <aside className="grid gap-5">
-            <section className="options-panel">
-              <p className="options-label">Recommended defaults</p>
-              <ul className="mt-4 space-y-3 text-sm text-stone-700">
-                {isOpenAI ? (
-                  <>
-                    <li>
-                      <strong className="text-stone-950">Quick model:</strong> `gpt-5-nano`
-                    </li>
-                    <li>
-                      <strong className="text-stone-950">Deep model:</strong> `gpt-5.4-pro`
-                    </li>
-                  </>
-                ) : (
-                  <>
-                    <li>
-                      <strong className="text-stone-950">Quick model:</strong> `google/gemma-4-26b-a4b-it:free`
-                    </li>
-                    <li>
-                      <strong className="text-stone-950">Deep model:</strong> `stepfun/step-3.5-flash:free`
-                    </li>
-                  </>
-                )}
-                {isOpenAI ? (
-                  <li>
-                    <strong className="text-stone-950">Reasoning:</strong> low (quick scan), high (deep analysis)
-                  </li>
-                ) : (
-                  <li>
-                    <strong className="text-stone-950">Temperature:</strong> `0.2`
-                  </li>
-                )}
-              </ul>
-            </section>
-
-            <section className="options-panel">
-              <p className="options-label">What the extension stores locally</p>
-              <ul className="mt-4 space-y-3 text-sm text-stone-700">
-                <li>Your API key and model settings ({isOpenAI ? 'OpenAI' : 'OpenRouter'}).</li>
-                <li>The active analysis session plus a short local history.</li>
-                <li>A soft monthly counter for detailed analyses.</li>
-              </ul>
-            </section>
-
-            <section className="options-panel">
-              <p className="options-label">Known MVP constraints</p>
-              <ul className="mt-4 space-y-3 text-sm text-stone-700">
-                <li>No PDF, DOCX, OCR, login, or cloud sync yet.</li>
-                <li>Long documents may be analyzed from balanced excerpts instead of full text.</li>
-                <li>The extension is informational only and not legal advice.</li>
-              </ul>
-            </section>
-          </aside>
-        </div>
+          </details>
+        </section>
       </div>
     </div>
   );

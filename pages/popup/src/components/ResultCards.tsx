@@ -101,18 +101,6 @@ const AdvantageCard = ({ item }: { item: PotentialAdvantage }) => (
   </div>
 );
 
-const LockedTeaser = ({ title, copy }: { title: string; copy: string }) => (
-  <div className="rounded-2xl border border-stone-200 bg-stone-100/80 p-3 opacity-90">
-    <div className="flex items-center justify-between gap-2">
-      <p className="text-sm font-semibold text-stone-900">{title}</p>
-      <span className="rounded-full bg-stone-200 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-700">
-        Later
-      </span>
-    </div>
-    <p className="mt-1.5 text-xs leading-5 text-stone-600">{copy}</p>
-  </div>
-);
-
 type ResultsViewRecord = Pick<CurrentAnalysis, 'quickScan' | 'deepAnalysis' | 'selectedRole' | 'customRole'> | HistoryRecord;
 
 export const ResultsView = ({ record }: { record: ResultsViewRecord }) => {
@@ -315,14 +303,6 @@ export const ResultsView = ({ record }: { record: ResultsViewRecord }) => {
             </div>
           ))}
         </div>
-      </section>
-
-      {/* Next layers */}
-      <section className="popup-card space-y-3">
-        <SectionHeader title="Next layers" subtitle="Not in the MVP yet." />
-        <LockedTeaser title="Regional context" copy="Later, this will flag when local rules might soften a harsh clause." />
-        <LockedTeaser title="Follow-up Q&A" copy="Later, you can ask clause-specific questions against the saved agreement." />
-        <LockedTeaser title="Clause-by-clause redline" copy="Later, this can generate granular fallback wording." />
       </section>
 
       <section className="rounded-2xl border border-stone-200 bg-white/70 px-3 py-3 text-[11px] text-stone-600">

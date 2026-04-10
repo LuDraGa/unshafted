@@ -2,13 +2,12 @@
 
 Unshafted is a Chrome extension MVP that reads contracts, licenses, and terms from the user's side of the table. It runs a fast first-pass scan, lets the user confirm the role they care about, and then produces a sharper role-aware analysis with risk, missing protections, negotiation ideas, and plain-English guidance.
 
-This repo builds the extension only. There is no backend, auth, billing, or web app in this MVP. Everything stays local except the OpenRouter API calls used for analysis.
+This repo builds the extension only. There is no backend, auth, billing, or web app in this MVP. Everything stays local except the API calls used for analysis.
 
 ## Working Doctrine
 
 - Local first: the product accepts only local `.txt` files for uploads.
-- Browser detection is only for UX: if the current tab is a PDF or browser viewer, the extension explains the limitation and points to external conversion.
-- One primary action per screen: analyze the current page, upload a file, or read the result.
+- One primary action: upload a file, scan it, analyze it.
 - Two-stage analysis: quick scan first, deep analysis second.
 - Practical output over legal theater: explain the risk, the missing protection, and the leverage in plain language.
 - Keep the surface small: no login, billing, sync, web app, or speculative feature branches in the MVP.
@@ -30,12 +29,11 @@ This repo builds the extension only. There is no backend, auth, billing, or web 
 - Turborepo-based extension scaffold
 - `zod` for schema validation
 - `chrome.storage.local` for local settings, history, session state, and usage counters
-- OpenRouter for quick and deep model calls
+- OpenRouter / OpenAI for quick and deep model calls
 
 ## MVP Features
 
-- Analyze current webpage text through a content script extractor
-- Upload local `.txt` files only
+- Upload local `.txt` files
 - Automatic quick scan:
   - probable document type
   - detected parties
@@ -53,35 +51,36 @@ This repo builds the extension only. There is no backend, auth, billing, or web 
   - negotiation ideas
   - suggested edits in plain English
   - questions to ask before signing
-  - “could shaft you later”
-  - “potential advantage for you”
+  - "could shaft you later"
+  - "potential advantage for you"
   - clause reference notes
 - Local history for the last few completed analyses
-- Options page for OpenRouter API key, quick model, deep model, and connection testing
+- Options page for API key, provider toggle (OpenRouter / OpenAI), model selection, and connection testing
 - Demo contract fixture for UI testing without starting from a real contract
 
 ## Project Structure
 
-- [chrome-extension/manifest.ts](/Users/abhiroopprasad/code/side-projects/Unshafted/chrome-extension/manifest.ts): MV3 manifest source
-- [chrome-extension/src/background/index.ts](/Users/abhiroopprasad/code/side-projects/Unshafted/chrome-extension/src/background/index.ts): service worker startup and usage sync
-- [pages/popup/src/Popup.tsx](/Users/abhiroopprasad/code/side-projects/Unshafted/pages/popup/src/Popup.tsx): compact launcher UI
-- [pages/side-panel/src/SidePanel.tsx](/Users/abhiroopprasad/code/side-projects/Unshafted/pages/side-panel/src/SidePanel.tsx): main product surface
-- [pages/options/src/Options.tsx](/Users/abhiroopprasad/code/side-projects/Unshafted/pages/options/src/Options.tsx): local settings and connection test
-- [pages/content/src/matches/all/index.ts](/Users/abhiroopprasad/code/side-projects/Unshafted/pages/content/src/matches/all/index.ts): current-page text extraction
-- [pages/side-panel/src/lib/analysis-workflow.ts](/Users/abhiroopprasad/code/side-projects/Unshafted/pages/side-panel/src/lib/analysis-workflow.ts): extension-side orchestration for quick and deep analysis
-- [packages/unshafted-core/lib](/Users/abhiroopprasad/code/side-projects/Unshafted/packages/unshafted-core/lib): reusable prompts, schemas, OpenRouter client, fixtures, and helpers intended to be portable to the future web app
-- [packages/storage/lib/impl](/Users/abhiroopprasad/code/side-projects/Unshafted/packages/storage/lib/impl): local settings, history, usage, and session stores
+- `chrome-extension/manifest.ts` — MV3 manifest source
+- `chrome-extension/src/background/index.ts` — service worker startup and usage sync
+- `pages/popup/src/Popup.tsx` — full product surface: upload, analysis workspace, and results
+- `pages/popup/src/components/AnalysisWorkspace.tsx` — analysis workspace UI (quick scan, role selection, deep analysis, results)
+- `pages/popup/src/components/ResultCards.tsx` — deep analysis result rendering
+- `pages/options/src/Options.tsx` — settings page (provider, API key, model config, connection test)
+- `pages/content/src/matches/all/index.ts` — content script for page text extraction
+- `packages/shared/lib/utils/analysis-workflow.ts` — orchestration for quick scan and deep analysis
+- `packages/unshafted-core/lib/` — reusable prompts, schemas, OpenRouter client, fixtures, and helpers
+- `packages/storage/lib/impl/` — local settings, history, usage, and session stores
 
 ## OpenRouter Setup
 
-The extension expects a user-supplied OpenRouter API key.
+The extension supports OpenRouter and OpenAI as providers. Set your preferred provider and API key in the Options page.
 
-1. Create or use an OpenRouter account.
+1. Create or use an OpenRouter (or OpenAI) account.
 2. Generate an API key.
 3. Load the extension in Chrome.
-4. Open `Options`.
-5. Paste the API key and save.
-6. Optionally adjust the quick and deep model IDs.
+4. Open Options.
+5. Select your provider, paste the API key, and save.
+6. Optionally open Advanced to adjust model IDs.
 
 For local seeded defaults in this scaffold, use:
 
@@ -89,13 +88,13 @@ For local seeded defaults in this scaffold, use:
 CEB_OPENROUTER_API_KEY=your_key_here
 ```
 
-Recommended defaults in this repo:
+Recommended defaults:
 
 - Quick model: `google/gemma-4-26b-a4b-it:free`
 - Deep model: `stepfun/step-3.5-flash:free`
 - Temperature: `0.2`
 
-The options page also includes a `Test connection` action.
+The Options page includes a `Test connection` action.
 
 ## Install and Run
 
@@ -131,30 +130,16 @@ pnpm build
 
 ## How to Use
 
-### Analyze the current page
-
-1. Open a page containing terms, a contract, a policy, or a license.
-2. Click the Unshafted extension icon.
-3. Click `Analyze this page`.
-4. The popup routes you into the side panel and the quick scan runs automatically.
-5. Confirm the role and priorities.
-6. Run the detailed analysis.
-
-### Upload a contract file
-
-1. Open the extension.
-2. Click `Upload .txt` from the popup or side panel.
-3. Choose a local `.txt` file.
-4. The quick scan runs automatically.
-5. Confirm role and priorities, then run the detailed analysis.
-
-### Reopen local history
-
-Completed analyses are cached in `chrome.storage.local`. Open the side panel and use the `Recent history` list to reopen prior results.
+1. Click the Unshafted extension icon to open the popup.
+2. Click `Upload your contract` and choose a local `.txt` file.
+3. The quick scan runs automatically — review document type, parties, and risk flags.
+4. Confirm your role and priority topics.
+5. Click `Run detailed analysis` for the full breakdown.
+6. Use `Start fresh` to clear and upload another contract.
 
 ## Prompts and Output Schema
 
-The reusable prompt and schema layer lives in [packages/unshafted-core/lib/prompts.ts](/Users/abhiroopprasad/code/side-projects/Unshafted/packages/unshafted-core/lib/prompts.ts) and [packages/unshafted-core/lib/schemas.ts](/Users/abhiroopprasad/code/side-projects/Unshafted/packages/unshafted-core/lib/schemas.ts).
+The reusable prompt and schema layer lives in `packages/unshafted-core/lib/prompts.ts` and `packages/unshafted-core/lib/schemas.ts`.
 
 Highlights:
 
@@ -173,7 +158,7 @@ Highlights:
 
 Sample fixture data is included for development and testing:
 
-- [packages/unshafted-core/lib/fixtures/sample-contract.ts](/Users/abhiroopprasad/code/side-projects/Unshafted/packages/unshafted-core/lib/fixtures/sample-contract.ts)
+- `packages/unshafted-core/lib/fixtures/sample-contract.ts`
 
 Basic core tests:
 
@@ -194,11 +179,11 @@ pnpm -F @extension/unshafted-core test
 ### Manual checks
 
 - Load the unpacked `dist` directory in Chrome.
-- Test `Analyze this page` on a normal HTML terms page.
-- Test a PDF tab and confirm it explains that only local `.txt` uploads are supported.
-- Upload a local `.txt` file and confirm the side panel opens with a quick scan.
-- Open `Options` and run `Test connection`.
-- If behavior looks wrong, inspect the popup, side panel, or background service worker through `chrome://extensions`.
+- Click the extension icon — should show the upload launcher.
+- Upload a local `.txt` file — quick scan should run automatically.
+- Confirm role and priorities, then run the detailed analysis.
+- Open Options and run `Test connection`.
+- If behavior looks wrong, inspect the popup or background service worker through `chrome://extensions`.
 
 ## Known Limitations
 
@@ -208,29 +193,29 @@ pnpm -F @extension/unshafted-core test
 - No `.md` upload support
 - No login, billing, or sync
 - Long documents may be analyzed from balanced excerpts instead of the full text
-- Current-page extraction is heuristic and can still be noisy on some websites
 - Local history stores the analysis output and source metadata, not the full raw contract text
 
 ## Architecture Notes
 
-The repo is intentionally kept small now:
+The repo is intentionally kept small:
 
 - `chrome-extension/` holds the manifest and background worker
-- `pages/` only contains the four live entrypoints: `popup`, `options`, `side-panel`, and `content`
+- `pages/` contains the three live entrypoints: `popup`, `options`, and `content`
+- The popup is the full product surface — upload, analysis workspace, and results all render inline in the popup
 - `packages/unshafted-core` contains the reusable analysis logic that a future web app can lift directly
 - `packages/storage`, `packages/shared`, and `packages/ui` are thin extension helpers, not a generic component platform
 
 The remaining split exists only where it materially helps reuse:
 
 - `@extension/unshafted-core` contains prompts, schemas, parsing, fixtures, and the OpenRouter client
-- extension entrypoints contain Chrome-specific UX and orchestration
+- Extension entrypoints contain Chrome-specific UX and orchestration
 - `@extension/storage` isolates the local persistence layer so it can later be swapped or mirrored server-side
 
 This keeps the future migration path straightforward:
 
-1. move the shared core into the web app workspace
-2. replace `chrome.storage.local` with backend-backed persistence
-3. keep the prompt and schema contract intact across extension and web surfaces
+1. Move the shared core into the web app workspace
+2. Replace `chrome.storage.local` with backend-backed persistence
+3. Keep the prompt and schema contract intact across extension and web surfaces
 
 ## Disclaimer
 

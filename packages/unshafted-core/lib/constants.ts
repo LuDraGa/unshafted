@@ -44,19 +44,6 @@ export const PRIORITY_OPTIONS = [
   'Data/Privacy',
 ] as const;
 
-export const CONVERTER_LINKS = [
-  {
-    label: 'PDF to Markdown',
-    description: 'Convert a PDF into Markdown first when the source is a PDF contract or license.',
-    url: 'https://pdf.ai/tools/pdf-to-markdown',
-  },
-  {
-    label: 'Markdown to Text',
-    description: 'Convert the Markdown output into a plain `.txt` file, then upload that local text file.',
-    url: 'https://cloudconvert.com/md-to-txt',
-  },
-] as const;
-
 export const DISCLAIMER_LINE =
   'This is guidance to help you understand the agreement, not legal advice. For high-stakes matters, consult a qualified lawyer.';
 

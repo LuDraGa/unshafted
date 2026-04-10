@@ -28,11 +28,7 @@ const formatTimestamp = (iso: string) =>
 
 import { createHistoryRecord } from '@extension/unshafted-core';
 
-type Props = {
-  onBack: () => void;
-};
-
-export const AnalysisWorkspace = ({ onBack }: Props) => {
+export const AnalysisWorkspace = () => {
   const settings = useStorage(unshaftedSettingsStorage);
   const currentAnalysis = useStorage(currentAnalysisStorage);
 
@@ -132,12 +128,7 @@ export const AnalysisWorkspace = ({ onBack }: Props) => {
   };
 
   if (!currentAnalysis) {
-    return (
-      <div className="space-y-3">
-        <p className="text-sm text-stone-600">No analysis loaded.</p>
-        <button className="popup-secondary-button" onClick={onBack}>Back</button>
-      </div>
-    );
+    return null;
   }
 
   const roleOptions = buildRoleOptions(currentAnalysis.quickScan ?? null);
@@ -146,8 +137,7 @@ export const AnalysisWorkspace = ({ onBack }: Props) => {
   return (
     <div className="space-y-3">
       {/* Top bar */}
-      <div className="flex items-center justify-between gap-2">
-        <button className="popup-link-button" onClick={onBack}>&larr; Back</button>
+      <div className="flex items-center justify-end">
         <button className="popup-link-button" onClick={() => void setCurrent(null)}>Start fresh</button>
       </div>
 
