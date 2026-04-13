@@ -131,6 +131,9 @@ export const buildRoleOptions = (quickScan: QuickScanResult | null): string[] =>
 
 export const createMonthKey = (date = new Date()): string => `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
 
+export const createDayKey = (date = new Date()): string =>
+  `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
+
 export const clampHistory = (records: HistoryRecord[]): HistoryRecord[] =>
   [...records].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, HISTORY_LIMIT);
 

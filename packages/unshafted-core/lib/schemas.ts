@@ -209,4 +209,6 @@ export const PendingActionSchema = z.object({
 export const UsageSnapshotSchema = z.object({
   monthKey: z.string().min(1),
   fullAnalysesUsed: z.number().int().nonnegative().default(0),
+  dayKey: z.string().min(1).default(''),
+  quickScansToday: z.number().int().nonnegative().default(0),
 });

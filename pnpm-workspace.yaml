@@ -8,6 +8,7 @@ packages:
   - packages/hmr
   - packages/shared
   - packages/storage
+  - packages/supabase
   - packages/tsconfig
   - packages/ui
   - packages/unshafted-core
