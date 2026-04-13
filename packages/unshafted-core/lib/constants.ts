@@ -12,7 +12,7 @@ export const DEFAULT_OPENAI_DEEP_MODEL = 'gpt-5.4';
 export const DEFAULT_TEMPERATURE = 0.2;
 export const DEFAULT_MONTHLY_SOFT_LIMIT = 3;
 
-export const QUICK_SCAN_CHAR_LIMIT = 18_000;
+export const QUICK_SCAN_CHAR_LIMIT = 20_000;
 export const DEEP_ANALYSIS_CHAR_LIMIT = 42_000;
 export const HISTORY_LIMIT = 6;
 export const PREVIEW_CHAR_LIMIT = 1_600;
