@@ -6,6 +6,7 @@ import {
   QUICK_SCAN_CHAR_LIMIT,
   ROLE_FALLBACKS,
 } from './constants.js';
+import { extractTextFromPdf } from './pdf.js';
 import { IngestedDocumentSchema } from './schemas.js';
 import type { HistoryRecord, IngestedDocument, QuickScanResult } from './types.js';
 
@@ -23,20 +24,28 @@ export const estimateTokens = (text: string): number => Math.ceil(text.length / 
 
 export const buildDocumentFromFile = async (file: File): Promise<IngestedDocument> => {
   const extension = file.name.split('.').pop()?.toLowerCase();
-  if (extension !== 'txt') {
-    throw new Error(
-      'Only local `.txt` files are supported. If you have a PDF, convert PDF -> Markdown, then Markdown -> TXT, and upload the resulting `.txt` file.',
-    );
+
+  let rawText: string;
+  const extraWarnings: string[] = [];
+
+  if (extension === 'txt') {
+    rawText = await file.text();
+  } else if (extension === 'pdf') {
+    const buffer = await file.arrayBuffer();
+    const result = await extractTextFromPdf(buffer);
+    rawText = result.text;
+    extraWarnings.push(...result.warnings);
+  } else {
+    throw new Error('Only `.txt` and `.pdf` files are supported.');
   }
 
-  const rawText = await file.text();
   const text = normalizeDocumentText(rawText);
 
   if (!text) {
     throw new Error('The uploaded file is empty.');
   }
 
-  const warnings: string[] = [];
+  const warnings: string[] = [...extraWarnings];
   if (text.length < 1200) {
     warnings.push('This file looks short for a contract. The analysis may have limited context.');
   }
