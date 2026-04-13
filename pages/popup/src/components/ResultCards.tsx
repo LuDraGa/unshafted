@@ -41,6 +41,31 @@ export const SectionHeader = ({ title, subtitle }: { title: string; subtitle?: s
   </div>
 );
 
+/** Reusable accordion for deep analysis sections */
+const ResultAccordion = ({
+  title,
+  count,
+  severity,
+  children,
+}: {
+  title: string;
+  count?: number;
+  severity?: 'low' | 'medium' | 'high';
+  children: React.ReactNode;
+}) => (
+  <details className="popup-accordion">
+    <summary>
+      <span>{title}</span>
+      {count !== undefined ? (
+        <span className={cn('popup-accordion-count', severity === 'high' && 'severity-high', severity === 'medium' && 'severity-medium')}>
+          {count}
+        </span>
+      ) : null}
+    </summary>
+    <div className="popup-accordion-body">{children}</div>
+  </details>
+);
+
 const FindingDetails = ({ item }: { item: DetailedFinding }) => (
   <details className="group rounded-2xl border border-stone-200 bg-white/80 p-3">
     <summary className="flex cursor-pointer list-none items-start justify-between gap-2">
@@ -101,6 +126,12 @@ const AdvantageCard = ({ item }: { item: PotentialAdvantage }) => (
   </div>
 );
 
+/** Helper: highest severity in a list of findings */
+const maxSeverity = (items: { severity: 'low' | 'medium' | 'high' }[]): 'low' | 'medium' | 'high' => {
+  const order = { low: 0, medium: 1, high: 2 } as const;
+  return items.reduce<'low' | 'medium' | 'high'>((max, item) => (order[item.severity] > order[max] ? item.severity : max), 'low');
+};
+
 type ResultsViewRecord = Pick<CurrentAnalysis, 'quickScan' | 'deepAnalysis' | 'selectedRole' | 'customRole'> | HistoryRecord;
 
 export const ResultsView = ({ record }: { record: ResultsViewRecord }) => {
@@ -115,8 +146,8 @@ export const ResultsView = ({ record }: { record: ResultsViewRecord }) => {
   const reviewedAs = 'customRole' in record && record.customRole.trim() ? record.customRole : record.selectedRole;
 
   return (
-    <div className="space-y-4">
-      {/* Verdict banner */}
+    <div className="space-y-3">
+      {/* Verdict banner — always visible */}
       <section className="popup-card !border-stone-950 !bg-stone-950 !text-stone-50">
         <div className="space-y-2">
           <RiskBadge label={tone} />
@@ -139,101 +170,83 @@ export const ResultsView = ({ record }: { record: ResultsViewRecord }) => {
         </section>
       ) : null}
 
-      {/* Immediate worries */}
-      <section className="popup-card space-y-3">
-        <SectionHeader title="What should immediately worry you" />
-        {deep.immediateWorries.length > 0 ? (
-          deep.immediateWorries.map(item => <FindingDetails key={item.title} item={item} />)
-        ) : (
-          <p className="text-xs text-stone-600">No immediate red alert stood out beyond the general concerns below.</p>
-        )}
-      </section>
+      {/* Accordion sections — empty sections are omitted */}
 
-      {/* One-sided clauses */}
-      <section className="popup-card space-y-3">
-        <SectionHeader title="One-sided or unfavorable clauses" />
-        {deep.oneSidedClauses.length > 0 ? (
-          deep.oneSidedClauses.map(item => <FindingDetails key={item.title} item={item} />)
-        ) : (
-          <p className="text-xs text-stone-600">The model did not flag strongly one-sided clauses here.</p>
-        )}
-      </section>
+      {deep.immediateWorries.length > 0 ? (
+        <ResultAccordion title="Immediate worries" count={deep.immediateWorries.length} severity={maxSeverity(deep.immediateWorries)}>
+          <div className="space-y-2">
+            {deep.immediateWorries.map(item => <FindingDetails key={item.title} item={item} />)}
+          </div>
+        </ResultAccordion>
+      ) : null}
 
-      {/* Missing protections */}
-      <section className="popup-card space-y-3">
-        <SectionHeader title="Missing protections" subtitle="Guardrails that should probably exist but do not." />
-        {deep.missingProtections.length > 0 ? (
-          deep.missingProtections.map(item => <MissingProtectionCard key={item.title} item={item} />)
-        ) : (
-          <p className="text-xs text-stone-600">No obvious missing protections were identified.</p>
-        )}
-      </section>
+      {deep.oneSidedClauses.length > 0 ? (
+        <ResultAccordion title="One-sided clauses" count={deep.oneSidedClauses.length} severity={maxSeverity(deep.oneSidedClauses)}>
+          <div className="space-y-2">
+            {deep.oneSidedClauses.map(item => <FindingDetails key={item.title} item={item} />)}
+          </div>
+        </ResultAccordion>
+      ) : null}
 
-      {/* Timing & lock-in */}
-      <section className="popup-card space-y-3">
-        <SectionHeader title="Deadlines, renewals, lock-ins, termination" />
-        {deep.timingAndLockIn.length > 0 ? (
-          deep.timingAndLockIn.map(item => <FindingDetails key={item.title} item={item} />)
-        ) : (
-          <p className="text-xs text-stone-600">No material lock-in or timing trap stood out.</p>
-        )}
-      </section>
+      {deep.missingProtections.length > 0 ? (
+        <ResultAccordion title="Missing protections" count={deep.missingProtections.length}>
+          <div className="space-y-2">
+            {deep.missingProtections.map(item => <MissingProtectionCard key={item.title} item={item} />)}
+          </div>
+        </ResultAccordion>
+      ) : null}
 
-      {/* Topic concerns */}
-      <section className="popup-card space-y-3">
-        <SectionHeader title="Core concerns" subtitle="Payment, liability, IP, confidentiality, dispute" />
-        {deep.topicConcerns.length > 0 ? (
-          <div className="space-y-3">
-            {deep.topicConcerns.map(item => (
-              <TopicConcernCard key={`${item.category}-${item.title}`} item={item} />
+      {deep.timingAndLockIn.length > 0 ? (
+        <ResultAccordion title="Deadlines, renewals, lock-ins" count={deep.timingAndLockIn.length} severity={maxSeverity(deep.timingAndLockIn)}>
+          <div className="space-y-2">
+            {deep.timingAndLockIn.map(item => <FindingDetails key={item.title} item={item} />)}
+          </div>
+        </ResultAccordion>
+      ) : null}
+
+      {deep.topicConcerns.length > 0 ? (
+        <ResultAccordion title="Core concerns" count={deep.topicConcerns.length} severity={maxSeverity(deep.topicConcerns)}>
+          <div className="space-y-2">
+            {deep.topicConcerns.map(item => <TopicConcernCard key={`${item.category}-${item.title}`} item={item} />)}
+          </div>
+        </ResultAccordion>
+      ) : null}
+
+      {deep.negotiationIdeas.length > 0 ? (
+        <ResultAccordion title="Negotiation ideas" count={deep.negotiationIdeas.length}>
+          <div className="space-y-2">
+            {deep.negotiationIdeas.map(item => (
+              <div key={item.ask} className="rounded-2xl border border-stone-200 bg-white/80 p-3">
+                <p className="text-sm font-semibold text-stone-950">{item.ask}</p>
+                <p className="mt-1.5 text-xs leading-5 text-stone-700">{item.why}</p>
+                {item.fallback ? (
+                  <p className="mt-2 text-xs text-stone-600">
+                    <span className="font-semibold text-stone-900">Fallback:</span> {item.fallback}
+                  </p>
+                ) : null}
+                {item.targetClause ? <p className="mt-2 text-[11px] text-stone-500">Target clause: {item.targetClause}</p> : null}
+              </div>
             ))}
           </div>
-        ) : (
-          <p className="text-xs text-stone-600">No extra category-level concerns were returned.</p>
-        )}
-      </section>
+        </ResultAccordion>
+      ) : null}
 
-      {/* Negotiation ideas */}
-      <section className="popup-card space-y-3">
-        <SectionHeader title="What you can try to negotiate" />
-        {deep.negotiationIdeas.length > 0 ? (
-          deep.negotiationIdeas.map(item => (
-            <div key={item.ask} className="rounded-2xl border border-stone-200 bg-white/80 p-3">
-              <p className="text-sm font-semibold text-stone-950">{item.ask}</p>
-              <p className="mt-1.5 text-xs leading-5 text-stone-700">{item.why}</p>
-              {item.fallback ? (
-                <p className="mt-2 text-xs text-stone-600">
-                  <span className="font-semibold text-stone-900">Fallback:</span> {item.fallback}
-                </p>
-              ) : null}
-              {item.targetClause ? <p className="mt-2 text-[11px] text-stone-500">Target clause: {item.targetClause}</p> : null}
-            </div>
-          ))
-        ) : (
-          <p className="text-xs text-stone-600">No negotiation ideas were returned.</p>
-        )}
-      </section>
+      {deep.suggestedEdits.length > 0 ? (
+        <ResultAccordion title="Suggested edits" count={deep.suggestedEdits.length}>
+          <div className="space-y-2">
+            {deep.suggestedEdits.map(item => (
+              <div key={item.title} className="rounded-2xl border border-stone-200 bg-white/80 p-3">
+                <p className="text-sm font-semibold text-stone-950">{item.title}</p>
+                <p className="mt-1.5 text-xs leading-5 text-stone-700">{item.plainEnglishEdit}</p>
+                <p className="mt-2 text-xs text-stone-600">{item.why}</p>
+              </div>
+            ))}
+          </div>
+        </ResultAccordion>
+      ) : null}
 
-      {/* Suggested edits */}
-      <section className="popup-card space-y-3">
-        <SectionHeader title="Suggested edits in plain English" />
-        {deep.suggestedEdits.length > 0 ? (
-          deep.suggestedEdits.map(item => (
-            <div key={item.title} className="rounded-2xl border border-stone-200 bg-white/80 p-3">
-              <p className="text-sm font-semibold text-stone-950">{item.title}</p>
-              <p className="mt-1.5 text-xs leading-5 text-stone-700">{item.plainEnglishEdit}</p>
-              <p className="mt-2 text-xs text-stone-600">{item.why}</p>
-            </div>
-          ))
-        ) : (
-          <p className="text-xs text-stone-600">No specific edit suggestions were returned.</p>
-        )}
-      </section>
-
-      {/* Questions to ask */}
-      <section className="popup-card space-y-3">
-        <SectionHeader title="Questions to ask before signing" />
-        {deep.questionsToAsk.length > 0 ? (
+      {deep.questionsToAsk.length > 0 ? (
+        <ResultAccordion title="Questions to ask" count={deep.questionsToAsk.length}>
           <ul className="space-y-2 text-xs leading-5 text-stone-700">
             {deep.questionsToAsk.map(question => (
               <li key={question} className="rounded-2xl border border-stone-200 bg-white/80 px-3 py-2">
@@ -241,69 +254,62 @@ export const ResultsView = ({ record }: { record: ResultsViewRecord }) => {
               </li>
             ))}
           </ul>
-        ) : (
-          <p className="text-xs text-stone-600">No extra diligence questions were returned.</p>
-        )}
-      </section>
+        </ResultAccordion>
+      ) : null}
 
-      {/* Could shaft you later */}
-      <section className="popup-card space-y-3">
-        <SectionHeader title="Could shaft you later" subtitle="Small now, expensive later." />
-        {deep.couldShaftYouLater.length > 0 ? (
-          deep.couldShaftYouLater.map(item => <FindingDetails key={item.title} item={item} />)
-        ) : (
-          <p className="text-xs text-stone-600">No delayed-action traps stood out beyond the main risks.</p>
-        )}
-      </section>
+      {deep.couldShaftYouLater.length > 0 ? (
+        <ResultAccordion title="Could shaft you later" count={deep.couldShaftYouLater.length} severity={maxSeverity(deep.couldShaftYouLater)}>
+          <div className="space-y-2">
+            {deep.couldShaftYouLater.map(item => <FindingDetails key={item.title} item={item} />)}
+          </div>
+        </ResultAccordion>
+      ) : null}
 
-      {/* Advantages */}
-      <section className="popup-card space-y-3">
-        <SectionHeader title="Potential advantage for you" />
-        {deep.potentialAdvantages.length > 0 ? (
-          deep.potentialAdvantages.map(item => <AdvantageCard key={item.title} item={item} />)
-        ) : (
-          <p className="text-xs text-stone-600">No real upside clause stood out. That does happen.</p>
-        )}
-      </section>
+      {deep.potentialAdvantages.length > 0 ? (
+        <ResultAccordion title="Advantages for you" count={deep.potentialAdvantages.length}>
+          <div className="space-y-2">
+            {deep.potentialAdvantages.map(item => <AdvantageCard key={item.title} item={item} />)}
+          </div>
+        </ResultAccordion>
+      ) : null}
 
-      {/* Protection checklist */}
-      <section className="popup-card space-y-3">
-        <SectionHeader title="Protection checklist" />
-        {deep.protectionChecklist.length > 0 ? (
-          deep.protectionChecklist.map(group => (
-            <div key={group.label} className="rounded-2xl border border-stone-200 bg-white/80 p-3">
-              <p className="text-sm font-semibold text-stone-950">{group.label}</p>
-              <ul className="mt-2 space-y-1.5 text-xs leading-5 text-stone-700">
-                {group.items.map(item => (
-                  <li key={item} className="flex gap-2">
-                    <span className="mt-1.5 inline-block h-2 w-2 shrink-0 rounded-full bg-stone-950" />
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))
-        ) : (
-          <p className="text-xs text-stone-600">No checklist items were returned.</p>
-        )}
-      </section>
+      {deep.protectionChecklist.length > 0 ? (
+        <ResultAccordion title="Protection checklist" count={deep.protectionChecklist.reduce((sum, g) => sum + g.items.length, 0)}>
+          <div className="space-y-2">
+            {deep.protectionChecklist.map(group => (
+              <div key={group.label} className="rounded-2xl border border-stone-200 bg-white/80 p-3">
+                <p className="text-sm font-semibold text-stone-950">{group.label}</p>
+                <ul className="mt-2 space-y-1.5 text-xs leading-5 text-stone-700">
+                  {group.items.map(item => (
+                    <li key={item} className="flex gap-2">
+                      <span className="mt-1.5 inline-block h-2 w-2 shrink-0 rounded-full bg-stone-950" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </ResultAccordion>
+      ) : null}
 
-      {/* Clause references */}
-      <section className="popup-card space-y-3">
-        <SectionHeader title="Clause references and caveats" />
-        <div className="space-y-2 text-xs leading-5 text-stone-700">
-          {deep.clauseReferenceNotes.map(note => (
-            <div key={note} className="rounded-2xl border border-stone-200 bg-white/80 px-3 py-2">
-              {note}
-            </div>
-          ))}
-          {deep.assumptionsAndUnknowns.map(note => (
-            <div key={note} className="rounded-2xl border border-stone-200 bg-stone-100/80 px-3 py-2 text-stone-600">
-              {note}
-            </div>
-          ))}
-        </div>
-      </section>
+      {/* Clause references — only if content exists */}
+      {deep.clauseReferenceNotes.length > 0 || deep.assumptionsAndUnknowns.length > 0 ? (
+        <ResultAccordion title="References and caveats" count={deep.clauseReferenceNotes.length + deep.assumptionsAndUnknowns.length}>
+          <div className="space-y-2 text-xs leading-5 text-stone-700">
+            {deep.clauseReferenceNotes.map(note => (
+              <div key={note} className="rounded-2xl border border-stone-200 bg-white/80 px-3 py-2">
+                {note}
+              </div>
+            ))}
+            {deep.assumptionsAndUnknowns.map(note => (
+              <div key={note} className="rounded-2xl border border-stone-200 bg-stone-100/80 px-3 py-2 text-stone-600">
+                {note}
+              </div>
+            ))}
+          </div>
+        </ResultAccordion>
+      ) : null}
 
       <section className="rounded-2xl border border-stone-200 bg-white/70 px-3 py-3 text-[11px] text-stone-600">
         {deep.disclaimer || DISCLAIMER_LINE}

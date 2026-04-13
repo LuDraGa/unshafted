@@ -157,3 +157,140 @@
     transform: rotate(360deg);
   }
 }
+
+/* ── Verdict strip ── */
+.popup-verdict-strip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid rgba(120, 113, 108, 0.18);
+  background: rgba(255, 252, 247, 0.82);
+  border-radius: 16px;
+  padding: 10px 14px;
+  backdrop-filter: blur(12px);
+}
+
+.popup-verdict-strip p {
+  flex: 1;
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: #1c1917;
+}
+
+/* ── Accordion sections ── */
+.popup-accordion {
+  border: 1px solid rgba(120, 113, 108, 0.18);
+  background: rgba(255, 252, 247, 0.82);
+  border-radius: 16px;
+  backdrop-filter: blur(12px);
+  overflow: hidden;
+}
+
+.popup-accordion + .popup-accordion {
+  margin-top: 6px;
+}
+
+.popup-accordion summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  font-size: 12px;
+  font-weight: 700;
+  color: #1c1917;
+}
+
+.popup-accordion summary::-webkit-details-marker {
+  display: none;
+}
+
+.popup-accordion summary::after {
+  content: '';
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  margin-left: auto;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2378716c' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  transition: transform 200ms ease;
+}
+
+.popup-accordion[open] > summary::after {
+  transform: rotate(180deg);
+}
+
+.popup-accordion .popup-accordion-body {
+  padding: 0 14px 12px;
+}
+
+.popup-accordion-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  border-radius: 10px;
+  padding: 0 6px;
+  font-size: 10px;
+  font-weight: 700;
+  background: #e7e5e4;
+  color: #57534e;
+}
+
+.popup-accordion-count.severity-high {
+  background: #fecdd3;
+  color: #9f1239;
+}
+
+.popup-accordion-count.severity-medium {
+  background: #fde68a;
+  color: #92400e;
+}
+
+/* ── Header upload button ── */
+.popup-upload-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(120, 113, 108, 0.22);
+  border-radius: 12px;
+  background: rgba(255, 252, 247, 0.9);
+  cursor: pointer;
+  transition: transform 140ms ease, background 140ms ease;
+  flex-shrink: 0;
+}
+
+.popup-upload-btn:hover {
+  transform: translateY(-1px);
+  background: #ede7dc;
+}
+
+.popup-upload-btn svg {
+  width: 16px;
+  height: 16px;
+  color: #57534e;
+}
+
+/* ── Re-run link (inline) ── */
+.popup-rerun-link {
+  border: 0;
+  background: transparent;
+  color: #78716c;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 0;
+  transition: color 140ms ease;
+}
+
+.popup-rerun-link:hover {
+  color: #92400e;
+}
