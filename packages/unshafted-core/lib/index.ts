@@ -1,5 +1,6 @@
 export * from './constants.js';
 export * from './document.js';
+export * from './pdf.js';
 export * from './fixtures/sample-contract.js';
 export * from './json.js';
 export * from './openrouter.js';

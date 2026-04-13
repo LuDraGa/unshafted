@@ -1,5 +1,7 @@
 import '@src/Popup.css';
-import { buildDocumentFromFile, createCurrentAnalysis } from '@extension/unshafted-core';
+import { buildDocumentFromFile, configurePdfWorker, createCurrentAnalysis } from '@extension/unshafted-core';
+
+configurePdfWorker(chrome.runtime.getURL('popup/pdf.worker.min.mjs'));
 import { useStorage } from '@extension/shared';
 import { currentAnalysisStorage, unshaftedSettingsStorage } from '@extension/storage';
 import { ErrorDisplay, LoadingSpinner } from '@extension/ui';
@@ -47,7 +49,7 @@ const Popup = () => {
   return (
     <div className="popup-shell">
       <div className="popup-frame">
-        <input ref={fileInputRef} type="file" accept=".txt,text/plain" className="hidden" onChange={handleFileChosen} />
+        <input ref={fileInputRef} type="file" accept=".txt,.pdf,text/plain,application/pdf" className="hidden" onChange={handleFileChosen} />
 
         {/* Sticky header */}
         <div className="popup-sticky-header">
@@ -56,7 +58,7 @@ const Popup = () => {
               <p className="popup-eyebrow">Unshafted</p>
               <h1 className="popup-title">Contract risk, without the fog.</h1>
               <p className="popup-subtitle">
-                {currentAnalysis ? currentAnalysis.source.name : 'Upload a `.txt` contract or agreement to review.'}
+                {currentAnalysis ? currentAnalysis.source.name : 'Upload a contract to review (.pdf or .txt).'}
               </p>
             </div>
             <div
