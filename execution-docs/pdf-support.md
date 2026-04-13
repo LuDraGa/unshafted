@@ -1,8 +1,30 @@
 # Execution Doc: PDF Upload Support
 
-**Status:** Not started
+**Status:** Complete (v0.6.0)
 **Date:** 2026-04-13
-**Scope:** Accept `.pdf` files in the upload flow, extract text client-side using `pdf.js`, feed extracted text into the existing analysis pipeline.
+**Scope:** Accept `.pdf` files in the upload flow, extract text client-side using `pdf.js` with structure-aware formatting, feed extracted text into the existing analysis pipeline.
+
+---
+
+## What Was Built
+
+- **Client-side PDF parsing** via `pdfjs-dist` legacy build with explicit worker asset for Chrome MV3 compatibility
+- **Structure-aware text extraction** using font size, font name, x-position, and y-gap signals to preserve:
+  - Heading hierarchy (font size → `##` / `###`)
+  - Bold/label detection (alternate font on short lines → `**text**`)
+  - Indentation levels (x-offset from detected left margin → leading spaces)
+  - Paragraph breaks (y-gap larger than typical line spacing → blank lines)
+- **Edge case handling:** password-protected PDFs, corrupted files, scanned/image-only detection, long document warnings
+- **Quick scan token limit** set to ~5k tokens (20,000 chars) appropriate for smaller extension models
+
+### Known Limitations (Extension)
+- Table data comes through as flat text — row/column structure is lost
+- Font name metadata is often generic (`g_d0_f1`), so bold detection relies on font name *differences* rather than explicit bold flags
+- Scanned/image-only PDFs are not supported (no OCR)
+- Structure heuristics are best-effort — some PDFs with unusual layouts may not format cleanly
+
+### Future: Website PDF→MD Pipeline
+Heavy conversion libraries (Marker, PyMuPDF, pdfplumber) are not feasible in a browser extension but will power the web app's PDF processing. This gives the website a core advantage: full structural fidelity including proper table extraction. See `execution-docs/website-vs-extension.md`.
 
 ---
 

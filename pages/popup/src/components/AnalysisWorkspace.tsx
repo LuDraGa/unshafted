@@ -28,6 +28,33 @@ const formatTimestamp = (iso: string) =>
 
 import { createHistoryRecord } from '@extension/unshafted-core';
 
+/** Reusable accordion section */
+const AccordionSection = ({
+  title,
+  count,
+  severity,
+  defaultOpen = false,
+  children,
+}: {
+  title: string;
+  count?: number;
+  severity?: 'low' | 'medium' | 'high';
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) => (
+  <details className="popup-accordion" open={defaultOpen || undefined}>
+    <summary>
+      <span>{title}</span>
+      {count !== undefined ? (
+        <span className={cn('popup-accordion-count', severity === 'high' && 'severity-high', severity === 'medium' && 'severity-medium')}>
+          {count}
+        </span>
+      ) : null}
+    </summary>
+    <div className="popup-accordion-body">{children}</div>
+  </details>
+);
+
 export const AnalysisWorkspace = () => {
   const settings = useStorage(unshaftedSettingsStorage);
   const currentAnalysis = useStorage(currentAnalysisStorage);
@@ -133,14 +160,15 @@ export const AnalysisWorkspace = () => {
 
   const roleOptions = buildRoleOptions(currentAnalysis.quickScan ?? null);
   const selectedRole = currentAnalysis.customRole?.trim() || currentAnalysis.selectedRole || 'Signer';
+  const quickScan = currentAnalysis.quickScan;
+  const maxFlagSeverity = quickScan?.redFlags.reduce<'low' | 'medium' | 'high'>((max, f) => {
+    const order = { low: 0, medium: 1, high: 2 } as const;
+    return order[f.severity] > order[max] ? f.severity : max;
+  }, 'low');
 
   return (
     <div className="space-y-3">
-      {/* Top bar */}
-      <div className="flex items-center justify-end">
-        <button className="popup-link-button" onClick={() => void setCurrent(null)}>Start fresh</button>
-      </div>
-
+      {/* Error display */}
       {panelError || currentAnalysis?.error ? (
         <section className="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-3 text-xs text-rose-900 space-y-2">
           <p className="font-semibold">Something went wrong</p>
@@ -158,59 +186,6 @@ export const AnalysisWorkspace = () => {
         </section>
       ) : null}
 
-      {/* Document info */}
-      <section className="popup-card space-y-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-full bg-stone-900 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-50">
-            {currentAnalysis.source.kind}
-          </span>
-          <span className="rounded-full bg-stone-100 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-700">
-            {currentAnalysis.source.quality}
-          </span>
-        </div>
-
-        <p className="text-sm font-semibold text-stone-900 line-clamp-2">{currentAnalysis.source.name}</p>
-
-        <div className="grid grid-cols-2 gap-2 text-xs text-stone-600">
-          <div className="rounded-xl bg-stone-100/80 px-3 py-2">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">Characters</p>
-            <p className="mt-1 text-sm font-semibold text-stone-950">{currentAnalysis.source.charCount.toLocaleString()}</p>
-          </div>
-          <div className="rounded-xl bg-stone-100/80 px-3 py-2">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">Tokens (est.)</p>
-            <p className="mt-1 text-sm font-semibold text-stone-950">{currentAnalysis.source.estimatedTokens.toLocaleString()}</p>
-          </div>
-          {currentAnalysis.source.fileSize ? (
-            <div className="rounded-xl bg-stone-100/80 px-3 py-2">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">File size</p>
-              <p className="mt-1 text-sm font-semibold text-stone-950">{formatBytes(currentAnalysis.source.fileSize)}</p>
-            </div>
-          ) : null}
-          <div className="rounded-xl bg-stone-100/80 px-3 py-2">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">Captured</p>
-            <p className="mt-1 text-sm font-semibold text-stone-950">{formatTimestamp(currentAnalysis.source.capturedAt)}</p>
-          </div>
-        </div>
-
-        {currentAnalysis.source.warnings.length > 0 ? (
-          <div className="space-y-1 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-900">
-            <p className="font-semibold">Extraction warnings</p>
-            <ul className="list-disc space-y-0.5 pl-4">
-              {currentAnalysis.source.warnings.map(warning => (
-                <li key={warning}>{warning}</li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
-
-        <details className="rounded-xl border border-stone-200 bg-white/80 p-3">
-          <summary className="cursor-pointer list-none text-xs font-semibold text-stone-950">Preview extracted text</summary>
-          <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap font-mono text-[11px] leading-5 text-stone-700">
-            {currentAnalysis.source.preview}
-          </pre>
-        </details>
-      </section>
-
       {/* Quick scan running */}
       {currentAnalysis.status === 'quick-running' ? (
         <section className="popup-card space-y-3">
@@ -225,38 +200,108 @@ export const AnalysisWorkspace = () => {
         </section>
       ) : null}
 
-      {/* Quick scan results */}
-      {currentAnalysis.quickScan ? (
-        <section className="popup-card space-y-3">
-          <div className="flex flex-wrap items-start justify-between gap-2">
-            <SectionHeader title="Quick scan" subtitle={currentAnalysis.quickScan.documentType} />
-            <RiskBadge label={toVerdictTone(currentAnalysis.quickScan.roughRiskLevel)} />
-          </div>
+      {/* ── Verdict strip ── */}
+      {quickScan ? (
+        <div className="popup-verdict-strip">
+          <RiskBadge label={toVerdictTone(quickScan.roughRiskLevel)} />
+          <p>{quickScan.cautionLine}</p>
+        </div>
+      ) : null}
 
-          <div className="rounded-xl border border-stone-200 bg-white/85 px-3 py-3">
-            <p className="text-xs leading-5 text-stone-700">{currentAnalysis.quickScan.summary}</p>
-            <p className="mt-2 text-xs font-semibold text-stone-950">{currentAnalysis.quickScan.cautionLine}</p>
-          </div>
-
-          {/* Parties */}
-          <div className="rounded-xl border border-stone-200 bg-white/80 p-3">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">Detected parties</p>
-            <div className="mt-2 space-y-1.5">
-              {currentAnalysis.quickScan.parties.map(party => (
-                <div key={`${party.name}-${party.role}`} className="rounded-lg bg-stone-100/80 px-2.5 py-2 text-xs text-stone-700">
-                  <p className="font-semibold text-stone-950">{party.name}</p>
-                  <p className="mt-0.5">{party.role} · {party.confidence} confidence</p>
-                </div>
-              ))}
+      {/* ── Quick scan accordion sections ── */}
+      {quickScan ? (
+        <div>
+          {/* Summary — open by default */}
+          <AccordionSection title="Summary" defaultOpen>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="rounded-full bg-stone-100 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-700">
+                  {quickScan.documentType}
+                </span>
+                <button
+                  className="popup-rerun-link"
+                  onClick={() => void startQuickScan({ ...currentAnalysis, quickScan: null })}>
+                  Re-run scan
+                </button>
+              </div>
+              <p className="text-xs leading-5 text-stone-700">{quickScan.summary}</p>
             </div>
-          </div>
+          </AccordionSection>
 
-          {/* Red flags */}
-          <div className="rounded-xl border border-stone-200 bg-white/80 p-3">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">Quick flags</p>
-            <div className="mt-2 space-y-1.5">
-              {currentAnalysis.quickScan.redFlags.length > 0 ? (
-                currentAnalysis.quickScan.redFlags.map(flag => (
+          {/* Document info — closed by default */}
+          <AccordionSection title="Document info">
+            <div className="space-y-2.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-stone-900 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-50">
+                  {currentAnalysis.source.kind}
+                </span>
+                <span className="rounded-full bg-stone-100 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-700">
+                  {currentAnalysis.source.quality}
+                </span>
+              </div>
+
+              <p className="text-sm font-semibold text-stone-900 line-clamp-2">{currentAnalysis.source.name}</p>
+
+              <div className="grid grid-cols-2 gap-2 text-xs text-stone-600">
+                <div className="rounded-xl bg-stone-100/80 px-3 py-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">Characters</p>
+                  <p className="mt-1 text-sm font-semibold text-stone-950">{currentAnalysis.source.charCount.toLocaleString()}</p>
+                </div>
+                <div className="rounded-xl bg-stone-100/80 px-3 py-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">Tokens (est.)</p>
+                  <p className="mt-1 text-sm font-semibold text-stone-950">{currentAnalysis.source.estimatedTokens.toLocaleString()}</p>
+                </div>
+                {currentAnalysis.source.fileSize ? (
+                  <div className="rounded-xl bg-stone-100/80 px-3 py-2">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">File size</p>
+                    <p className="mt-1 text-sm font-semibold text-stone-950">{formatBytes(currentAnalysis.source.fileSize)}</p>
+                  </div>
+                ) : null}
+                <div className="rounded-xl bg-stone-100/80 px-3 py-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">Captured</p>
+                  <p className="mt-1 text-sm font-semibold text-stone-950">{formatTimestamp(currentAnalysis.source.capturedAt)}</p>
+                </div>
+              </div>
+
+              {currentAnalysis.source.warnings.length > 0 ? (
+                <div className="space-y-1 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-900">
+                  <p className="font-semibold">Extraction warnings</p>
+                  <ul className="list-disc space-y-0.5 pl-4">
+                    {currentAnalysis.source.warnings.map(warning => (
+                      <li key={warning}>{warning}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+
+              <details className="rounded-xl border border-stone-200 bg-white/80 p-3">
+                <summary className="cursor-pointer list-none text-xs font-semibold text-stone-950">Preview extracted text</summary>
+                <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap font-mono text-[11px] leading-5 text-stone-700">
+                  {currentAnalysis.source.preview}
+                </pre>
+              </details>
+            </div>
+          </AccordionSection>
+
+          {/* Parties — closed, with count */}
+          {quickScan.parties.length > 0 ? (
+            <AccordionSection title="Parties" count={quickScan.parties.length}>
+              <div className="flex flex-wrap gap-1.5">
+                {quickScan.parties.map(party => (
+                  <span key={`${party.name}-${party.role}`} className="rounded-full bg-stone-100/80 px-2.5 py-1.5 text-xs text-stone-700">
+                    <span className="font-semibold text-stone-950">{party.name}</span>
+                    <span className="text-stone-500"> · {party.role}</span>
+                  </span>
+                ))}
+              </div>
+            </AccordionSection>
+          ) : null}
+
+          {/* Quick flags — closed, with count + severity */}
+          {quickScan.redFlags.length > 0 ? (
+            <AccordionSection title="Flags" count={quickScan.redFlags.length} severity={maxFlagSeverity}>
+              <div className="space-y-1.5">
+                {quickScan.redFlags.map(flag => (
                   <div key={flag.title} className="rounded-lg bg-stone-100/80 px-2.5 py-2 text-xs text-stone-700">
                     <div className="flex items-center justify-between gap-2">
                       <p className="font-semibold text-stone-950">{flag.title}</p>
@@ -264,90 +309,84 @@ export const AnalysisWorkspace = () => {
                     </div>
                     <p className="mt-1 leading-5">{flag.reason}</p>
                   </div>
-                ))
-              ) : (
-                <p className="text-xs text-stone-600">No major red flag was obvious on the first pass.</p>
-              )}
-            </div>
-          </div>
-
-          {/* Role selection */}
-          <div className="rounded-xl border border-stone-200 bg-white/80 p-3">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">Review as</p>
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {roleOptions.map(role => (
-                <button
-                  key={role}
-                  className={cn(
-                    'rounded-full px-2.5 py-1.5 text-xs font-semibold transition',
-                    selectedRole === role
-                      ? 'bg-stone-950 text-stone-50'
-                      : 'bg-stone-100 text-stone-700 hover:bg-stone-200',
-                  )}
-                  onClick={() => void patchCurrentAnalysis({ selectedRole: role, customRole: '' })}>
-                  {role}
-                </button>
-              ))}
-            </div>
-            <div className="mt-2">
-              <label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">Custom role</label>
-              <input
-                className="popup-input mt-1"
-                value={currentAnalysis.customRole}
-                onChange={event => void patchCurrentAnalysis({ customRole: event.target.value })}
-                placeholder="e.g. Parent reviewing for renter"
-              />
-            </div>
-          </div>
-
-          {/* Priority topics */}
-          <div className="rounded-xl border border-stone-200 bg-white/80 p-3">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">Priority topics</p>
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {PRIORITY_OPTIONS.map(priority => {
-                const selected = currentAnalysis.priorities.includes(priority);
-                return (
-                  <button
-                    key={priority}
-                    className={cn(
-                      'rounded-full px-2.5 py-1.5 text-xs font-semibold transition',
-                      selected ? 'bg-amber-500 text-stone-950' : 'bg-stone-100 text-stone-700 hover:bg-stone-200',
-                    )}
-                    onClick={() =>
-                      void patchCurrentAnalysis({
-                        priorities: selected
-                          ? currentAnalysis.priorities.filter(item => item !== priority)
-                          : [...currentAnalysis.priorities, priority],
-                      })
-                    }>
-                    {priority}
-                  </button>
-                );
-              })}
-            </div>
-            <button
-              className="mt-2 popup-link-button"
-              onClick={() => void patchCurrentAnalysis({ priorities: buildSuggestedPriorities(currentAnalysis.quickScan) })}>
-              Reset to suggested
-            </button>
-          </div>
-
-          {/* Re-run quick scan */}
-          {currentAnalysis.quickScan ? (
-            <button
-              className="popup-secondary-button"
-              onClick={() => void startQuickScan({ ...currentAnalysis, quickScan: null })}>
-              Re-run quick scan
-            </button>
+                ))}
+              </div>
+            </AccordionSection>
           ) : null}
 
-          {/* Deep analysis trigger */}
+          {/* Customize analysis — closed, shows current role inline */}
+          <AccordionSection title={`Customize analysis · ${selectedRole}`}>
+            <div className="space-y-3">
+              {/* Role selection */}
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">Review as</p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {roleOptions.map(role => (
+                    <button
+                      key={role}
+                      className={cn(
+                        'rounded-full px-2.5 py-1.5 text-xs font-semibold transition',
+                        selectedRole === role
+                          ? 'bg-stone-950 text-stone-50'
+                          : 'bg-stone-100 text-stone-700 hover:bg-stone-200',
+                      )}
+                      onClick={() => void patchCurrentAnalysis({ selectedRole: role, customRole: '' })}>
+                      {role}
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-2">
+                  <label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">Custom role</label>
+                  <input
+                    className="popup-input mt-1"
+                    value={currentAnalysis.customRole}
+                    onChange={event => void patchCurrentAnalysis({ customRole: event.target.value })}
+                    placeholder="e.g. Parent reviewing for renter"
+                  />
+                </div>
+              </div>
+
+              {/* Priority topics */}
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">Priority topics</p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {PRIORITY_OPTIONS.map(priority => {
+                    const selected = currentAnalysis.priorities.includes(priority);
+                    return (
+                      <button
+                        key={priority}
+                        className={cn(
+                          'rounded-full px-2.5 py-1.5 text-xs font-semibold transition',
+                          selected ? 'bg-amber-500 text-stone-950' : 'bg-stone-100 text-stone-700 hover:bg-stone-200',
+                        )}
+                        onClick={() =>
+                          void patchCurrentAnalysis({
+                            priorities: selected
+                              ? currentAnalysis.priorities.filter(item => item !== priority)
+                              : [...currentAnalysis.priorities, priority],
+                          })
+                        }>
+                        {priority}
+                      </button>
+                    );
+                  })}
+                </div>
+                <button
+                  className="mt-2 popup-link-button"
+                  onClick={() => void patchCurrentAnalysis({ priorities: buildSuggestedPriorities(currentAnalysis.quickScan) })}>
+                  Reset to suggested
+                </button>
+              </div>
+            </div>
+          </AccordionSection>
+
+          {/* Single CTA: Run detailed analysis */}
           {currentAnalysis.status !== 'deep-running' && !currentAnalysis.deepAnalysis ? (
-            <button className="popup-primary-button" onClick={() => void startDeepAnalysis()}>
+            <button className="popup-primary-button mt-3" onClick={() => void startDeepAnalysis()}>
               Run detailed analysis
             </button>
           ) : null}
-        </section>
+        </div>
       ) : null}
 
       {/* Deep analysis running */}
