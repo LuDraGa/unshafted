@@ -52,9 +52,10 @@ Redesign the Chrome extension popup to reduce scroll, improve information hierar
 - `pages/popup/src/components/ResultCards.tsx` — wrap deep analysis sections in accordions
 
 ## Status
-- [ ] Sticky header upload button
-- [ ] Verdict strip
-- [ ] Quick scan accordions
-- [ ] Single CTA + re-run as link
-- [ ] Deep analysis accordions
-- [ ] CSS styles
+- [x] Sticky header upload button
+- [x] Verdict strip
+- [x] Quick scan accordions
+- [x] Single CTA + re-run as link
+- [x] Deep analysis accordions
+- [x] CSS styles
+- [x] Document info accordion renders immediately on upload (not gated behind quick scan)
