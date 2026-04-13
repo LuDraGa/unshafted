@@ -5,9 +5,54 @@ configurePdfWorker(chrome.runtime.getURL('popup/pdf.worker.min.mjs'));
 import { useStorage } from '@extension/shared';
 import { currentAnalysisStorage, unshaftedSettingsStorage } from '@extension/storage';
 import { ErrorDisplay, LoadingSpinner } from '@extension/ui';
-import { type ChangeEvent, useRef, useState } from 'react';
+import { type ChangeEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { withErrorBoundary, withSuspense } from '@extension/shared';
+import { signInWithGoogle, signOut, getSession, onAuthStateChange } from '@extension/supabase';
+import type { Session } from '@supabase/supabase-js';
 import { AnalysisWorkspace } from './components/AnalysisWorkspace';
+
+const UserAvatar = ({
+  avatarUrl,
+  email,
+  onSignOut,
+}: {
+  avatarUrl?: string;
+  email: string;
+  onSignOut: () => void;
+}) => {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const initial = email.charAt(0).toUpperCase();
+
+  return (
+    <div className="relative">
+      <button
+        className="h-7 w-7 rounded-full overflow-hidden border-2 border-stone-200 hover:border-stone-400 transition flex-shrink-0"
+        onClick={() => setMenuOpen(o => !o)}
+        title={email}>
+        {avatarUrl ? (
+          <img src={avatarUrl} alt="" className="h-full w-full object-cover" referrerPolicy="no-referrer" />
+        ) : (
+          <div className="h-full w-full bg-stone-900 text-stone-50 flex items-center justify-center text-xs font-bold">
+            {initial}
+          </div>
+        )}
+      </button>
+      {menuOpen ? (
+        <div className="absolute right-0 top-9 z-50 min-w-[180px] rounded-xl border border-stone-200 bg-white shadow-lg p-2">
+          <p className="px-2 py-1 text-[11px] text-stone-500 truncate">{email}</p>
+          <button
+            className="w-full text-left px-2 py-1.5 text-xs font-semibold text-stone-700 hover:bg-stone-100 rounded-lg transition"
+            onClick={() => {
+              setMenuOpen(false);
+              onSignOut();
+            }}>
+            Sign out
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+};
 
 const Popup = () => {
   const settings = useStorage(unshaftedSettingsStorage);
@@ -15,7 +60,38 @@ const Popup = () => {
 
   const [launchError, setLaunchError] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [session, setSession] = useState<Session | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [signingIn, setSigningIn] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Load auth state on mount
+  useEffect(() => {
+    getSession().then(({ data: { session: s } }) => {
+      setSession(s);
+      setAuthLoading(false);
+    });
+
+    const { data: { subscription } } = onAuthStateChange((_event, s) => {
+      setSession(s);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleSignIn = useCallback(async () => {
+    setSigningIn(true);
+    setLaunchError('');
+    const result = await signInWithGoogle();
+    if (!result.ok) {
+      setLaunchError(result.error);
+    }
+    setSigningIn(false);
+  }, []);
+
+  const handleSignOut = useCallback(async () => {
+    await signOut();
+  }, []);
 
   const openOptions = () => chrome.runtime.openOptionsPage();
 
@@ -62,6 +138,10 @@ const Popup = () => {
               </p>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
+              <div
+                className={`rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${hasApiKey ? 'bg-emerald-100 text-emerald-800' : 'bg-stone-200 text-stone-700'}`}>
+                {hasApiKey ? 'Ready' : 'Setup'}
+              </div>
               {hasApiKey ? (
                 <button
                   className="popup-upload-btn"
@@ -75,10 +155,22 @@ const Popup = () => {
                   </svg>
                 </button>
               ) : null}
-              <div
-                className={`rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${hasApiKey ? 'bg-emerald-100 text-emerald-800' : 'bg-stone-200 text-stone-700'}`}>
-                {hasApiKey ? 'Ready' : 'Setup'}
-              </div>
+              {!authLoading ? (
+                session ? (
+                  <UserAvatar
+                    avatarUrl={session.user.user_metadata?.avatar_url ?? session.user.user_metadata?.picture}
+                    email={session.user.email ?? ''}
+                    onSignOut={handleSignOut}
+                  />
+                ) : (
+                  <button
+                    className="rounded-full bg-stone-900 px-3 py-1 text-[11px] font-semibold text-stone-50 hover:bg-stone-700 transition"
+                    onClick={handleSignIn}
+                    disabled={signingIn}>
+                    {signingIn ? 'Signing in...' : 'Sign in'}
+                  </button>
+                )
+              ) : null}
             </div>
           </div>
         </div>
@@ -93,7 +185,7 @@ const Popup = () => {
               {uploading ? 'Loading contract...' : 'Upload your contract'}
             </button>
           ) : (
-            <AnalysisWorkspace />
+            <AnalysisWorkspace session={session} onSignIn={handleSignIn} />
           )}
 
           {!hasApiKey ? (

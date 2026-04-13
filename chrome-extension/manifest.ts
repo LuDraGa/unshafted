@@ -8,7 +8,7 @@ const manifest = {
   name: '__MSG_extensionName__',
   version: packageJson.version,
   description: '__MSG_extensionDescription__',
-  permissions: ['storage', 'tabs', 'activeTab', 'scripting'],
+  permissions: ['storage', 'tabs', 'activeTab', 'scripting', 'identity'],
   options_page: 'options/index.html',
   background: {
     service_worker: 'background.js',

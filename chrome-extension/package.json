@@ -21,6 +21,7 @@
     "@extension/env": "workspace:*",
     "@extension/shared": "workspace:*",
     "@extension/storage": "workspace:*",
+    "@extension/supabase": "workspace:*",
     "@extension/unshafted-core": "workspace:*"
   },
   "devDependencies": {

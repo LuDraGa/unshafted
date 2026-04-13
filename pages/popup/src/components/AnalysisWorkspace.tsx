@@ -17,6 +17,7 @@ import {
 import { cn } from '@extension/ui';
 import { useEffect, useRef, useState } from 'react';
 import { RiskBadge, SectionHeader, SeverityBadge, ResultsView } from './ResultCards';
+import type { Session } from '@supabase/supabase-js';
 
 const formatTimestamp = (iso: string) =>
   new Intl.DateTimeFormat(undefined, {
@@ -55,7 +56,13 @@ const AccordionSection = ({
   </details>
 );
 
-export const AnalysisWorkspace = () => {
+export const AnalysisWorkspace = ({
+  session,
+  onSignIn,
+}: {
+  session: Session | null;
+  onSignIn: () => void;
+}) => {
   const settings = useStorage(unshaftedSettingsStorage);
   const currentAnalysis = useStorage(currentAnalysisStorage);
 
@@ -100,6 +107,15 @@ export const AnalysisWorkspace = () => {
     setPanelError('');
     setStepIndex(0);
 
+    // Anonymous daily limit check
+    if (!session) {
+      const canScan = await usageSnapshotStorage.canAnonymousQuickScan();
+      if (!canScan) {
+        setPanelError('You\'ve used your 3 free quick scans for today. Sign in for unlimited scans.');
+        return;
+      }
+    }
+
     await currentAnalysisStorage.set({
       ...analysis,
       status: 'quick-running',
@@ -116,10 +132,21 @@ export const AnalysisWorkspace = () => {
     if (result.status === 'error' && result.error) {
       setPanelError(result.error.message);
     }
+
+    // Increment anonymous counter after successful scan
+    if (!session && result.status !== 'error') {
+      await usageSnapshotStorage.incrementQuickScans();
+    }
   };
 
   const startDeepAnalysis = async () => {
     if (!currentAnalysis) return;
+
+    // Auth gate — deep analysis requires sign-in
+    if (!session) {
+      setPanelError('Sign in with Google to unlock detailed analysis.');
+      return;
+    }
 
     setPanelError('');
     setStepIndex(0);
@@ -260,6 +287,11 @@ export const AnalysisWorkspace = () => {
         <div className="popup-verdict-strip">
           <RiskBadge label={toVerdictTone(quickScan.roughRiskLevel)} />
           <p>{quickScan.cautionLine}</p>
+          <button
+            className="popup-rerun-link"
+            onClick={() => void startQuickScan({ ...currentAnalysis, quickScan: null })}>
+            Re-scan
+          </button>
         </div>
       ) : null}
 
@@ -269,16 +301,9 @@ export const AnalysisWorkspace = () => {
           {/* Summary — open by default */}
           <AccordionSection title="Summary" defaultOpen>
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="rounded-full bg-stone-100 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-700">
-                  {quickScan.documentType}
-                </span>
-                <button
-                  className="popup-rerun-link"
-                  onClick={() => void startQuickScan({ ...currentAnalysis, quickScan: null })}>
-                  Re-run scan
-                </button>
-              </div>
+              <span className="inline-block rounded-full bg-stone-100 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-700">
+                {quickScan.documentType}
+              </span>
               <p className="text-xs leading-5 text-stone-700">{quickScan.summary}</p>
             </div>
           </AccordionSection>
@@ -382,9 +407,15 @@ export const AnalysisWorkspace = () => {
 
           {/* Single CTA: Run detailed analysis */}
           {currentAnalysis.status !== 'deep-running' && !currentAnalysis.deepAnalysis ? (
-            <button className="popup-primary-button mt-3" onClick={() => void startDeepAnalysis()}>
-              Run detailed analysis
-            </button>
+            session ? (
+              <button className="popup-primary-button mt-3" onClick={() => void startDeepAnalysis()}>
+                Run detailed analysis
+              </button>
+            ) : (
+              <button className="popup-primary-button mt-3" onClick={onSignIn}>
+                Sign in to run detailed analysis
+              </button>
+            )
           ) : null}
         </div>
       ) : null}
