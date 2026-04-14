@@ -1,6 +1,6 @@
 # Phase 1 Execution: Auth + Profiles
 
-**Status:** Not started
+**Status:** Complete (2026-04-14)
 **Date:** 2026-04-14
 **Parent doc:** `execution-docs/supabase-auth-profiles-credits.md`
 **Scope:** Supabase project setup, Gmail-only auth from Chrome extension, user profiles, auth-gated deep analysis, anonymous quick scan limit.

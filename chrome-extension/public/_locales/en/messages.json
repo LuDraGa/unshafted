@@ -1,10 +1,10 @@
 {
   "extensionDescription": {
     "description": "Extension description",
-    "message": "Analyze contracts, terms, and licenses from your side of the table."
+    "message": "Spot risky clauses before you sign. Analyze contracts, terms, and licenses in plain English with privacy-first AI."
   },
   "extensionName": {
     "description": "Extension name",
-    "message": "Unshafted"
+    "message": "Unshafted: AI Contract Risk Analyzer"
   }
 }
