@@ -25,7 +25,8 @@
     "prepare": "husky",
     "copy-env": "bash bash-scripts/copy_env.sh",
     "set-global-env": "bash bash-scripts/set_global_env.sh",
-    "postinstall": "pnpm copy-env"
+    "postinstall": "pnpm copy-env",
+    "update-version": "bash bash-scripts/update_version.sh"
   },
   "dependencies": {
     "react": "^19.1.0",
