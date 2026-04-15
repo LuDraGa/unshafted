@@ -18,6 +18,22 @@ export type ExtractPageResponse =
       error: string;
     };
 
+export const RUN_QUICK_SCAN_MESSAGE = 'unshafted/run-quick-scan';
+export const RUN_DEEP_ANALYSIS_MESSAGE = 'unshafted/run-deep-analysis';
+
+export type RunQuickScanRequest = {
+  type: typeof RUN_QUICK_SCAN_MESSAGE;
+  isSignedIn: boolean;
+};
+
+export type RunDeepAnalysisRequest = {
+  type: typeof RUN_DEEP_ANALYSIS_MESSAGE;
+};
+
+export type AnalysisMessageResponse =
+  | { ok: true }
+  | { ok: false; error: string };
+
 export const createCurrentAnalysis = (document: IngestedDocument): CurrentAnalysis =>
   CurrentAnalysisSchema.parse({
     id: globalThis.crypto.randomUUID(),
