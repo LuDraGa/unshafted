@@ -149,6 +149,8 @@ export const AnalysisErrorSchema = z.object({
 export const IngestedDocumentSchema = z.object({
   kind: SourceKindSchema,
   name: z.string().min(1),
+  slug: z.string().min(1).default('unnamed-document'),
+  contentHash: z.string().default(''),
   url: z.string().url().optional(),
   fileSize: z.number().int().nonnegative().optional(),
   charCount: z.number().int().nonnegative(),

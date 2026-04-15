@@ -7,7 +7,8 @@ import { currentAnalysisStorage, unshaftedSettingsStorage } from '@extension/sto
 import { ErrorDisplay, LoadingSpinner } from '@extension/ui';
 import { type ChangeEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { withErrorBoundary, withSuspense } from '@extension/shared';
-import { signInWithGoogle, signOut, getSession, onAuthStateChange } from '@extension/supabase';
+import { signInWithGoogle, signOut, getSession, onAuthStateChange, loadHistoryFromDrive } from '@extension/supabase';
+import { analysisHistoryStorage } from '@extension/storage';
 import type { Session } from '@supabase/supabase-js';
 import { AnalysisWorkspace } from './components/AnalysisWorkspace';
 
@@ -78,6 +79,48 @@ const Popup = () => {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Hydrate local history from Drive when signed in + history is empty
+  useEffect(() => {
+    if (!session) return;
+
+    void (async () => {
+      const history = await analysisHistoryStorage.get();
+      if (history.length > 0) return;
+
+      const driveFiles = await loadHistoryFromDrive();
+      if (driveFiles.length === 0) return;
+
+      // Convert Drive files to HistoryRecords and populate local storage
+      for (const file of driveFiles) {
+        const record = {
+          id: crypto.randomUUID(),
+          createdAt: file.createdAt,
+          source: {
+            kind: 'file' as const,
+            name: file.documentName,
+            slug: file.documentName.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 60) || 'unnamed-document',
+            contentHash: file.contentHash,
+            charCount: 0,
+            estimatedTokens: 0,
+            preview: '',
+            quality: 'good' as const,
+            warnings: [],
+            capturedAt: file.createdAt,
+          },
+          quickScan: file.analysisType === 'quick-scan' ? file.result : undefined,
+          deepAnalysis: file.analysisType === 'deep-analysis' ? file.result : undefined,
+          selectedRole: file.role,
+          priorities: 'priorities' in file ? file.priorities : [],
+        };
+
+        // Only push records that have a quickScan (required by HistoryRecordSchema)
+        if (record.quickScan) {
+          await analysisHistoryStorage.push(record as Parameters<typeof analysisHistoryStorage.push>[0]);
+        }
+      }
+    })();
+  }, [session]);
 
   const handleSignIn = useCallback(async () => {
     setSigningIn(true);

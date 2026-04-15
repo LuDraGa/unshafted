@@ -247,6 +247,9 @@ importers:
       '@extension/env':
         specifier: workspace:*
         version: link:../env
+      '@extension/unshafted-core':
+        specifier: workspace:*
+        version: link:../unshafted-core
       '@supabase/supabase-js':
         specifier: ^2.49.8
         version: 2.103.0
