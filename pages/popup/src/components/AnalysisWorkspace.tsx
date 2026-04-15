@@ -5,20 +5,16 @@ import {
   buildSuggestedPriorities,
   formatBytes,
   toVerdictTone,
+  RUN_QUICK_SCAN_MESSAGE,
+  RUN_DEEP_ANALYSIS_MESSAGE,
 } from '@extension/unshafted-core';
-import type { CurrentAnalysis } from '@extension/unshafted-core';
-import { runDeepAnalysis, runQuickScan, useStorage } from '@extension/shared';
-import {
-  analysisHistoryStorage,
-  currentAnalysisStorage,
-  unshaftedSettingsStorage,
-  usageSnapshotStorage,
-} from '@extension/storage';
+import type { CurrentAnalysis, AnalysisMessageResponse } from '@extension/unshafted-core';
+import { useStorage } from '@extension/shared';
+import { currentAnalysisStorage, unshaftedSettingsStorage } from '@extension/storage';
 import { cn } from '@extension/ui';
 import { useEffect, useRef, useState } from 'react';
 import { RiskBadge, SectionHeader, SeverityBadge, ResultsView } from './ResultCards';
 import type { Session } from '@supabase/supabase-js';
-import { syncQuickScanToDrive, syncDeepAnalysisToDrive } from '@extension/supabase';
 
 const formatTimestamp = (iso: string) =>
   new Intl.DateTimeFormat(undefined, {
@@ -27,8 +23,6 @@ const formatTimestamp = (iso: string) =>
     hour: 'numeric',
     minute: '2-digit',
   }).format(new Date(iso));
-
-import { createHistoryRecord } from '@extension/unshafted-core';
 
 /** Reusable accordion section */
 const AccordionSection = ({
@@ -104,80 +98,35 @@ export const AnalysisWorkspace = ({
     await currentAnalysisStorage.set(analysis);
   };
 
-  const startQuickScan = async (analysis: CurrentAnalysis) => {
+  const startQuickScan = async (_analysis: CurrentAnalysis) => {
     setPanelError('');
     setStepIndex(0);
 
-    // Anonymous daily limit check
-    if (!session) {
-      const canScan = await usageSnapshotStorage.canAnonymousQuickScan();
-      if (!canScan) {
-        setPanelError('You\'ve used your 3 free quick scans for today. Sign in for unlimited scans.');
-        return;
-      }
-    }
-
-    await currentAnalysisStorage.set({
-      ...analysis,
-      status: 'quick-running',
-      error: null,
+    const response: AnalysisMessageResponse = await chrome.runtime.sendMessage({
+      type: RUN_QUICK_SCAN_MESSAGE,
+      isSignedIn: !!session,
     });
 
-    const result = await runQuickScan(
-      { ...analysis, status: 'quick-running', error: null },
-      settings,
-    );
-
-    await currentAnalysisStorage.set(result);
-
-    if (result.status === 'error' && result.error) {
-      setPanelError(result.error.message);
-    }
-
-    // Increment anonymous counter after successful scan
-    if (!session && result.status !== 'error') {
-      await usageSnapshotStorage.incrementQuickScans();
-    }
-
-    // Sync to Drive (fire-and-forget) for signed-in users
-    if (session && result.quickScan) {
-      void syncQuickScanToDrive(result);
+    if (!response.ok) {
+      setPanelError(response.error);
     }
   };
 
   const startDeepAnalysis = async () => {
     if (!currentAnalysis) return;
-
-    // Auth gate — deep analysis requires sign-in
     if (!session) {
       setPanelError('Sign in with Google to unlock detailed analysis.');
       return;
     }
-
     setPanelError('');
     setStepIndex(0);
 
-    await currentAnalysisStorage.set({
-      ...currentAnalysis,
-      status: 'deep-running',
-      error: null,
+    const response: AnalysisMessageResponse = await chrome.runtime.sendMessage({
+      type: RUN_DEEP_ANALYSIS_MESSAGE,
     });
 
-    const result = await runDeepAnalysis(
-      { ...currentAnalysis, status: 'deep-running', error: null },
-      settings,
-    );
-
-    await currentAnalysisStorage.set(result);
-
-    if (result.status === 'complete' && result.quickScan && result.deepAnalysis) {
-      await usageSnapshotStorage.incrementFullAnalyses();
-      await analysisHistoryStorage.push(createHistoryRecord(result));
-      void syncDeepAnalysisToDrive(result);
-    }
-
-    if (result.status === 'error' && result.error) {
-      setPanelError(result.error.message);
+    if (!response.ok) {
+      setPanelError(response.error);
     }
   };
 
