@@ -22,6 +22,17 @@ export const sanitizeDocumentName = (name: string): string =>
     .toLowerCase()
     .slice(0, 60) || 'unnamed-document';
 
+/** Encode an ArrayBuffer as a base64 string (chunked to avoid stack overflow) */
+export const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  const chunkSize = 8192;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
+};
+
 /** SHA256 hash of text, returned as hex string */
 export const computeContentHash = async (text: string): Promise<string> => {
   const data = new TextEncoder().encode(text);
@@ -46,18 +57,21 @@ export const estimateTokens = (text: string): number => Math.ceil(text.length / 
 export const buildDocumentFromFile = async (file: File): Promise<IngestedDocument> => {
   const extension = file.name.split('.').pop()?.toLowerCase();
 
-  let rawText: string;
+  if (extension !== 'txt' && extension !== 'pdf') {
+    throw new Error('Only `.txt` and `.pdf` files are supported.');
+  }
+
+  const originalBuffer = await file.arrayBuffer();
   const extraWarnings: string[] = [];
+  let rawText: string;
 
   if (extension === 'txt') {
-    rawText = await file.text();
-  } else if (extension === 'pdf') {
-    const buffer = await file.arrayBuffer();
-    const result = await extractTextFromPdf(buffer);
+    rawText = new TextDecoder().decode(originalBuffer);
+  } else {
+    // Copy buffer — pdfjs detaches the original ArrayBuffer
+    const result = await extractTextFromPdf(originalBuffer.slice(0));
     rawText = result.text;
     extraWarnings.push(...result.warnings);
-  } else {
-    throw new Error('Only `.txt` and `.pdf` files are supported.');
   }
 
   const text = normalizeDocumentText(rawText);
@@ -71,6 +85,8 @@ export const buildDocumentFromFile = async (file: File): Promise<IngestedDocumen
     warnings.push('This file looks short for a contract. The analysis may have limited context.');
   }
 
+  const mimeType = extension === 'pdf' ? 'application/pdf' : 'text/plain';
+
   return IngestedDocumentSchema.parse({
     kind: 'file',
     name: file.name,
@@ -81,6 +97,8 @@ export const buildDocumentFromFile = async (file: File): Promise<IngestedDocumen
     estimatedTokens: estimateTokens(text),
     preview: makePreview(text),
     text,
+    originalFileBase64: arrayBufferToBase64(originalBuffer),
+    originalMimeType: mimeType,
     quality: text.length < 1200 ? 'thin' : 'good',
     warnings,
     capturedAt: new Date().toISOString(),
@@ -160,9 +178,9 @@ export const createDayKey = (date = new Date()): string =>
 export const clampHistory = (records: HistoryRecord[]): HistoryRecord[] =>
   [...records].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, HISTORY_LIMIT);
 
-export const stripDocumentTextForHistory = (document: IngestedDocument): Omit<IngestedDocument, 'text'> => {
-  const { text: _text, ...sourceWithoutText } = document;
-  return sourceWithoutText;
+export const stripDocumentTextForHistory = (document: IngestedDocument): Omit<IngestedDocument, 'text' | 'originalFileBase64'> => {
+  const { text: _text, originalFileBase64: _binary, ...rest } = document;
+  return rest;
 };
 
 export const formatBytes = (bytes?: number): string => {

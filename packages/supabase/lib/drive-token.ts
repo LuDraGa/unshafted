@@ -1,6 +1,9 @@
-const DRIVE_TOKEN_KEY = 'unshafted-drive-token';
-const DRIVE_EXPIRES_KEY = 'unshafted-drive-expires-at';
+export const DRIVE_TOKEN_KEY = 'unshafted-drive-token';
+export const DRIVE_EXPIRES_KEY = 'unshafted-drive-expires-at';
 const GOOGLE_CLIENT_ID = process.env.CEB_GOOGLE_CLIENT_ID ?? '';
+
+// Single-flight: deduplicate concurrent refresh attempts
+let refreshInflight: Promise<string | null> | null = null;
 
 /** Get a valid Drive access token, silently refreshing if expired. Returns null if unavailable. */
 export const getDriveToken = async (): Promise<string | null> => {
@@ -13,7 +16,13 @@ export const getDriveToken = async (): Promise<string | null> => {
       return token;
     }
 
-    return await silentRefresh();
+    // Reuse in-progress refresh if one is already running
+    if (refreshInflight) return refreshInflight;
+
+    refreshInflight = silentRefresh().finally(() => {
+      refreshInflight = null;
+    });
+    return await refreshInflight;
   } catch {
     return null;
   }

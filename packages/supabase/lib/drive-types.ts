@@ -7,6 +7,8 @@ export interface DriveQuickScanFile {
   createdAt: string;
   updatedAt: string;
   role: string;
+  charCount: number;
+  estimatedTokens: number;
   result: QuickScanResult;
 }
 
@@ -17,6 +19,8 @@ export interface DriveDeepAnalysisFile {
   createdAt: string;
   updatedAt: string;
   role: string;
+  charCount: number;
+  estimatedTokens: number;
   priorities: string[];
   result: DeepAnalysisResult;
 }

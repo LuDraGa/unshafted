@@ -1,16 +1,31 @@
 import '@src/Popup.css';
-import { buildDocumentFromFile, configurePdfWorker, createCurrentAnalysis } from '@extension/unshafted-core';
+import { buildDocumentFromFile, configurePdfWorker, createCurrentAnalysis, PRIORITY_OPTIONS } from '@extension/unshafted-core';
+import type { IngestedDocument } from '@extension/unshafted-core';
 
 configurePdfWorker(chrome.runtime.getURL('popup/pdf.worker.min.mjs'));
 import { useStorage } from '@extension/shared';
-import { currentAnalysisStorage, unshaftedSettingsStorage } from '@extension/storage';
+import { analysisHistoryStorage, currentAnalysisStorage, unshaftedSettingsStorage } from '@extension/storage';
 import { ErrorDisplay, LoadingSpinner } from '@extension/ui';
 import { type ChangeEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { withErrorBoundary, withSuspense } from '@extension/shared';
-import { signInWithGoogle, signOut, getSession, onAuthStateChange, loadHistoryFromDrive } from '@extension/supabase';
-import { analysisHistoryStorage } from '@extension/storage';
+import { signInWithGoogle, signOut, getSession, onAuthStateChange, loadHistoryFromDrive, getDriveToken, getOrCreateFolder, ensureSourceFile } from '@extension/supabase';
 import type { Session } from '@supabase/supabase-js';
 import { AnalysisWorkspace } from './components/AnalysisWorkspace';
+
+const uploadSourceToDrive = async (doc: IngestedDocument): Promise<void> => {
+  try {
+    if (!doc.originalFileBase64 || !doc.contentHash) return;
+    const token = await getDriveToken();
+    if (!token) return;
+    const folderId = await getOrCreateFolder(token);
+    const mime = doc.originalMimeType ?? 'text/plain';
+    const ext = mime === 'application/pdf' ? '.pdf' : '.txt';
+    const filename = `${doc.slug}_source_${doc.contentHash.slice(0, 8)}${ext}`;
+    await ensureSourceFile(token, folderId, filename, doc.originalFileBase64, mime, doc.contentHash);
+  } catch (e) {
+    console.warn('[Drive] early source upload failed:', e);
+  }
+};
 
 const UserAvatar = ({
   avatarUrl,
@@ -84,42 +99,68 @@ const Popup = () => {
   useEffect(() => {
     if (!session) return;
 
-    void (async () => {
-      const history = await analysisHistoryStorage.get();
-      if (history.length > 0) return;
+    const hydrate = async () => {
+      try {
+        const history = await analysisHistoryStorage.get();
+        if (history.length > 0) return;
 
-      const driveFiles = await loadHistoryFromDrive();
-      if (driveFiles.length === 0) return;
+        const driveFiles = await loadHistoryFromDrive();
+        if (driveFiles.length === 0) return;
 
-      // Convert Drive files to HistoryRecords and populate local storage
-      for (const file of driveFiles) {
-        const record = {
-          id: crypto.randomUUID(),
-          createdAt: file.createdAt,
-          source: {
-            kind: 'file' as const,
-            name: file.documentName,
-            slug: file.documentName.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 60) || 'unnamed-document',
-            contentHash: file.contentHash,
-            charCount: 0,
-            estimatedTokens: 0,
-            preview: '',
-            quality: 'good' as const,
-            warnings: [],
-            capturedAt: file.createdAt,
-          },
-          quickScan: file.analysisType === 'quick-scan' ? file.result : undefined,
-          deepAnalysis: file.analysisType === 'deep-analysis' ? file.result : undefined,
-          selectedRole: file.role,
-          priorities: 'priorities' in file ? file.priorities : [],
-        };
-
-        // Only push records that have a quickScan (required by HistoryRecordSchema)
-        if (record.quickScan) {
-          await analysisHistoryStorage.push(record as Parameters<typeof analysisHistoryStorage.push>[0]);
+        // Group Drive files by contentHash to merge quick-scan + deep-analysis for the same doc
+        const byHash = new Map<string, typeof driveFiles>();
+        for (const file of driveFiles) {
+          const existing = byHash.get(file.contentHash) ?? [];
+          existing.push(file);
+          byHash.set(file.contentHash, existing);
         }
+
+        const prioritySet = new Set<string>(PRIORITY_OPTIONS);
+
+        for (const [, files] of byHash) {
+          try {
+            const quickFile = files.find(f => f.analysisType === 'quick-scan');
+            const deepFile = files.find(f => f.analysisType === 'deep-analysis');
+
+            // HistoryRecordSchema requires quickScan — skip if we only have a deep analysis
+            if (!quickFile) continue;
+
+            // Filter priorities to valid enum values to avoid Zod validation errors
+            const rawPriorities = deepFile && 'priorities' in deepFile ? deepFile.priorities : [];
+            const validPriorities = rawPriorities.filter(p => prioritySet.has(p));
+
+            const record = {
+              id: crypto.randomUUID(),
+              createdAt: quickFile.createdAt,
+              source: {
+                kind: 'file' as const,
+                name: quickFile.documentName,
+                slug: quickFile.documentName.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 60) || 'unnamed-document',
+                contentHash: quickFile.contentHash,
+                charCount: quickFile.charCount || 0,
+                estimatedTokens: quickFile.estimatedTokens || 0,
+                preview: `Restored from Google Drive: ${quickFile.documentName}`,
+                quality: 'good' as const,
+                warnings: [],
+                capturedAt: quickFile.createdAt,
+              },
+              quickScan: quickFile.result,
+              deepAnalysis: deepFile ? deepFile.result : undefined,
+              selectedRole: quickFile.role,
+              priorities: validPriorities,
+            };
+
+            await analysisHistoryStorage.push(record as Parameters<typeof analysisHistoryStorage.push>[0]);
+          } catch {
+            // Skip individual records that fail validation — don't halt hydration
+          }
+        }
+      } catch {
+        // Hydration is best-effort — silent failure
       }
-    })();
+    };
+
+    void hydrate();
   }, [session]);
 
   const handleSignIn = useCallback(async () => {
@@ -153,6 +194,11 @@ const Popup = () => {
     try {
       const document = await buildDocumentFromFile(file);
       await currentAnalysisStorage.set(createCurrentAnalysis(document));
+
+      // Push source file to Drive immediately (fire-and-forget, signed-in only)
+      if (session && document.originalFileBase64 && document.contentHash) {
+        void uploadSourceToDrive(document);
+      }
     } catch (error) {
       setLaunchError(error instanceof Error ? error.message : 'Unable to open this file.');
     } finally {
