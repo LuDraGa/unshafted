@@ -157,12 +157,14 @@ export const IngestedDocumentSchema = z.object({
   estimatedTokens: z.number().int().nonnegative(),
   preview: z.string().min(1),
   text: z.string().min(1),
+  originalFileBase64: z.string().optional(),
+  originalMimeType: z.string().optional(),
   quality: SourceQualitySchema,
   warnings: z.array(z.string().min(1)).default([]),
   capturedAt: z.string().min(1),
 });
 
-export const HistorySourceSchema = IngestedDocumentSchema.omit({ text: true });
+export const HistorySourceSchema = IngestedDocumentSchema.omit({ text: true, originalFileBase64: true });
 
 export const ProviderSchema = z.enum(['openrouter', 'openai']);
 

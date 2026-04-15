@@ -1,7 +1,7 @@
 import { supabase } from './client.js';
 import type { Session, AuthChangeEvent } from '@supabase/supabase-js';
 import type { Profile } from './types.js';
-import { clearDriveToken } from './drive-token.js';
+import { clearDriveToken, DRIVE_TOKEN_KEY, DRIVE_EXPIRES_KEY } from './drive-token.js';
 
 const GOOGLE_CLIENT_ID = process.env.CEB_GOOGLE_CLIENT_ID ?? '';
 
@@ -62,8 +62,8 @@ export const signInWithGoogle = async (): Promise<{ ok: true } | { ok: false; er
     if (accessToken && expiresIn) {
       const expiresAt = Date.now() + parseInt(expiresIn, 10) * 1000;
       await chrome.storage.local.set({
-        'unshafted-drive-token': accessToken,
-        'unshafted-drive-expires-at': expiresAt,
+        [DRIVE_TOKEN_KEY]: accessToken,
+        [DRIVE_EXPIRES_KEY]: expiresAt,
       });
     }
 

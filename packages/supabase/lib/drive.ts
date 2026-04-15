@@ -4,23 +4,45 @@ const DRIVE_API = 'https://www.googleapis.com/drive/v3/files';
 const DRIVE_UPLOAD_API = 'https://www.googleapis.com/upload/drive/v3/files';
 const FOLDER_NAME = 'Unshafted';
 const FOLDER_CACHE_KEY = 'unshafted-drive-folder-id';
+const FOLDER_CACHE_TTL = 5 * 60_000; // 5 minutes
 
 const headers = (token: string) => ({ Authorization: `Bearer ${token}` });
 
-/** Ensure "Unshafted" folder exists in Drive. Caches folder ID locally. */
-export const getOrCreateFolder = async (token: string): Promise<string> => {
-  // Check cache first
+// ── In-memory folder cache + single-flight lock ──
+
+let folderCache: { id: string; verifiedAt: number } | null = null;
+let folderInflight: Promise<string> | null = null;
+
+/** Ensure "Unshafted" folder exists in Drive. Deduplicates concurrent calls and caches with TTL. */
+export const getOrCreateFolder = (token: string): Promise<string> => {
+  // Return in-memory cache if fresh
+  if (folderCache && Date.now() - folderCache.verifiedAt < FOLDER_CACHE_TTL) {
+    return Promise.resolve(folderCache.id);
+  }
+
+  // Single-flight: reuse in-progress request
+  if (folderInflight) return folderInflight;
+
+  folderInflight = resolveFolder(token).finally(() => {
+    folderInflight = null;
+  });
+  return folderInflight;
+};
+
+const resolveFolder = async (token: string): Promise<string> => {
+  // Check chrome.storage cache
   const cached = await chrome.storage.local.get(FOLDER_CACHE_KEY);
   if (cached[FOLDER_CACHE_KEY]) {
-    // Verify it still exists
     const checkRes = await fetch(`${DRIVE_API}/${cached[FOLDER_CACHE_KEY]}?fields=id,trashed`, {
       headers: headers(token),
     });
     if (checkRes.ok) {
       const checkData = await checkRes.json();
-      if (!checkData.trashed) return cached[FOLDER_CACHE_KEY] as string;
+      if (!checkData.trashed) {
+        folderCache = { id: cached[FOLDER_CACHE_KEY] as string, verifiedAt: Date.now() };
+        return folderCache.id;
+      }
     }
-    // Cached folder gone — clear and recreate
     await chrome.storage.local.remove(FOLDER_CACHE_KEY);
   }
 
@@ -35,6 +57,7 @@ export const getOrCreateFolder = async (token: string): Promise<string> => {
     if (searchData.files?.length > 0) {
       const folderId = searchData.files[0].id;
       await chrome.storage.local.set({ [FOLDER_CACHE_KEY]: folderId });
+      folderCache = { id: folderId, verifiedAt: Date.now() };
       return folderId;
     }
   }
@@ -55,6 +78,7 @@ export const getOrCreateFolder = async (token: string): Promise<string> => {
 
   const folder = await createRes.json();
   await chrome.storage.local.set({ [FOLDER_CACHE_KEY]: folder.id });
+  folderCache = { id: folder.id, verifiedAt: Date.now() };
   return folder.id;
 };
 
@@ -92,10 +116,24 @@ export const upsertAnalysisFile = async (
   analysisType: string,
 ): Promise<void> => {
   const existingId = await findExistingFile(token, folderId, contentHash, analysisType);
-  const body = JSON.stringify(content, null, 2);
 
   if (existingId) {
-    // Update existing file content
+    // Preserve original createdAt from existing file
+    const existingRes = await fetch(`${DRIVE_API}/${existingId}?alt=media`, {
+      headers: headers(token),
+    });
+    if (existingRes.ok) {
+      try {
+        const existing = await existingRes.json();
+        if (existing.createdAt) {
+          content = { ...content, createdAt: existing.createdAt };
+        }
+      } catch {
+        // Parse error — proceed with new content as-is
+      }
+    }
+
+    const body = JSON.stringify(content, null, 2);
     const res = await fetch(`${DRIVE_UPLOAD_API}/${existingId}?uploadType=media`, {
       method: 'PATCH',
       headers: { ...headers(token), 'Content-Type': 'application/json' },
@@ -110,7 +148,7 @@ export const upsertAnalysisFile = async (
       appProperties: { contentHash, analysisType },
     };
 
-    const boundary = 'unshafted_boundary';
+    const boundary = crypto.randomUUID();
     const multipart = [
       `--${boundary}`,
       'Content-Type: application/json; charset=UTF-8',
@@ -119,7 +157,7 @@ export const upsertAnalysisFile = async (
       `--${boundary}`,
       'Content-Type: application/json',
       '',
-      body,
+      JSON.stringify(content, null, 2),
       `--${boundary}--`,
     ].join('\r\n');
 
@@ -133,6 +171,23 @@ export const upsertAnalysisFile = async (
     });
     if (!res.ok) throw new Error(`Drive create failed: ${res.status}`);
   }
+};
+
+/** Validate that a parsed object looks like a DriveAnalysisFile */
+const isValidAnalysisFile = (data: unknown): data is DriveAnalysisFile => {
+  if (typeof data !== 'object' || data === null) return false;
+  const obj = data as Record<string, unknown>;
+  return (
+    typeof obj.contentHash === 'string' &&
+    typeof obj.documentName === 'string' &&
+    typeof obj.analysisType === 'string' &&
+    (obj.analysisType === 'quick-scan' || obj.analysisType === 'deep-analysis') &&
+    typeof obj.createdAt === 'string' &&
+    typeof obj.updatedAt === 'string' &&
+    typeof obj.role === 'string' &&
+    typeof obj.result === 'object' &&
+    obj.result !== null
+  );
 };
 
 /** List all analysis files from the Unshafted folder */
@@ -154,19 +209,23 @@ export const listAnalysisFiles = async (
     const listData = await listRes.json();
     pageToken = listData.nextPageToken;
 
-    for (const file of listData.files ?? []) {
-      const contentRes = await fetch(`${DRIVE_API}/${file.id}?alt=media`, {
-        headers: headers(token),
-      });
-      if (!contentRes.ok) continue;
+    const fileIds: string[] = (listData.files ?? []).map((f: { id: string }) => f.id);
 
-      try {
-        const parsed = await contentRes.json();
-        if (parsed.contentHash && parsed.analysisType && parsed.result) {
-          files.push(parsed as DriveAnalysisFile);
+    // Fetch file contents in parallel batches of 5
+    for (let i = 0; i < fileIds.length; i += 5) {
+      const batch = fileIds.slice(i, i + 5);
+      const results = await Promise.allSettled(
+        batch.map(async id => {
+          const res = await fetch(`${DRIVE_API}/${id}?alt=media`, { headers: headers(token) });
+          if (!res.ok) return null;
+          return res.json();
+        }),
+      );
+
+      for (const result of results) {
+        if (result.status === 'fulfilled' && isValidAnalysisFile(result.value)) {
+          files.push(result.value);
         }
-      } catch {
-        // Skip malformed files
       }
     }
   } while (pageToken);
@@ -185,6 +244,103 @@ export const deleteAnalysisFile = async (
   if (!fileId) return;
 
   await fetch(`${DRIVE_API}/${fileId}`, {
+    method: 'DELETE',
+    headers: headers(token),
+  });
+};
+
+// ── Source file management ──
+
+/** Find existing source file by contentHash */
+export const findSourceFile = async (
+  token: string,
+  folderId: string,
+  contentHash: string,
+): Promise<string | null> => {
+  const q = [
+    `'${folderId}' in parents`,
+    `appProperties has { key='contentHash' and value='${contentHash}' }`,
+    `appProperties has { key='fileType' and value='source' }`,
+    `trashed=false`,
+  ].join(' and ');
+
+  const res = await fetch(`${DRIVE_API}?q=${encodeURIComponent(q)}&fields=files(id)&spaces=drive`, {
+    headers: headers(token),
+  });
+
+  if (!res.ok) return null;
+  const data = await res.json();
+  return data.files?.[0]?.id ?? null;
+};
+
+/** Ensure original source file exists in Drive (idempotent — skips if already present) */
+export const ensureSourceFile = async (
+  token: string,
+  folderId: string,
+  filename: string,
+  base64Content: string,
+  mimeType: string,
+  contentHash: string,
+): Promise<void> => {
+  const existing = await findSourceFile(token, folderId, contentHash);
+  if (existing) return;
+
+  const metadata = {
+    name: filename,
+    parents: [folderId],
+    appProperties: { contentHash, fileType: 'source' },
+  };
+
+  // Decode base64 to binary for upload
+  const binaryString = atob(base64Content);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+
+  const boundary = crypto.randomUUID();
+  const metadataPart = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n`;
+  const binaryHeader = `--${boundary}\r\nContent-Type: ${mimeType}\r\n\r\n`;
+  const closing = `\r\n--${boundary}--`;
+
+  // Build multipart body as ArrayBuffer to preserve binary content
+  const encoder = new TextEncoder();
+  const metadataBytes = encoder.encode(metadataPart);
+  const headerBytes = encoder.encode(binaryHeader);
+  const closingBytes = encoder.encode(closing);
+
+  const body = new Uint8Array(metadataBytes.length + headerBytes.length + bytes.length + closingBytes.length);
+  body.set(metadataBytes, 0);
+  body.set(headerBytes, metadataBytes.length);
+  body.set(bytes, metadataBytes.length + headerBytes.length);
+  body.set(closingBytes, metadataBytes.length + headerBytes.length + bytes.length);
+
+  const res = await fetch(`${DRIVE_UPLOAD_API}?uploadType=multipart`, {
+    method: 'POST',
+    headers: {
+      ...headers(token),
+      'Content-Type': `multipart/related; boundary=${boundary}`,
+    },
+    body,
+  });
+  if (!res.ok) throw new Error(`Drive source create failed: ${res.status}`);
+};
+
+/** Delete source file if no analysis files reference this contentHash */
+export const deleteSourceFileIfOrphaned = async (
+  token: string,
+  folderId: string,
+  contentHash: string,
+): Promise<void> => {
+  const quickId = await findExistingFile(token, folderId, contentHash, 'quick-scan');
+  const deepId = await findExistingFile(token, folderId, contentHash, 'deep-analysis');
+
+  if (quickId || deepId) return;
+
+  const sourceId = await findSourceFile(token, folderId, contentHash);
+  if (!sourceId) return;
+
+  await fetch(`${DRIVE_API}/${sourceId}`, {
     method: 'DELETE',
     headers: headers(token),
   });
