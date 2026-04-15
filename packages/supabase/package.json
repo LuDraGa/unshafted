@@ -24,7 +24,8 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.8",
-    "@extension/env": "workspace:*"
+    "@extension/env": "workspace:*",
+    "@extension/unshafted-core": "workspace:*"
   },
   "devDependencies": {
     "@extension/tsconfig": "workspace:*"

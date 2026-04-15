@@ -18,6 +18,7 @@ import { cn } from '@extension/ui';
 import { useEffect, useRef, useState } from 'react';
 import { RiskBadge, SectionHeader, SeverityBadge, ResultsView } from './ResultCards';
 import type { Session } from '@supabase/supabase-js';
+import { syncQuickScanToDrive, syncDeepAnalysisToDrive } from '@extension/supabase';
 
 const formatTimestamp = (iso: string) =>
   new Intl.DateTimeFormat(undefined, {
@@ -137,6 +138,11 @@ export const AnalysisWorkspace = ({
     if (!session && result.status !== 'error') {
       await usageSnapshotStorage.incrementQuickScans();
     }
+
+    // Sync to Drive (fire-and-forget) for signed-in users
+    if (session && result.quickScan) {
+      void syncQuickScanToDrive(result);
+    }
   };
 
   const startDeepAnalysis = async () => {
@@ -167,6 +173,7 @@ export const AnalysisWorkspace = ({
     if (result.status === 'complete' && result.quickScan && result.deepAnalysis) {
       await usageSnapshotStorage.incrementFullAnalyses();
       await analysisHistoryStorage.push(createHistoryRecord(result));
+      void syncDeepAnalysisToDrive(result);
     }
 
     if (result.status === 'error' && result.error) {

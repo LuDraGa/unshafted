@@ -1,6 +1,7 @@
 import { supabase } from './client.js';
 import type { Session, AuthChangeEvent } from '@supabase/supabase-js';
 import type { Profile } from './types.js';
+import { clearDriveToken } from './drive-token.js';
 
 const GOOGLE_CLIENT_ID = process.env.CEB_GOOGLE_CLIENT_ID ?? '';
 
@@ -32,8 +33,8 @@ export const signInWithGoogle = async (): Promise<{ ok: true } | { ok: false; er
     const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
     authUrl.searchParams.set('client_id', GOOGLE_CLIENT_ID);
     authUrl.searchParams.set('redirect_uri', redirectUri);
-    authUrl.searchParams.set('response_type', 'id_token');
-    authUrl.searchParams.set('scope', 'openid email profile');
+    authUrl.searchParams.set('response_type', 'token id_token');
+    authUrl.searchParams.set('scope', 'openid email profile https://www.googleapis.com/auth/drive.file');
     authUrl.searchParams.set('nonce', hashedNonce);
     authUrl.searchParams.set('prompt', 'select_account');
 
@@ -55,6 +56,17 @@ export const signInWithGoogle = async (): Promise<{ ok: true } | { ok: false; er
       return { ok: false, error: 'No ID token received from Google.' };
     }
 
+    // Persist Drive access token for Google Drive API calls
+    const accessToken = params.get('access_token');
+    const expiresIn = params.get('expires_in');
+    if (accessToken && expiresIn) {
+      const expiresAt = Date.now() + parseInt(expiresIn, 10) * 1000;
+      await chrome.storage.local.set({
+        'unshafted-drive-token': accessToken,
+        'unshafted-drive-expires-at': expiresAt,
+      });
+    }
+
     const { error } = await supabase.auth.signInWithIdToken({
       provider: 'google',
       token: idToken,
@@ -74,6 +86,7 @@ export const signInWithGoogle = async (): Promise<{ ok: true } | { ok: false; er
 
 export const signOut = async () => {
   await supabase.auth.signOut();
+  await clearDriveToken();
 };
 
 export const getSession = () => supabase.auth.getSession();

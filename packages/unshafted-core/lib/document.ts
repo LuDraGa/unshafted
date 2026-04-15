@@ -10,6 +10,27 @@ import { extractTextFromPdf } from './pdf.js';
 import { IngestedDocumentSchema } from './schemas.js';
 import type { HistoryRecord, IngestedDocument, QuickScanResult } from './types.js';
 
+/** Sanitize a document name for use in filenames */
+export const sanitizeDocumentName = (name: string): string =>
+  name
+    .replace(/\.[^.]+$/, '')
+    .replace(/[^a-zA-Z0-9\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .toLowerCase()
+    .slice(0, 60) || 'unnamed-document';
+
+/** SHA256 hash of text, returned as hex string */
+export const computeContentHash = async (text: string): Promise<string> => {
+  const data = new TextEncoder().encode(text);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hashBuffer))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+};
+
 const LINE_BREAK_PATTERN = /\n{3,}/g;
 const WHITESPACE_PATTERN = /[ \t]{2,}/g;
 
@@ -53,6 +74,8 @@ export const buildDocumentFromFile = async (file: File): Promise<IngestedDocumen
   return IngestedDocumentSchema.parse({
     kind: 'file',
     name: file.name,
+    slug: sanitizeDocumentName(file.name),
+    contentHash: await computeContentHash(text),
     fileSize: file.size,
     charCount: text.length,
     estimatedTokens: estimateTokens(text),
