@@ -20,15 +20,15 @@ Your chosen AI provider, model selection, temperature setting, and API keys (Ope
 
 ### 3. Contract and agreement text
 
-When you upload a `.txt` file for analysis, the document text is held in local extension storage for the duration of the analysis session.
+When you upload a `.pdf` or `.txt` file for analysis, the document text is extracted and held in local extension storage for the duration of the analysis session. If you are signed in, the original source file is also uploaded to your Google Drive alongside the analysis results.
 
 ### 4. Analysis results
 
-AI-generated risk analysis results (quick scans and deep analyses) are stored locally. If you are signed in, results are also synced to a folder in **your own Google Drive** account so you can access them across devices.
+AI-generated risk analysis results (quick scans and deep analyses) are stored locally. The analysis results contain the AI-generated risk summary, which includes referenced excerpts from the contract. If you are signed in, the analysis results and the original source file are synced to an "Unshafted" folder in **your own Google Drive** account so you can access them across devices.
 
 ### 5. Usage counters
 
-Anonymous users: a daily quick-scan counter is stored locally to enforce free-tier limits. Signed-in users: a monthly analysis counter is stored locally.
+Anonymous users: a daily quick-scan counter is stored locally to enforce the free-tier limit (3 quick scans per day). Signed-in users get unlimited quick scans; a monthly full-analysis counter is stored locally.
 
 ---
 
@@ -40,8 +40,25 @@ How we use your data
 | Email and profile | Authenticate your session; display your account in the extension |
 | API keys | Sent directly to the AI provider you configured (OpenRouter or OpenAI) to authorize model requests |
 | Contract text | Sent to the AI provider you configured so the model can generate a risk analysis |
-| Analysis results | Displayed in the extension; optionally synced to your Google Drive |
+| Original source file | Signed-in users: uploaded to your Google Drive for cross-device access. Anonymous users: kept locally only |
+| Analysis results | Displayed in the extension. Signed-in users: synced to your Google Drive |
 | Usage counters | Enforce free-tier daily limits for anonymous users |
+
+---
+
+Signed-in vs. anonymous users
+------------------------------
+
+Unshafted works without an account. Signing in with Google unlocks additional features but also changes how data flows:
+
+| | Anonymous | Signed in (Google) |
+|---|---|---|
+| Quick scans | 3 per day | Unlimited |
+| Deep analysis | Available | Available |
+| Data stored locally | Yes | Yes |
+| Data synced to Google Drive | No | Yes (analysis results + original source file) |
+| Account info collected | None | Email, display name, profile picture |
+| Auth session | None | Supabase + Google OAuth tokens (stored locally) |
 
 ---
 
@@ -50,7 +67,7 @@ How we store your data
 
 - **On your device:** API keys, preferences, the current analysis session, a short analysis history, and usage counters are stored in `chrome.storage.local`. This data never leaves your device except as described below.
 - **Supabase (authentication):** Your Google user ID and email are stored in our Supabase project's auth database for session management. No contract text or analysis results are stored in Supabase.
-- **Your Google Drive (optional):** If you are signed in, analysis results are saved to an "Unshafted" folder in your personal Google Drive using the `drive.file` scope, which limits access to only files created by the extension. These files count against your own Drive storage quota and are visible to you in Drive.
+- **Your Google Drive (signed-in users only):** Signing in with Google grants the extension the `drive.file` scope, which is required for cross-device sync. Analysis results (JSON) and original source files (PDF or TXT) are saved to an "Unshafted" folder in your personal Google Drive. The `drive.file` scope limits access to only files created by the extension — it cannot read or modify any other files in your Drive. These files count against your own Drive storage quota and are visible to you in Drive. Anonymous users' data never leaves the device.
 
 ---
 
