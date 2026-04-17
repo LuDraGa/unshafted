@@ -30,7 +30,7 @@ The privacy policy was written for v0.1 (local-only, no auth) and never updated 
 
 ### 2. Privacy policy — full rewrite
 
-**File:** `PRIVACY_POLICY.md` (new, repo root)
+**File:** `privacy-policy.md` (new, repo root)
 
 Rewrote to accurately cover:
 - Google Sign-In (email, profile)
@@ -45,7 +45,7 @@ Rewrote to accurately cover:
 
 **File:** `.github/workflows/sync-privacy-policy.yml`
 
-On push to `main` that touches `PRIVACY_POLICY.md`, syncs the file to the existing gist (LuDraGa/782b874f1e7fe0076fb2bf1509937e95). Requires a `GIST_PAT` secret with `gist` scope.
+On push to `main` that touches `privacy-policy.md`, syncs the file to the existing gist (LuDraGa/782b874f1e7fe0076fb2bf1509937e95). Requires a `GIST_PAT` secret with `gist` scope.
 
 ### 4. CWS submission form updates needed
 

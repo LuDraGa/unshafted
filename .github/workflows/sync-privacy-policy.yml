@@ -3,7 +3,7 @@ name: Sync Privacy Policy to Gist
 on:
   push:
     branches: [main]
-    paths: [PRIVACY_POLICY.md]
+    paths: [privacy-policy.md]
 
 jobs:
   sync:
@@ -16,5 +16,5 @@ jobs:
         with:
           auth: ${{ secrets.GIST_PAT }}
           gist_url: https://gist.github.com/LuDraGa/782b874f1e7fe0076fb2bf1509937e95
-          gist_title: PRIVACY_POLICY.md
-          github_file: PRIVACY_POLICY.md
+          gist_title: privacy-policy.md
+          github_file: privacy-policy.md
