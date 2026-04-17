@@ -1,222 +1,216 @@
 # Unshafted
 
-Unshafted is a Chrome extension MVP that reads contracts, licenses, and terms from the user's side of the table. It runs a fast first-pass scan, lets the user confirm the role they care about, and then produces a sharper role-aware analysis with risk, missing protections, negotiation ideas, and plain-English guidance.
+**Reads contracts from your side of the table.**
 
-This repo builds the extension only. There is no backend, auth, billing, or web app in this MVP. Everything stays local except the API calls used for analysis.
+A Chrome extension that uses AI to analyze contracts, surface risks, and help you understand what you're signing — before you sign it. Bring your own LLM API key, upload a contract, and get instant risk flags followed by deep, section-by-section analysis.
 
-## Working Doctrine
+## Features
 
-- Local first: the product accepts only local `.txt` files for uploads.
-- One primary action: upload a file, scan it, analyze it.
-- Two-stage analysis: quick scan first, deep analysis second.
-- Practical output over legal theater: explain the risk, the missing protection, and the leverage in plain language.
-- Keep the surface small: no login, billing, sync, web app, or speculative feature branches in the MVP.
+- **PDF & TXT upload** with client-side text extraction (no files leave your browser)
+- **Quick scan** — instant risk flags, party identification, key obligations, and a rough risk level in seconds
+- **Deep analysis** — multi-pass, prioritized analysis covering liability, payment, termination, IP, confidentiality, and more across 10 concern categories
+- **Google Sign-In** via Supabase auth with persistent sessions across popup opens
+- **Google Drive sync** — analysis results saved to a dedicated "Unshafted" folder in your Drive, with content-hash deduplication and cross-device hydration
+- **BYOK LLM** — works with OpenRouter (default) or OpenAI. You provide the API key; no data touches our servers
+- **Anonymous access** — 3 free quick scans per day without signing in. Sign in for unlimited quick scans and deep analysis
+- **Verdict-first UI** — accordion-based progressive disclosure with risk badges, count indicators, and a compact verdict strip
 
-## Success Targets
+## Supported Formats
 
-- The user can tell what the document is, who the parties are, and which role they should analyze from.
-- The user can upload a local `.txt` file and get a quick scan immediately.
-- The user can confirm role and priorities and receive a structured deep analysis.
-- Unsupported inputs fail clearly and tell the user the next move.
-- Results stay concise, grounded, and useful enough to make the user act.
+| Format | Status | Notes |
+|--------|--------|-------|
+| PDF (text-based) | Supported | Client-side parsing via pdf.js with structure-aware extraction (headings, bold, indentation) |
+| TXT / plain text | Supported | Direct text ingestion |
+| Scanned / image-only PDF | Not supported | No OCR — pdf.js only extracts embedded text |
+| DOCX | Not yet supported | Planned |
 
-## Stack
+### PDF Extraction Details
 
-- Chrome Extension Manifest V3
-- React 19
-- TypeScript
-- Tailwind CSS
-- Turborepo-based extension scaffold
-- `zod` for schema validation
-- `chrome.storage.local` for local settings, history, session state, and usage counters
-- OpenRouter / OpenAI for quick and deep model calls
+The extension uses `pdfjs-dist` to extract text client-side with structural heuristics:
+- Font size differences map to heading hierarchy (`##`, `###`)
+- Font name changes on short lines detect bold/labels (`**text**`)
+- X-position offsets preserve indentation
+- Y-gaps detect paragraph breaks
 
-## MVP Features
+**Known limitations:** Table data comes through as flat text (row/column structure is lost). Font name metadata is often generic, so bold detection is heuristic. Some PDFs with unusual layouts may not format cleanly.
 
-- Upload local `.txt` files
-- Automatic quick scan:
-  - probable document type
-  - detected parties
-  - likely role options
-  - rough risk level
-  - quick red flags
-- Role-aware deep analysis:
-  - plain-English summary
-  - overall risk level
-  - immediate worries
-  - one-sided clauses
-  - missing protections
-  - deadlines, renewals, and termination traps
-  - payment / liability / indemnity / IP / confidentiality / dispute concerns
-  - negotiation ideas
-  - suggested edits in plain English
-  - questions to ask before signing
-  - "could shaft you later"
-  - "potential advantage for you"
-  - clause reference notes
-- Local history for the last few completed analyses
-- Options page for API key, provider toggle (OpenRouter / OpenAI), model selection, and connection testing
-- Demo contract fixture for UI testing without starting from a real contract
+## Architecture
 
-## Project Structure
+Chrome MV3 extension built as a pnpm monorepo with Turborepo orchestration.
 
-- `chrome-extension/manifest.ts` — MV3 manifest source
-- `chrome-extension/src/background/index.ts` — service worker startup and usage sync
-- `pages/popup/src/Popup.tsx` — full product surface: upload, analysis workspace, and results
-- `pages/popup/src/components/AnalysisWorkspace.tsx` — analysis workspace UI (quick scan, role selection, deep analysis, results)
-- `pages/popup/src/components/ResultCards.tsx` — deep analysis result rendering
-- `pages/options/src/Options.tsx` — settings page (provider, API key, model config, connection test)
-- `pages/content/src/matches/all/index.ts` — content script for page text extraction
-- `packages/shared/lib/utils/analysis-workflow.ts` — orchestration for quick scan and deep analysis
-- `packages/unshafted-core/lib/` — reusable prompts, schemas, OpenRouter client, fixtures, and helpers
-- `packages/storage/lib/impl/` — local settings, history, usage, and session stores
-
-## OpenRouter Setup
-
-The extension supports OpenRouter and OpenAI as providers. Set your preferred provider and API key in the Options page.
-
-1. Create or use an OpenRouter (or OpenAI) account.
-2. Generate an API key.
-3. Load the extension in Chrome.
-4. Open Options.
-5. Select your provider, paste the API key, and save.
-6. Optionally open Advanced to adjust model IDs.
-
-For local seeded defaults in this scaffold, use:
-
-```bash
-CEB_OPENROUTER_API_KEY=your_key_here
+```
+Unshafted/
+  chrome-extension/     # MV3 manifest, service worker, public assets
+  pages/
+    popup/              # Main UI — upload, scan results, deep analysis
+    content/            # Content script (page text extraction)
+    options/            # Settings page (API keys, model selection)
+  packages/
+    unshafted-core/     # Analysis engine — schemas, prompts, PDF parsing, document processing
+    supabase/           # Auth (Google OAuth), Drive API helpers, sync layer
+    storage/            # chrome.storage wrappers with live-update React hooks
+    shared/             # Analysis workflow orchestration, LLM API calls
+    ui/                 # Shared React components
+    env/                # Environment variable injection (build-time)
+    hmr/                # Hot module reload for extension dev
+    vite-config/        # Shared Vite configuration
+    tsconfig/           # Shared TypeScript configs
+  supabase/
+    migrations/         # Versioned SQL — source of truth for database schema
+  execution-docs/       # Implementation plans and design decisions
 ```
 
-Recommended defaults:
+### How Analysis Works
 
-- Quick model: `google/gemma-4-26b-a4b-it:free`
-- Deep model: `stepfun/step-3.5-flash:free`
-- Temperature: `0.2`
+1. **Upload** — User picks a PDF or TXT file. Text is extracted client-side and normalized.
+2. **Quick scan** — Text excerpt (up to ~5k tokens) is sent to the LLM with a structured prompt. Response is Zod-validated into typed results (risk level, flags, parties, obligations).
+3. **Deep analysis** — User selects their role and priority topics. A larger excerpt (up to ~10k tokens) goes through a multi-pass prompt covering 10 concern categories. Results are validated and rendered as expandable accordion sections.
+4. **Drive sync** — On completion, results are saved as JSON to the user's Google Drive (fire-and-forget, silent on failure). Content hash prevents duplicates.
 
-The Options page includes a `Test connection` action.
+LLM calls happen from the **service worker**, not the popup — so closing the popup doesn't kill in-flight analysis.
 
-## Install and Run
+## Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Language | TypeScript (strict) |
+| UI | React 19, Tailwind CSS |
+| Build | Vite, Turborepo, pnpm |
+| Schemas | Zod (runtime validation of LLM output) |
+| PDF | pdfjs-dist (client-side, no worker) |
+| Auth | Supabase (Google OAuth via `chrome.identity.launchWebAuthFlow`) |
+| Storage | Google Drive API (REST, no SDK), chrome.storage.local |
+| LLM | OpenRouter or OpenAI (BYOK) |
+| Extension | Chrome Manifest V3 |
+
+## Getting Started
 
 ### Prerequisites
 
-- Node `>=22.15.1`
-- `pnpm` `>=10`
+- Node.js >= 22.15.1
+- pnpm 10.x
+- A Google Cloud project with OAuth 2.0 credentials (Web Application type)
+- A Supabase project with Google auth provider enabled
 
-### Install
+### Environment Setup
+
+Copy the `.env.example` or create `.env` in the project root:
+
+```env
+CEB_SUPABASE_URL=https://your-project.supabase.co
+CEB_SUPABASE_ANON_KEY=your-anon-key
+CEB_GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+CEB_OPENROUTER_API_KEY=your-openrouter-key   # optional — user can set in extension options
+```
+
+### Database Setup
+
+Run the SQL files in `supabase/migrations/` against your Supabase SQL editor, in order:
+
+1. `001_schema_and_profiles.sql` — Creates the `unshafted` schema, profiles table, RLS policies, and auto-profile trigger
+
+See [Database](#database) for more detail.
+
+### Install & Run
 
 ```bash
 pnpm install
+pnpm dev          # builds + watches all packages, outputs to dist/
 ```
 
-### Start development build
+Load the unpacked extension from `dist/` in `chrome://extensions` (Developer mode).
+
+### Build for Production
 
 ```bash
-pnpm dev
+pnpm build        # clean build → dist/ → zipped to unshafted-extension.zip
 ```
 
-### Production build
+## Database
 
-```bash
-pnpm build
-```
+Supabase with a custom `unshafted` schema. Row-Level Security is enabled on all tables.
 
-### Load unpacked in Chrome
+### Current Schema
 
-1. Open `chrome://extensions`
-2. Enable `Developer mode`
-3. Click `Load unpacked`
-4. Select the repo's `dist` directory
+**`unshafted.profiles`** — Created automatically on Google sign-up via a trigger on `auth.users`.
 
-## How to Use
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid (PK) | References `auth.users(id)` |
+| email | text | From Google profile |
+| display_name | text | From Google profile |
+| avatar_url | text | Google avatar URL |
+| created_at | timestamptz | Auto-set |
+| updated_at | timestamptz | Auto-set |
 
-1. Click the Unshafted extension icon to open the popup.
-2. Click `Upload your contract` and choose a local `.txt` file.
-3. The quick scan runs automatically — review document type, parties, and risk flags.
-4. Confirm your role and priority topics.
-5. Click `Run detailed analysis` for the full breakdown.
-6. Use `Start fresh` to clear and upload another contract.
+RLS policies: users can only read and update their own profile.
 
-## Prompts and Output Schema
+### Migration Management
 
-The reusable prompt and schema layer lives in `packages/unshafted-core/lib/prompts.ts` and `packages/unshafted-core/lib/schemas.ts`.
+SQL migration files live in `supabase/migrations/` and are the source of truth for the database schema. During early development, these were run manually via the Supabase SQL editor as we scoped the schema iteratively. The migration files are now maintained in the repo for reproducibility and onboarding.
 
-Highlights:
+**Current approach:** Manual execution against Supabase SQL editor, ordered by filename prefix. No migration runner or Supabase CLI is used yet — this is a recognized gap that will be addressed as the schema grows with credits and billing tables.
 
-- Quick scan prompt:
-  - classify document type
-  - detect parties and likely user roles
-  - flag obvious asymmetry and risk
-- Deep analysis prompt:
-  - reason from the text only
-  - avoid hallucinated citations
-  - separate explicit text from inference
-  - focus on obligations, traps, lock-in, missing protections, and leverage
-- Internal responses are JSON and validated with `zod`
+## Design Decisions
 
-## Fixtures and Tests
+### Client-Side PDF Parsing
+No backend exists yet. `pdfjs-dist` handles the vast majority of text-based contracts (which is what most contracts are). Scanned/image-only PDFs are explicitly unsupported — the extension detects them and shows a clear error. The future web app will use server-side libraries (Marker, PyMuPDF) for full structural fidelity including table extraction.
 
-Sample fixture data is included for development and testing:
+### `drive.file` Scope (Not `drive.appdata`)
+`drive.appdata` has a hard 10MB limit and files are invisible to the user. `drive.file` has no cap, files count against regular Drive quota (15GB+ free), and users can see and manage their analysis files directly in Drive. Risk of user-editing is mitigated by Zod validation on read.
 
-- `packages/unshafted-core/lib/fixtures/sample-contract.ts`
+### Chrome Storage Adapter for Supabase
+Supabase expects `localStorage`, which doesn't exist in Chrome extension service workers. A custom adapter wraps `chrome.storage.local` with the same `getItem`/`setItem`/`removeItem` interface, enabling persistent auth sessions that survive popup close and extension restart.
 
-Basic core tests:
+### Fire-and-Forget Drive Sync
+Drive operations are best-effort. The extension always works locally. Drive failures are caught silently — no error toasts, no retries blocking the UI. Local storage is the working copy; Drive is the durable backup. Content-hash deduplication prevents file accumulation on reruns.
 
-```bash
-pnpm -F @extension/unshafted-core test
-```
+### No Migration Runner (Yet)
+During early development, we ran SQL directly in the Supabase SQL editor while iterating on the schema. Migration files are now tracked in `supabase/migrations/` as the source of truth, but are still applied manually. A proper migration tool will be introduced alongside the credits/billing schema in Phase 3.
 
-## Verification Checklist
+### OAuth: Web Application Client Type
+Chrome extensions using `chrome.identity.launchWebAuthFlow` need a **Web Application** OAuth client (not "Chrome App"). The redirect URI is `https://<extension-id>.chromiumapp.org`. A pinned `key` in the manifest keeps the extension ID stable across dev reinstalls.
 
-### Automated checks
+## Roadmap
 
-```bash
-pnpm type-check
-pnpm build
-pnpm -F @extension/unshafted-core test
-```
+### In Progress — Phase 2: Google Drive Storage
+- Document name sanitization and content hashing at upload
+- Quick scan and deep analysis results saved to Drive as JSON
+- Content-hash dedup (same document = same file, updated in place)
+- Cross-device history hydration from Drive on new installs
+- Silent token refresh for uninterrupted Drive access
 
-### Manual checks
+### Next — Phase 3: Billing & Credits
+- Credit system for deep analysis usage
+- Daily free credit allotment
+- Server-side LLM calls (move API keys off-client)
+- Credit purchase flow
 
-- Load the unpacked `dist` directory in Chrome.
-- Click the extension icon — should show the upload launcher.
-- Upload a local `.txt` file — quick scan should run automatically.
-- Confirm role and priorities, then run the detailed analysis.
-- Open Options and run `Test connection`.
-- If behavior looks wrong, inspect the popup or background service worker through `chrome://extensions`.
+### Future
+- **Tiered subscriptions** — Free, Pro, and team tiers with differentiated analysis depth and volume
+- **Ad-based credits** — Free-tier users earn credits through opt-in ad engagement
+- **Web app** — Full web experience with enhanced PDF-to-Markdown pipeline (proper table extraction, heading hierarchy), longer analysis runs, downloadable reports
+- **Custom analysis templates** — Pre-built profiles for SaaS agreements, employment contracts, NDAs, leases
+- **AI-generated edit suggestions** — Move from "here's what's wrong" to "here's what to say instead"
+- **Negotiation playbooks** — Context on whether a clause is standard or unusual, with leverage points
+- **Jurisdiction-aware analysis** — Flag clauses that behave differently across states/countries
+- **Batch analysis** — Upload and analyze multiple contracts at once
+- **Multi-document comparison** — Side-by-side version diffs with risk context
+
+### Areas of Growth
+- **DOCX support** — Currently unsupported; planned for a future release
+- **OCR for scanned PDFs** — Low priority (most contracts are digitally created), but would expand coverage
+- **Table extraction fidelity** — Current PDF parsing loses table row/column structure; the web app pipeline will address this
+- **Offline / degraded mode** — Extension works locally without Drive, but no explicit offline-first UX yet
 
 ## Known Limitations
 
-- No PDF parsing
-- No DOCX parsing
-- No OCR or image support
-- No `.md` upload support
-- No login, billing, or sync
-- Long documents may be analyzed from balanced excerpts instead of the full text
-- Local history stores the analysis output and source metadata, not the full raw contract text
+- **Scanned / image-only PDFs** are not supported (no OCR). The extension detects this and shows a clear error.
+- **PDF table data** comes through as flat text — row/column structure is lost.
+- **Font-based heuristics** for heading/bold detection are best-effort. Some PDFs with unusual layouts may not format cleanly.
+- **LLM output quality** depends on the model and API key you provide. Free-tier OpenRouter models may produce lower quality results than paid models.
+- **Not legal advice.** This is guidance to help you understand agreements, not a substitute for qualified legal counsel.
 
-## Architecture Notes
+## License
 
-The repo is intentionally kept small:
-
-- `chrome-extension/` holds the manifest and background worker
-- `pages/` contains the three live entrypoints: `popup`, `options`, and `content`
-- The popup is the full product surface — upload, analysis workspace, and results all render inline in the popup
-- `packages/unshafted-core` contains the reusable analysis logic that a future web app can lift directly
-- `packages/storage`, `packages/shared`, and `packages/ui` are thin extension helpers, not a generic component platform
-
-The remaining split exists only where it materially helps reuse:
-
-- `@extension/unshafted-core` contains prompts, schemas, parsing, fixtures, and the OpenRouter client
-- Extension entrypoints contain Chrome-specific UX and orchestration
-- `@extension/storage` isolates the local persistence layer so it can later be swapped or mirrored server-side
-
-This keeps the future migration path straightforward:
-
-1. Move the shared core into the web app workspace
-2. Replace `chrome.storage.local` with backend-backed persistence
-3. Keep the prompt and schema contract intact across extension and web surfaces
-
-## Disclaimer
-
-Unshafted is informational only and not legal advice. For critical or high-stakes matters, consult a qualified lawyer.
+MIT
