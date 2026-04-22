@@ -177,7 +177,9 @@ const Popup = () => {
     await signOut();
   }, []);
 
-  const openOptions = () => chrome.runtime.openOptionsPage();
+  const openOptions = () => {
+    window.open(chrome.runtime.getURL('options/index.html'));
+  };
 
   const handleUploadFlow = () => {
     setLaunchError('');
