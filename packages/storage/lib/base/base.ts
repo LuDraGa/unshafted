@@ -124,7 +124,12 @@ export const createStorage = <D = string>(
   };
 
   // Listener for live updates from the browser
-  const _updateFromStorageOnChanged = async (changes: { [key: string]: chrome.storage.StorageChange }) => {
+  const _updateFromStorageOnChanged = async (
+    changes: { [key: string]: chrome.storage.StorageChange },
+    areaName: `${StorageEnum}`,
+  ) => {
+    if (areaName !== storageEnum) return;
+
     // Check if the key we are listening for is in the changes object
     if (changes[key] === undefined) return;
 
@@ -145,7 +150,7 @@ export const createStorage = <D = string>(
 
   // Register listener for live updates for our storage area
   if (liveUpdate) {
-    chrome?.storage[storageEnum].onChanged.addListener(_updateFromStorageOnChanged);
+    chrome?.storage.onChanged.addListener(_updateFromStorageOnChanged);
   }
 
   return {
