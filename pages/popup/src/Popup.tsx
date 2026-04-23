@@ -88,18 +88,15 @@ const getActiveOnboardingStep = ({
   }
 
   if (!hasTestedActiveKey) {
-    if (
-      hasActiveApiKey &&
-      (onboarding.currentStep === 'provider' || onboarding.currentStep === 'api-key' || !setupSteps.has(onboarding.currentStep))
-    ) {
-      return 'test-connection';
-    }
-
     if (setupSteps.has(onboarding.currentStep)) {
       return onboarding.currentStep;
     }
 
-    return hasActiveApiKey ? 'test-connection' : 'provider';
+    if (hasActiveApiKey) {
+      return 'test-connection';
+    }
+
+    return 'provider';
   }
 
   const startIndex = Math.max(getStepRank('sign-in'), getStepRank(onboarding.currentStep));
@@ -330,7 +327,7 @@ const Popup = () => {
     let nextStep = onboarding.currentStep;
 
     if (!hasTestedActiveKey) {
-      if (hasActiveApiKey && (nextStep === 'provider' || nextStep === 'api-key' || !setupSteps.has(nextStep))) {
+      if (hasActiveApiKey && !setupSteps.has(nextStep)) {
         nextStep = 'test-connection';
       } else if (!hasActiveApiKey && !setupSteps.has(nextStep)) {
         nextStep = 'provider';
@@ -485,23 +482,13 @@ const Popup = () => {
   }, []);
 
   const resumeWizard = useCallback(async () => {
-    const nextStep = !hasTestedActiveKey
-      ? hasActiveApiKey
-        ? 'test-connection'
-        : 'provider'
-      : !session
-        ? 'sign-in'
-        : !hasQuickScan
-          ? 'upload'
-          : 'results';
     await unshaftedOnboardingStorage.set(current => ({
       ...current,
       completedAt: null,
       dismissedAt: null,
-      currentStep: nextStep,
-      seenResultGuidance: nextStep === 'results' ? false : current.seenResultGuidance,
+      currentStep: 'provider',
     }));
-  }, [hasActiveApiKey, hasQuickScan, hasTestedActiveKey, session]);
+  }, []);
 
   const advanceSpotlight = useCallback(async () => {
     if (!spotlightStep) return;
@@ -514,7 +501,7 @@ const Popup = () => {
         await openOptions(true);
         return;
       case 'sign-in':
-        await advanceOnboarding('upload');
+        await handleSignIn();
         return;
       case 'upload':
         handleUploadFlow();
@@ -534,7 +521,7 @@ const Popup = () => {
       default:
         return;
     }
-  }, [advanceOnboarding, completeOnboarding, handleUploadFlow, hasFlags, openOptions, spotlightStep]);
+  }, [completeOnboarding, handleSignIn, handleUploadFlow, hasFlags, openOptions, spotlightStep]);
 
   const handleFileChosen = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];

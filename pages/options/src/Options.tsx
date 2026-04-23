@@ -8,6 +8,9 @@ import {
   DEFAULT_TEMPERATURE,
   getActiveProviderConfig,
   getOnboardingKeyHash,
+  OPENAI_API_KEYS_DOCS_URL,
+  OPENAI_API_KEYS_QUICKSTART_URL,
+  OPENAI_KEYS_URL,
   OPENROUTER_API_KEYS_DOCS_URL,
   OPENROUTER_KEYS_URL,
   testOpenRouterConnection,
@@ -63,6 +66,7 @@ const Options = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [lastSavedConfig, setLastSavedConfig] = useState<ReturnType<typeof getActiveProviderConfig> | null>(null);
+  const [showPopupFallback, setShowPopupFallback] = useState(false);
 
   useEffect(() => {
     setForm({
@@ -135,8 +139,33 @@ const Options = () => {
     }));
   };
 
+  const continueToPopup = async () => {
+    setShowPopupFallback(false);
+
+    try {
+      if (chrome.action?.openPopup) {
+        await chrome.action.openPopup();
+        return;
+      }
+    } catch {
+      // Best-effort only; Chrome may reject this outside supported contexts.
+    }
+
+    setShowPopupFallback(true);
+  };
+
+  const openPopupFallbackTab = async () => {
+    const url = chrome.runtime.getURL('popup/index.html?onboarding=true');
+    try {
+      await chrome.tabs.create({ url });
+    } catch {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  };
+
   const save = async (): Promise<boolean> => {
     setStatus({ tone: 'idle', message: '' });
+    setShowPopupFallback(false);
     setIsSaving(true);
 
     try {
@@ -193,6 +222,7 @@ const Options = () => {
 
   const testConnection = async (): Promise<boolean> => {
     setStatus({ tone: 'idle', message: '' });
+    setShowPopupFallback(false);
     setIsTesting(true);
 
     try {
@@ -225,7 +255,7 @@ const Options = () => {
 
       setStatus({
         tone: 'success',
-        message: onboardingMode ? `Connection succeeded using ${model}. Return to the popup to continue.` : `Connection succeeded using ${model}.`,
+        message: onboardingMode ? `Connection succeeded using ${model}. Continuing in the popup...` : `Connection succeeded using ${model}.`,
       });
 
       await unshaftedOnboardingStorage.set(current => ({
@@ -241,6 +271,10 @@ const Options = () => {
             }
           : {}),
       }));
+
+      if (onboardingMode) {
+        await continueToPopup();
+      }
 
       return true;
     } catch (error) {
@@ -310,6 +344,27 @@ const Options = () => {
     }));
   };
 
+  const setupHelp = isOpenAI
+    ? {
+        eyebrow: 'OpenAI setup',
+        copy: 'Create or copy an OpenAI project API key, paste it below, save, then test.',
+        inputHelp: 'OpenAI keys usually start with sk-proj-. Save, test, then continue in the popup.',
+        links: [
+          { href: OPENAI_KEYS_URL, label: 'OpenAI keys' },
+          { href: OPENAI_API_KEYS_DOCS_URL, label: 'API-key docs' },
+          { href: OPENAI_API_KEYS_QUICKSTART_URL, label: 'Quickstart' },
+        ],
+      }
+    : {
+        eyebrow: 'OpenRouter setup',
+        copy: 'OpenRouter is a good free-first path. Create or copy a key, save, then test.',
+        inputHelp: 'OpenRouter keys usually start with sk-or-v1-. Save, test, then continue in the popup.',
+        links: [
+          { href: OPENROUTER_KEYS_URL, label: 'Open keys' },
+          { href: OPENROUTER_API_KEYS_DOCS_URL, label: 'API-key docs' },
+        ],
+      };
+
   return (
     <div className="options-shell">
       <div className="mx-auto max-w-lg px-6 py-12">
@@ -326,18 +381,15 @@ const Options = () => {
           {onboardingMode ? (
             <section className="options-help-card mt-6">
               <div>
-                <p className="options-help-eyebrow">API setup</p>
-                <p className="mt-1 text-sm leading-5 text-stone-700">
-                  OpenRouter is a good free-first path. Choose a provider, save a key, then test it.
-                </p>
+                <p className="options-help-eyebrow">{setupHelp.eyebrow}</p>
+                <p className="mt-1 text-sm leading-5 text-stone-700">{setupHelp.copy}</p>
               </div>
               <div className="mt-3 flex flex-wrap gap-2">
-                <a className="options-help-link" href={OPENROUTER_KEYS_URL} target="_blank" rel="noreferrer">
-                  Open keys
-                </a>
-                <a className="options-help-link" href={OPENROUTER_API_KEYS_DOCS_URL} target="_blank" rel="noreferrer">
-                  API-key docs
-                </a>
+                {setupHelp.links.map(link => (
+                  <a className="options-help-link" href={link.href} target="_blank" rel="noreferrer" key={link.href}>
+                    {link.label}
+                  </a>
+                ))}
               </div>
             </section>
           ) : null}
@@ -389,10 +441,8 @@ const Options = () => {
                   {showApiKey ? 'Hide' : 'Show'}
                 </button>
               </div>
-              {!isOpenAI && onboardingMode ? (
-                <p className="text-xs leading-5 text-stone-600">
-                  OpenRouter keys usually start with sk-or-v1-. Save, test, then return to the popup.
-                </p>
+              {onboardingMode ? (
+                <p className="text-xs leading-5 text-stone-600">{setupHelp.inputHelp}</p>
               ) : null}
             </label>
           </div>
@@ -425,6 +475,11 @@ const Options = () => {
                   : 'border-rose-200 bg-rose-50 text-rose-900',
               )}>
               {status.message}
+              {showPopupFallback ? (
+                <button className="options-status-action" onClick={() => void openPopupFallbackTab()} type="button">
+                  Continue in popup
+                </button>
+              ) : null}
             </div>
           ) : null}
 
