@@ -89,6 +89,24 @@
   border-color: rgba(180, 83, 9, 0.28);
 }
 
+.options-status-action {
+  display: block;
+  margin-top: 10px;
+  border: 0;
+  border-radius: 999px;
+  background: #1f2937;
+  color: #fafaf9;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 8px 12px;
+  transition: transform 140ms ease;
+}
+
+.options-status-action:hover {
+  transform: translateY(-1px);
+}
+
 .options-key-field-active {
   border-radius: 18px;
   box-shadow: 0 0 0 5px rgba(251, 191, 36, 0.14);
