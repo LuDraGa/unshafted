@@ -10,6 +10,8 @@ import type {
   IngestedDocumentSchema,
   MissingProtectionSchema,
   NegotiationIdeaSchema,
+  OnboardingStateSchema,
+  OnboardingStepSchema,
   PendingActionSchema,
   PotentialAdvantageSchema,
   QuickScanResultSchema,
@@ -30,6 +32,8 @@ export type IngestedDocument = z.infer<typeof IngestedDocumentSchema>;
 export type AppSettings = z.infer<typeof AppSettingsSchema>;
 export type CurrentAnalysis = z.infer<typeof CurrentAnalysisSchema>;
 export type HistoryRecord = z.infer<typeof HistoryRecordSchema>;
+export type OnboardingStep = z.infer<typeof OnboardingStepSchema>;
+export type OnboardingState = z.infer<typeof OnboardingStateSchema>;
 export type PendingAction = z.infer<typeof PendingActionSchema>;
 export type UsageSnapshot = z.infer<typeof UsageSnapshotSchema>;
 

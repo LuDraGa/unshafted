@@ -210,6 +210,27 @@ export const PendingActionSchema = z.object({
   requestedAt: z.string().optional(),
 });
 
+export const OnboardingStepSchema = z.enum([
+  'provider',
+  'api-key',
+  'save-settings',
+  'test-connection',
+  'sign-in',
+  'upload',
+  'results',
+]);
+
+export const OnboardingStateSchema = z.object({
+  dismissedAt: z.string().nullable().default(null),
+  completedAt: z.string().nullable().default(null),
+  currentStep: OnboardingStepSchema.default('provider'),
+  seenResultGuidance: z.boolean().default(false),
+  testedProvider: ProviderSchema.nullable().default(null),
+  testedKeyHash: z.string().nullable().default(null),
+  testedModel: z.string().nullable().default(null),
+  keyTestedAt: z.string().nullable().default(null),
+});
+
 export const UsageSnapshotSchema = z.object({
   monthKey: z.string().min(1),
   fullAnalysesUsed: z.number().int().nonnegative().default(0),

@@ -11,10 +11,10 @@ import {
 import type { CurrentAnalysis, AnalysisMessageResponse } from '@extension/unshafted-core';
 import { useStorage } from '@extension/shared';
 import { currentAnalysisStorage, unshaftedSettingsStorage } from '@extension/storage';
+import type { Session } from '@extension/supabase';
 import { cn } from '@extension/ui';
 import { useEffect, useRef, useState } from 'react';
 import { RiskBadge, SectionHeader, SeverityBadge, ResultsView } from './ResultCards';
-import type { Session } from '@supabase/supabase-js';
 
 const formatTimestamp = (iso: string) =>
   new Intl.DateTimeFormat(undefined, {
@@ -30,15 +30,19 @@ const AccordionSection = ({
   count,
   severity,
   defaultOpen = false,
+  forceOpen = false,
+  onboardingTarget,
   children,
 }: {
   title: string;
   count?: number;
   severity?: 'low' | 'medium' | 'high';
   defaultOpen?: boolean;
+  forceOpen?: boolean;
+  onboardingTarget?: string;
   children: React.ReactNode;
 }) => (
-  <details className="popup-accordion" open={defaultOpen || undefined}>
+  <details className="popup-accordion" open={defaultOpen || forceOpen || undefined} data-onboarding-target={onboardingTarget}>
     <summary>
       <span>{title}</span>
       {count !== undefined ? (
@@ -52,9 +56,11 @@ const AccordionSection = ({
 );
 
 export const AnalysisWorkspace = ({
+  focusedOnboardingTarget,
   session,
   onSignIn,
 }: {
+  focusedOnboardingTarget?: 'summary' | 'flags' | 'customize' | 'cta' | null;
   session: Session | null;
   onSignIn: () => void;
 }) => {
@@ -255,7 +261,7 @@ export const AnalysisWorkspace = ({
       {quickScan ? (
         <div>
           {/* Summary — open by default */}
-          <AccordionSection title="Summary" defaultOpen>
+          <AccordionSection title="Summary" defaultOpen onboardingTarget="summary" forceOpen={focusedOnboardingTarget === 'summary'}>
             <div className="space-y-2">
               <span className="inline-block rounded-full bg-stone-100 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-700">
                 {quickScan.documentType}
@@ -280,7 +286,12 @@ export const AnalysisWorkspace = ({
 
           {/* Quick flags — closed, with count + severity */}
           {quickScan.redFlags.length > 0 ? (
-            <AccordionSection title="Flags" count={quickScan.redFlags.length} severity={maxFlagSeverity}>
+            <AccordionSection
+              title="Flags"
+              count={quickScan.redFlags.length}
+              severity={maxFlagSeverity}
+              onboardingTarget="flags"
+              forceOpen={focusedOnboardingTarget === 'flags'}>
               <div className="space-y-1.5">
                 {quickScan.redFlags.map(flag => (
                   <div key={flag.title} className="rounded-lg bg-stone-100/80 px-2.5 py-2 text-xs text-stone-700">
@@ -296,7 +307,10 @@ export const AnalysisWorkspace = ({
           ) : null}
 
           {/* Customize analysis — closed, shows current role inline */}
-          <AccordionSection title={`Customize analysis · ${selectedRole}`}>
+          <AccordionSection
+            title={`Customize analysis · ${selectedRole}`}
+            onboardingTarget="customize"
+            forceOpen={focusedOnboardingTarget === 'customize'}>
             <div className="space-y-3">
               {/* Role selection */}
               <div>
@@ -364,11 +378,15 @@ export const AnalysisWorkspace = ({
           {/* Single CTA: Run detailed analysis */}
           {currentAnalysis.status !== 'deep-running' && !currentAnalysis.deepAnalysis ? (
             session ? (
-              <button className="popup-primary-button mt-3" onClick={() => void startDeepAnalysis()}>
+              <button
+                className="popup-primary-button mt-3"
+                onClick={() => void startDeepAnalysis()}
+                data-onboarding-target="cta"
+                type="button">
                 Run detailed analysis
               </button>
             ) : (
-              <button className="popup-primary-button mt-3" onClick={onSignIn}>
+              <button className="popup-primary-button mt-3" onClick={onSignIn} data-onboarding-target="cta" type="button">
                 Sign in to run detailed analysis
               </button>
             )

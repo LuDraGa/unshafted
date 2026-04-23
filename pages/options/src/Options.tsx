@@ -6,15 +6,21 @@ import {
   DEFAULT_OPENAI_QUICK_MODEL,
   DEFAULT_QUICK_MODEL,
   DEFAULT_TEMPERATURE,
+  getActiveProviderConfig,
+  getOnboardingKeyHash,
+  OPENROUTER_API_KEYS_DOCS_URL,
+  OPENROUTER_KEYS_URL,
   testOpenRouterConnection,
 } from '@extension/unshafted-core';
-import type { AppSettings } from '@extension/unshafted-core';
+import type { AppSettings, OnboardingStep } from '@extension/unshafted-core';
 import { useStorage, withErrorBoundary, withSuspense } from '@extension/shared';
-import { unshaftedSettingsStorage } from '@extension/storage';
-import { cn, ErrorDisplay, LoadingSpinner } from '@extension/ui';
-import { useEffect, useState } from 'react';
+import { unshaftedOnboardingStorage, unshaftedSettingsStorage } from '@extension/storage';
+import { cn, ErrorDisplay, LoadingSpinner, SpotlightTour } from '@extension/ui';
+import type { SpotlightTourStep } from '@extension/ui';
+import { useEffect, useRef, useState } from 'react';
 
 type Provider = AppSettings['provider'];
+type OptionsSetupStep = Extract<OnboardingStep, 'provider' | 'api-key' | 'save-settings' | 'test-connection'>;
 
 type FormState = {
   provider: Provider;
@@ -27,11 +33,20 @@ type FormState = {
   temperature: string;
 };
 
+const searchParams = new URLSearchParams(window.location.search);
+const onboardingMode = searchParams.get('onboarding') === 'true';
+const providerParam = searchParams.get('provider');
+const preferredProvider: Provider | null = providerParam === 'openrouter' || providerParam === 'openai' ? providerParam : null;
+const optionsSetupSteps = new Set<OnboardingStep>(['provider', 'api-key', 'save-settings', 'test-connection']);
+const isOptionsSetupStep = (step: OnboardingStep): step is OptionsSetupStep => optionsSetupSteps.has(step);
+
 const Options = () => {
+  const onboarding = useStorage(unshaftedOnboardingStorage);
   const settings = useStorage(unshaftedSettingsStorage);
+  const apiKeyInputRef = useRef<HTMLInputElement | null>(null);
 
   const [form, setForm] = useState<FormState>({
-    provider: settings.provider,
+    provider: preferredProvider ?? settings.provider,
     apiKey: settings.apiKey,
     quickModel: settings.quickModel,
     deepModel: settings.deepModel,
@@ -47,6 +62,7 @@ const Options = () => {
   });
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
+  const [lastSavedConfig, setLastSavedConfig] = useState<ReturnType<typeof getActiveProviderConfig> | null>(null);
 
   useEffect(() => {
     setForm({
@@ -85,7 +101,41 @@ const Options = () => {
 
   const isOpenAI = form.provider === 'openai';
 
-  const save = async () => {
+  useEffect(() => {
+    if (!onboardingMode || onboarding.currentStep !== 'api-key') return;
+
+    const timer = window.setTimeout(() => {
+      apiKeyInputRef.current?.focus();
+    }, 80);
+
+    return () => window.clearTimeout(timer);
+  }, [onboarding.currentStep]);
+
+  const getFormActiveConfig = () => {
+    if (form.provider === 'openai') {
+      return {
+        provider: form.provider,
+        apiKey: form.openaiApiKey.trim(),
+        model: form.openaiQuickModel.trim() || DEFAULT_OPENAI_QUICK_MODEL,
+      };
+    }
+
+    return {
+      provider: form.provider,
+      apiKey: form.apiKey.trim(),
+      model: form.quickModel.trim() || DEFAULT_QUICK_MODEL,
+    };
+  };
+
+  const setOnboardingStep = async (step: OnboardingStep) => {
+    await unshaftedOnboardingStorage.set(current => ({
+      ...current,
+      currentStep: step,
+      dismissedAt: null,
+    }));
+  };
+
+  const save = async (): Promise<boolean> => {
     setStatus({ tone: 'idle', message: '' });
     setIsSaving(true);
 
@@ -106,11 +156,19 @@ const Options = () => {
         tone: 'success',
         message: 'Settings saved locally in chrome.storage.local.',
       });
+      setLastSavedConfig(getFormActiveConfig());
+
+      if (onboardingMode && onboarding.currentStep === 'save-settings') {
+        await setOnboardingStep('test-connection');
+      }
+
+      return true;
     } catch (error) {
       setStatus({
         tone: 'error',
         message: error instanceof Error ? error.message : 'Unable to save settings.',
       });
+      return false;
     } finally {
       setIsSaving(false);
     }
@@ -133,40 +191,123 @@ const Options = () => {
     }
   };
 
-  const testConnection = async () => {
+  const testConnection = async (): Promise<boolean> => {
     setStatus({ tone: 'idle', message: '' });
     setIsTesting(true);
 
     try {
-      const activeKey = isOpenAI ? form.openaiApiKey.trim() : form.apiKey.trim();
-      const activeModel = isOpenAI
-        ? form.openaiQuickModel.trim() || DEFAULT_OPENAI_QUICK_MODEL
-        : form.quickModel.trim() || DEFAULT_QUICK_MODEL;
+      const activeConfig = getFormActiveConfig();
+      const savedConfig = getActiveProviderConfig(settings);
+      const savedMatches =
+        (savedConfig.provider === activeConfig.provider &&
+          savedConfig.apiKey === activeConfig.apiKey &&
+          savedConfig.model === activeConfig.model) ||
+        (lastSavedConfig?.provider === activeConfig.provider &&
+          lastSavedConfig.apiKey === activeConfig.apiKey &&
+          lastSavedConfig.model === activeConfig.model);
 
-      if (!activeKey) {
+      if (!activeConfig.apiKey) {
         throw new Error(`Enter your ${isOpenAI ? 'OpenAI' : 'OpenRouter'} API key first.`);
+      }
+
+      if (!savedMatches) {
+        throw new Error('Save settings before testing this key.');
       }
 
       const model = await testOpenRouterConnection({
         provider: form.provider,
-        apiKey: activeKey,
-        model: activeModel,
+        apiKey: activeConfig.apiKey,
+        model: activeConfig.model,
         ...(isOpenAI ? {} : { temperature: parseTemperature() }),
         title: `${APP_NAME} Settings Test`,
       });
+      const testedKeyHash = await getOnboardingKeyHash(activeConfig);
 
       setStatus({
         tone: 'success',
-        message: `Connection succeeded using ${model}.`,
+        message: onboardingMode ? `Connection succeeded using ${model}. Return to the popup to continue.` : `Connection succeeded using ${model}.`,
       });
+
+      await unshaftedOnboardingStorage.set(current => ({
+        ...current,
+        testedProvider: activeConfig.provider,
+        testedKeyHash,
+        testedModel: activeConfig.model,
+        keyTestedAt: new Date().toISOString(),
+        ...(onboardingMode && isOptionsSetupStep(current.currentStep)
+          ? {
+              currentStep: 'sign-in' as const,
+              dismissedAt: null,
+            }
+          : {}),
+      }));
+
+      return true;
     } catch (error) {
       setStatus({
         tone: 'error',
         message: error instanceof Error ? error.message : 'Connection test failed.',
       });
+      return false;
     } finally {
       setIsTesting(false);
     }
+  };
+
+  const activeOptionsStep = onboardingMode && !onboarding.dismissedAt && !onboarding.completedAt && isOptionsSetupStep(onboarding.currentStep)
+    ? onboarding.currentStep
+    : null;
+  const spotlightStep: (SpotlightTourStep & { id: OptionsSetupStep }) | null = activeOptionsStep
+    ? ({
+        provider: {
+          id: 'provider',
+          target: 'provider',
+          text: 'Choose OpenRouter or OpenAI.',
+        },
+        'api-key': {
+          id: 'api-key',
+          target: 'api-key',
+          text: 'Paste the key for this provider.',
+        },
+        'save-settings': {
+          id: 'save-settings',
+          target: 'save-settings',
+          text: 'Save the key locally.',
+        },
+        'test-connection': {
+          id: 'test-connection',
+          target: 'test-connection',
+          text: 'Test the key before scanning.',
+        },
+      } satisfies Record<OptionsSetupStep, SpotlightTourStep & { id: OptionsSetupStep }>)[activeOptionsStep]
+    : null;
+
+  const advanceSpotlight = async () => {
+    if (!spotlightStep) return;
+
+    switch (spotlightStep.id) {
+      case 'provider':
+        await setOnboardingStep('api-key');
+        return;
+      case 'api-key':
+        await setOnboardingStep('save-settings');
+        return;
+      case 'save-settings':
+        await save();
+        return;
+      case 'test-connection':
+        await testConnection();
+        return;
+      default:
+        return;
+    }
+  };
+
+  const dismissOnboarding = async () => {
+    await unshaftedOnboardingStorage.set(current => ({
+      ...current,
+      dismissedAt: new Date().toISOString(),
+    }));
   };
 
   return (
@@ -175,12 +316,35 @@ const Options = () => {
         <section className="options-panel">
           <div className="space-y-4">
             <p className="options-eyebrow">Unshafted</p>
+            <h1 className="text-2xl font-semibold tracking-[-0.04em] text-stone-950">Bring your own key</h1>
+            <p className="text-sm leading-6 text-stone-600">
+              Choose your provider, paste a key, test it, and head back to the popup to run your first contract.
+            </p>
             <hr className="border-stone-200" />
           </div>
 
+          {onboardingMode ? (
+            <section className="options-help-card mt-6">
+              <div>
+                <p className="options-help-eyebrow">API setup</p>
+                <p className="mt-1 text-sm leading-5 text-stone-700">
+                  OpenRouter is a good free-first path. Choose a provider, save a key, then test it.
+                </p>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <a className="options-help-link" href={OPENROUTER_KEYS_URL} target="_blank" rel="noreferrer">
+                  Open keys
+                </a>
+                <a className="options-help-link" href={OPENROUTER_API_KEYS_DOCS_URL} target="_blank" rel="noreferrer">
+                  API-key docs
+                </a>
+              </div>
+            </section>
+          ) : null}
+
           <div className="mt-8 grid gap-5">
             {/* Provider toggle */}
-            <div className="grid gap-2">
+            <div className="grid gap-2" data-onboarding-target="provider">
               <span className="options-label">Provider</span>
               <div className="flex gap-2">
                 {(['openrouter', 'openai'] as const).map(p => (
@@ -193,7 +357,12 @@ const Options = () => {
                         ? 'bg-stone-900 text-stone-50'
                         : 'bg-stone-100 text-stone-700 hover:bg-stone-200',
                     )}
-                    onClick={() => setField('provider', p)}>
+                    onClick={() => {
+                      setField('provider', p);
+                      if (onboardingMode && onboarding.currentStep === 'provider') {
+                        void setOnboardingStep('api-key');
+                      }
+                    }}>
                     {p === 'openrouter' ? 'OpenRouter' : 'OpenAI'}
                   </button>
                 ))}
@@ -201,10 +370,13 @@ const Options = () => {
             </div>
 
             {/* API key */}
-            <label className="grid gap-2">
+            <label
+              className={cn('grid gap-2', onboardingMode && onboarding.currentStep === 'api-key' && 'options-key-field-active')}
+              data-onboarding-target="api-key">
               <span className="options-label">{isOpenAI ? 'OpenAI' : 'OpenRouter'} API key</span>
               <div className="flex gap-3">
                 <input
+                  ref={apiKeyInputRef}
                   className="options-input flex-1"
                   type={showApiKey ? 'text' : 'password'}
                   value={isOpenAI ? form.openaiApiKey : form.apiKey}
@@ -217,14 +389,29 @@ const Options = () => {
                   {showApiKey ? 'Hide' : 'Show'}
                 </button>
               </div>
+              {!isOpenAI && onboardingMode ? (
+                <p className="text-xs leading-5 text-stone-600">
+                  OpenRouter keys usually start with sk-or-v1-. Save, test, then return to the popup.
+                </p>
+              ) : null}
             </label>
           </div>
 
           <div className="mt-8 flex flex-wrap gap-3">
-            <button className="options-primary-button" onClick={save} type="button" disabled={isSaving || isTesting}>
+            <button
+              className="options-primary-button"
+              onClick={() => void save()}
+              type="button"
+              disabled={isSaving || isTesting}
+              data-onboarding-target="save-settings">
               {isSaving ? 'Saving...' : 'Save settings'}
             </button>
-            <button className="options-secondary-button" onClick={testConnection} type="button" disabled={isSaving || isTesting}>
+            <button
+              className="options-secondary-button"
+              onClick={() => void testConnection()}
+              type="button"
+              disabled={isSaving || isTesting}
+              data-onboarding-target="test-connection">
               {isTesting ? 'Testing...' : 'Test connection'}
             </button>
           </div>
@@ -292,6 +479,13 @@ const Options = () => {
             </div>
           </details>
         </section>
+        {spotlightStep ? (
+          <SpotlightTour
+            step={spotlightStep}
+            onNext={() => void advanceSpotlight()}
+            onSkip={() => void dismissOnboarding()}
+          />
+        ) : null}
       </div>
     </div>
   );
