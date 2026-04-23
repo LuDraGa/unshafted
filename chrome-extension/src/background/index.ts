@@ -33,6 +33,8 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     handleDeepAnalysis().then(sendResponse);
     return true;
   }
+
+  return false;
 });
 
 async function handleQuickScan(req: RunQuickScanRequest): Promise<AnalysisMessageResponse> {

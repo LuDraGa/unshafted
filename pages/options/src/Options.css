@@ -49,6 +49,51 @@
   box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.16);
 }
 
+.options-help-card {
+  border: 1px solid rgba(217, 119, 6, 0.12);
+  background: rgba(255, 251, 235, 0.58);
+  border-radius: 18px;
+  padding: 14px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.options-help-eyebrow {
+  margin: 0;
+  color: #b45309;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.options-help-link {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(180, 83, 9, 0.16);
+  padding: 8px 12px;
+  color: #92400e;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  transition:
+    transform 140ms ease,
+    background 140ms ease,
+    border-color 140ms ease;
+}
+
+.options-help-link:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.96);
+  border-color: rgba(180, 83, 9, 0.28);
+}
+
+.options-key-field-active {
+  border-radius: 18px;
+  box-shadow: 0 0 0 5px rgba(251, 191, 36, 0.14);
+}
+
 .options-toggle,
 .options-primary-button,
 .options-secondary-button,

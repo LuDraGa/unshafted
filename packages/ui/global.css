@@ -38,3 +38,108 @@ select {
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
 }
+
+.spotlight-tour {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.spotlight-tour-panel {
+  position: fixed;
+  background: rgba(28, 25, 23, 0.48);
+  pointer-events: auto;
+}
+
+.spotlight-tour-ring {
+  position: fixed;
+  border: 2px solid rgba(251, 191, 36, 0.95);
+  border-radius: 18px;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.58),
+    0 18px 42px rgba(28, 25, 23, 0.22);
+  pointer-events: none;
+}
+
+.spotlight-tour-arrow {
+  position: fixed;
+  width: 0;
+  height: 0;
+  --spotlight-arrow-rotate: rotate(0deg);
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-bottom: 14px solid #f59e0b;
+  animation: spotlight-bounce-arrow 900ms ease-in-out infinite;
+  pointer-events: none;
+}
+
+.spotlight-tour-arrow-above {
+  --spotlight-arrow-rotate: rotate(180deg);
+}
+
+.spotlight-tour-tip {
+  position: fixed;
+  width: 228px;
+  border: 1px solid rgba(120, 113, 108, 0.2);
+  background: rgba(255, 252, 247, 0.96);
+  border-radius: 16px;
+  padding: 12px;
+  color: #292524;
+  font-size: 12px;
+  line-height: 1.5;
+  box-shadow: 0 20px 44px rgba(28, 25, 23, 0.18);
+  pointer-events: auto;
+}
+
+.spotlight-tour-tip p {
+  margin: 0;
+}
+
+.spotlight-tour-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.spotlight-tour-skip {
+  border: 0;
+  background: transparent;
+  color: #92400e;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 0;
+  transition: transform 140ms ease;
+}
+
+.spotlight-tour-skip:hover,
+.spotlight-tour-next:hover {
+  transform: translateY(-1px);
+}
+
+.spotlight-tour-next {
+  border: 0;
+  border-radius: 999px;
+  background: #1f2937;
+  color: #fafaf9;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 7px 12px;
+  transition:
+    transform 140ms ease,
+    opacity 140ms ease;
+}
+
+@keyframes spotlight-bounce-arrow {
+  0%,
+  100% {
+    transform: translateY(0) var(--spotlight-arrow-rotate);
+  }
+  50% {
+    transform: translateY(-4px) var(--spotlight-arrow-rotate);
+  }
+}
