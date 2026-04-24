@@ -25,6 +25,7 @@ import {
   buildDocumentFromFile,
   configurePdfWorker,
   createCurrentAnalysis,
+  createReportMarkdown,
   createSampleAnalysis,
   getActiveProviderConfig,
   getOnboardingKeyHash,
@@ -163,6 +164,30 @@ const UserAvatar = ({ avatarUrl, email, onSignOut }: { avatarUrl?: string; email
     </div>
   );
 };
+
+const formatReportDate = (iso: string) =>
+  new Intl.DateTimeFormat(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(iso));
+
+const storageStateCopy = {
+  'local-only': 'Local only',
+  'drive-backup-requested': 'Drive backup requested',
+  'restored-from-drive': 'Restored from Drive',
+} satisfies Record<HistoryRecord['storageState'], string>;
+
+const riskToneClasses = {
+  Low: 'border-emerald-200 bg-emerald-50 text-emerald-900',
+  Medium: 'border-amber-200 bg-amber-50 text-amber-900',
+  High: 'border-orange-200 bg-orange-50 text-orange-900',
+  'Very High': 'border-rose-200 bg-rose-50 text-rose-900',
+} satisfies Record<HistoryRecord['quickScan']['roughRiskLevel'], string>;
+
+const createReportFilename = (record: HistoryRecord): string =>
+  `${record.source.slug || 'unshafted-report'}-${record.createdAt.slice(0, 10)}.md`;
 
 const Popup = () => {
   const onboarding = useStorage(unshaftedOnboardingStorage);
@@ -442,6 +467,7 @@ const Popup = () => {
               deepAnalysis: deepFile ? deepFile.result : undefined,
               selectedRole: quickFile.role,
               priorities: validPriorities,
+              storageState: 'restored-from-drive' as const,
             };
 
             await analysisHistoryStorage.push(record as Parameters<typeof analysisHistoryStorage.push>[0]);
@@ -613,6 +639,11 @@ const Popup = () => {
 
   const deleteHistoryRecord = useCallback(
     async (record: HistoryRecord) => {
+      const confirmed = window.confirm(
+        'Delete this local report? If matching Drive files exist, Unshafted will also ask Drive to remove them.',
+      );
+      if (!confirmed) return;
+
       if (selectedHistory?.id === record.id) {
         setSelectedHistory(null);
       }
@@ -627,22 +658,17 @@ const Popup = () => {
   );
 
   const copyHistoryRecord = useCallback(async (record: HistoryRecord) => {
-    const lines = [
-      `Unshafted report: ${record.source.name}`,
-      `Risk: ${record.deepAnalysis?.overallRiskLevel ?? record.quickScan.roughRiskLevel}`,
-      '',
-      record.deepAnalysis?.bottomLine ?? record.quickScan.cautionLine,
-      '',
-      'Top risks:',
-      ...(record.quickScan.redFlags.length > 0
-        ? record.quickScan.redFlags.slice(0, 3).map(flag => `- ${flag.title}: ${flag.reason}`)
-        : ['- No major quick-scan flags found.']),
-      '',
-      'What to ask for:',
-      ...(record.deepAnalysis?.negotiationIdeas ?? []).slice(0, 3).map(item => `- ${item.ask}`),
-    ];
+    await navigator.clipboard.writeText(createReportMarkdown(record));
+  }, []);
 
-    await navigator.clipboard.writeText(lines.join('\n'));
+  const exportHistoryRecord = useCallback((record: HistoryRecord) => {
+    const blob = new Blob([createReportMarkdown(record)], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = createReportFilename(record);
+    anchor.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
   }, []);
 
   return (
@@ -719,9 +745,36 @@ const Popup = () => {
         <div className="popup-content">
           {selectedHistory ? (
             <div className="space-y-3">
-              <button className="popup-link-button" onClick={() => setSelectedHistory(null)} type="button">
-                Back to current scan
-              </button>
+              <section className="popup-report-toolbar">
+                <div>
+                  <button className="popup-link-button" onClick={() => setSelectedHistory(null)} type="button">
+                    Back to current scan
+                  </button>
+                  <p className="mt-1 text-xs text-stone-600">
+                    {storageStateCopy[selectedHistory.storageState]} · {formatReportDate(selectedHistory.createdAt)}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    className="popup-link-button"
+                    onClick={() => void copyHistoryRecord(selectedHistory)}
+                    type="button">
+                    Copy report
+                  </button>
+                  <button
+                    className="popup-link-button"
+                    onClick={() => exportHistoryRecord(selectedHistory)}
+                    type="button">
+                    Export .md
+                  </button>
+                  <button
+                    className="popup-link-button"
+                    onClick={() => void deleteHistoryRecord(selectedHistory)}
+                    type="button">
+                    Delete
+                  </button>
+                </div>
+              </section>
               <ResultsView record={selectedHistory} />
             </div>
           ) : !currentAnalysis ? (
@@ -829,23 +882,37 @@ const Popup = () => {
               {historyOpen ? (
                 <div className="space-y-2">
                   {history.map(record => (
-                    <div
-                      key={record.id}
-                      className="rounded-2xl border border-stone-200 bg-white/80 px-3 py-2 text-xs text-stone-700">
-                      <p className="line-clamp-1 font-semibold text-stone-950">{record.source.name}</p>
-                      <p className="mt-1 text-stone-500">
-                        {record.deepAnalysis?.overallRiskLevel ?? record.quickScan.roughRiskLevel} risk ·{' '}
-                        {settings.driveBackupEnabled ? 'Drive backup on' : 'Local only'}
+                    <div key={record.id} className="popup-history-row">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="line-clamp-1 font-semibold text-stone-950">{record.source.name}</p>
+                          <p className="mt-1 text-stone-500">
+                            {formatReportDate(record.createdAt)} ·{' '}
+                            {record.deepAnalysis ? 'Detailed report' : 'Quick scan only'}
+                          </p>
+                        </div>
+                        <span
+                          className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
+                            riskToneClasses[record.deepAnalysis?.overallRiskLevel ?? record.quickScan.roughRiskLevel]
+                          }`}>
+                          {record.deepAnalysis?.overallRiskLevel ?? record.quickScan.roughRiskLevel}
+                        </span>
+                      </div>
+                      <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+                        {storageStateCopy[record.storageState]}
                       </p>
                       <div className="mt-2 flex flex-wrap gap-3">
                         <button className="popup-link-button" onClick={() => setSelectedHistory(record)} type="button">
-                          Reopen
+                          Open
                         </button>
                         <button
                           className="popup-link-button"
                           onClick={() => void copyHistoryRecord(record)}
                           type="button">
-                          Copy
+                          Copy report
+                        </button>
+                        <button className="popup-link-button" onClick={() => exportHistoryRecord(record)} type="button">
+                          Export .md
                         </button>
                         <button
                           className="popup-link-button"

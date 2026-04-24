@@ -124,6 +124,27 @@
   transform: translateY(-1px);
 }
 
+.popup-report-toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid rgba(120, 113, 108, 0.18);
+  background: rgba(255, 252, 247, 0.78);
+  border-radius: 18px;
+  padding: 12px;
+  backdrop-filter: blur(12px);
+}
+
+.popup-history-row {
+  border: 1px solid rgba(120, 113, 108, 0.18);
+  background: rgba(255, 252, 247, 0.82);
+  border-radius: 18px;
+  padding: 12px;
+  color: #57534e;
+  font-size: 12px;
+}
+
 .popup-input {
   width: 100%;
   border: 1px solid rgba(120, 113, 108, 0.22);
