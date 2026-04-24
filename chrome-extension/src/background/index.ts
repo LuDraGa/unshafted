@@ -113,7 +113,11 @@ const handleDeepAnalysis = async (): Promise<AnalysisMessageResponse> => {
 
   if (result.status === 'complete' && result.quickScan && result.deepAnalysis) {
     await usageSnapshotStorage.incrementFullAnalyses();
-    await analysisHistoryStorage.push(createHistoryRecord(result));
+    await analysisHistoryStorage.push(
+      createHistoryRecord(result, {
+        storageState: settings.driveBackupEnabled ? 'drive-backup-requested' : 'local-only',
+      }),
+    );
     if (settings.driveBackupEnabled) void syncDeepAnalysisToDrive(result);
   }
 

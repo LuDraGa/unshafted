@@ -167,6 +167,7 @@ export const IngestedDocumentSchema = z.object({
 export const HistorySourceSchema = IngestedDocumentSchema.omit({ text: true, originalFileBase64: true });
 
 export const ProviderSchema = z.enum(['openrouter', 'openai']);
+export const HistoryStorageStateSchema = z.enum(['local-only', 'drive-backup-requested', 'restored-from-drive']);
 
 export const AppSettingsSchema = z.object({
   provider: ProviderSchema.default(DEFAULT_PROVIDER),
@@ -203,6 +204,7 @@ export const HistoryRecordSchema = z.object({
   deepAnalysis: DeepAnalysisResultSchema.optional(),
   selectedRole: z.string().min(1),
   priorities: z.array(z.enum(PRIORITY_OPTIONS)).default([]),
+  storageState: HistoryStorageStateSchema.default('local-only'),
 });
 
 export const PendingActionSchema = z.object({

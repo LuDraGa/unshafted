@@ -2,7 +2,11 @@ import {
   DeepAnalysisResultSchema,
   QuickScanResultSchema,
   buildBalancedExcerpt,
+  createHistoryRecord,
+  createReportMarkdown,
+  createSampleAnalysis,
   extractJsonFromText,
+  HistoryRecordSchema,
   sampleDeepAnalysis,
   sampleQuickScan,
 } from '../index.mts';
@@ -25,4 +29,20 @@ test('balanced excerpt marks truncation and stays within rough bounds', () => {
   assert.equal(result.truncated, true);
   assert.match(result.text, /\[\.\.\. omitted/);
   assert.ok(result.text.length < 1_400);
+});
+
+test('history records default to local-only storage state', async () => {
+  const analysis = await createSampleAnalysis();
+  const record = createHistoryRecord(analysis);
+  assert.equal(record.storageState, 'local-only');
+  assert.equal(HistoryRecordSchema.parse({ ...record, storageState: undefined }).storageState, 'local-only');
+});
+
+test('report markdown includes user-facing report sections', async () => {
+  const analysis = await createSampleAnalysis();
+  const report = createReportMarkdown(createHistoryRecord(analysis, { storageState: 'drive-backup-requested' }));
+  assert.match(report, /^# Unshafted Report:/);
+  assert.match(report, /## Bottom Line/);
+  assert.match(report, /## What To Ask For/);
+  assert.match(report, /## Disclaimer/);
 });
