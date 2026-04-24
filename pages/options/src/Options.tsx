@@ -1,4 +1,7 @@
 import '@src/Options.css';
+import { useStorage, withErrorBoundary, withSuspense } from '@extension/shared';
+import { unshaftedOnboardingStorage, unshaftedSettingsStorage } from '@extension/storage';
+import { cn, ErrorDisplay, LoadingSpinner, SpotlightTour } from '@extension/ui';
 import {
   APP_NAME,
   DEFAULT_DEEP_MODEL,
@@ -15,12 +18,9 @@ import {
   OPENROUTER_KEYS_URL,
   testOpenRouterConnection,
 } from '@extension/unshafted-core';
-import type { AppSettings, OnboardingStep } from '@extension/unshafted-core';
-import { useStorage, withErrorBoundary, withSuspense } from '@extension/shared';
-import { unshaftedOnboardingStorage, unshaftedSettingsStorage } from '@extension/storage';
-import { cn, ErrorDisplay, LoadingSpinner, SpotlightTour } from '@extension/ui';
-import type { SpotlightTourStep } from '@extension/ui';
 import { useEffect, useRef, useState } from 'react';
+import type { SpotlightTourStep } from '@extension/ui';
+import type { AppSettings, OnboardingStep } from '@extension/unshafted-core';
 
 type Provider = AppSettings['provider'];
 type OptionsSetupStep = Extract<OnboardingStep, 'provider' | 'api-key' | 'save-settings' | 'test-connection'>;
@@ -39,7 +39,8 @@ type FormState = {
 const searchParams = new URLSearchParams(window.location.search);
 const onboardingMode = searchParams.get('onboarding') === 'true';
 const providerParam = searchParams.get('provider');
-const preferredProvider: Provider | null = providerParam === 'openrouter' || providerParam === 'openai' ? providerParam : null;
+const preferredProvider: Provider | null =
+  providerParam === 'openrouter' || providerParam === 'openai' ? providerParam : null;
 const optionsSetupSteps = new Set<OnboardingStep>(['provider', 'api-key', 'save-settings', 'test-connection']);
 const isOptionsSetupStep = (step: OnboardingStep): step is OptionsSetupStep => optionsSetupSteps.has(step);
 
@@ -179,6 +180,7 @@ const Options = () => {
         openaiDeepModel: form.openaiDeepModel.trim() || DEFAULT_OPENAI_DEEP_MODEL,
         temperature: form.provider === 'openai' ? DEFAULT_TEMPERATURE : parseTemperature(),
         monthlySoftLimit: settings.monthlySoftLimit,
+        driveBackupEnabled: settings.driveBackupEnabled,
       });
 
       setStatus({
@@ -255,7 +257,9 @@ const Options = () => {
 
       setStatus({
         tone: 'success',
-        message: onboardingMode ? `Connection succeeded using ${model}. Continuing in the popup...` : `Connection succeeded using ${model}.`,
+        message: onboardingMode
+          ? `Connection succeeded using ${model}. Continuing in the popup...`
+          : `Connection succeeded using ${model}.`,
       });
 
       await unshaftedOnboardingStorage.set(current => ({
@@ -288,32 +292,35 @@ const Options = () => {
     }
   };
 
-  const activeOptionsStep = onboardingMode && !onboarding.dismissedAt && !onboarding.completedAt && isOptionsSetupStep(onboarding.currentStep)
-    ? onboarding.currentStep
-    : null;
+  const activeOptionsStep =
+    onboardingMode && !onboarding.dismissedAt && !onboarding.completedAt && isOptionsSetupStep(onboarding.currentStep)
+      ? onboarding.currentStep
+      : null;
   const spotlightStep: (SpotlightTourStep & { id: OptionsSetupStep }) | null = activeOptionsStep
-    ? ({
-        provider: {
-          id: 'provider',
-          target: 'provider',
-          text: 'Choose OpenRouter or OpenAI.',
-        },
-        'api-key': {
-          id: 'api-key',
-          target: 'api-key',
-          text: 'Paste the key for this provider.',
-        },
-        'save-settings': {
-          id: 'save-settings',
-          target: 'save-settings',
-          text: 'Save the key locally.',
-        },
-        'test-connection': {
-          id: 'test-connection',
-          target: 'test-connection',
-          text: 'Test the key before scanning.',
-        },
-      } satisfies Record<OptionsSetupStep, SpotlightTourStep & { id: OptionsSetupStep }>)[activeOptionsStep]
+    ? (
+        {
+          provider: {
+            id: 'provider',
+            target: 'provider',
+            text: 'Choose OpenRouter or OpenAI.',
+          },
+          'api-key': {
+            id: 'api-key',
+            target: 'api-key',
+            text: 'Paste the key for this provider.',
+          },
+          'save-settings': {
+            id: 'save-settings',
+            target: 'save-settings',
+            text: 'Save the key locally.',
+          },
+          'test-connection': {
+            id: 'test-connection',
+            target: 'test-connection',
+            text: 'Test the key before scanning.',
+          },
+        } satisfies Record<OptionsSetupStep, SpotlightTourStep & { id: OptionsSetupStep }>
+      )[activeOptionsStep]
     : null;
 
   const advanceSpotlight = async () => {
@@ -423,7 +430,10 @@ const Options = () => {
 
             {/* API key */}
             <label
-              className={cn('grid gap-2', onboardingMode && onboarding.currentStep === 'api-key' && 'options-key-field-active')}
+              className={cn(
+                'grid gap-2',
+                onboardingMode && onboarding.currentStep === 'api-key' && 'options-key-field-active',
+              )}
               data-onboarding-target="api-key">
               <span className="options-label">{isOpenAI ? 'OpenAI' : 'OpenRouter'} API key</span>
               <div className="flex gap-3">
@@ -441,9 +451,7 @@ const Options = () => {
                   {showApiKey ? 'Hide' : 'Show'}
                 </button>
               </div>
-              {onboardingMode ? (
-                <p className="text-xs leading-5 text-stone-600">{setupHelp.inputHelp}</p>
-              ) : null}
+              {onboardingMode ? <p className="text-xs leading-5 text-stone-600">{setupHelp.inputHelp}</p> : null}
             </label>
           </div>
 
@@ -485,7 +493,7 @@ const Options = () => {
 
           {/* Advanced settings */}
           <details className="options-advanced mt-8 rounded-2xl border border-stone-200 bg-white/60 p-5">
-            <summary className="cursor-pointer list-none flex items-center justify-between">
+            <summary className="flex cursor-pointer list-none items-center justify-between">
               <span className="options-label">Advanced</span>
               <span className="options-chevron text-stone-400">&#9662;</span>
             </summary>
@@ -528,7 +536,11 @@ const Options = () => {
                 </label>
               ) : null}
 
-              <button className="options-ghost-button" onClick={resetDefaults} type="button" disabled={isSaving || isTesting}>
+              <button
+                className="options-ghost-button"
+                onClick={resetDefaults}
+                type="button"
+                disabled={isSaving || isTesting}>
                 Reset defaults
               </button>
             </div>

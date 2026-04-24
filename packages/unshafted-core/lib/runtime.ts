@@ -1,6 +1,13 @@
+import {
+  buildSuggestedPriorities,
+  computeContentHash,
+  estimateTokens,
+  makePreview,
+  stripDocumentTextForHistory,
+} from './document.js';
+import { sampleContractText, sampleDeepAnalysis, sampleQuickScan } from './fixtures/sample-contract.js';
 import { CurrentAnalysisSchema, HistoryRecordSchema, IngestedDocumentSchema } from './schemas.js';
 import type { CurrentAnalysis, HistoryRecord, IngestedDocument } from './types.js';
-import { buildSuggestedPriorities, stripDocumentTextForHistory } from './document.js';
 
 export const EXTRACT_PAGE_MESSAGE_TYPE = 'unshafted/extract-page';
 
@@ -30,9 +37,7 @@ export type RunDeepAnalysisRequest = {
   type: typeof RUN_DEEP_ANALYSIS_MESSAGE;
 };
 
-export type AnalysisMessageResponse =
-  | { ok: true }
-  | { ok: false; error: string };
+export type AnalysisMessageResponse = { ok: true } | { ok: false; error: string };
 
 export const createCurrentAnalysis = (document: IngestedDocument): CurrentAnalysis =>
   CurrentAnalysisSchema.parse({
@@ -49,6 +54,33 @@ export const createCurrentAnalysis = (document: IngestedDocument): CurrentAnalys
     error: null,
   });
 
+export const createSampleAnalysis = async (): Promise<CurrentAnalysis> => {
+  const capturedAt = new Date().toISOString();
+  const document = IngestedDocumentSchema.parse({
+    kind: 'demo',
+    name: 'Sample service agreement',
+    slug: 'sample-service-agreement',
+    contentHash: await computeContentHash(sampleContractText),
+    charCount: sampleContractText.length,
+    estimatedTokens: estimateTokens(sampleContractText),
+    preview: makePreview(sampleContractText),
+    text: sampleContractText,
+    quality: 'good',
+    warnings: ['Demo result only. Upload your own contract after setup for real analysis.'],
+    capturedAt,
+  });
+
+  return CurrentAnalysisSchema.parse({
+    ...createCurrentAnalysis(document),
+    quickScan: sampleQuickScan,
+    deepAnalysis: sampleDeepAnalysis,
+    selectedRole: 'Contractor',
+    priorities: buildSuggestedPriorities(sampleQuickScan),
+    status: 'complete',
+    error: null,
+  });
+};
+
 export const touchCurrentAnalysis = (analysis: CurrentAnalysis): CurrentAnalysis => ({
   ...analysis,
   updatedAt: new Date().toISOString(),
@@ -63,12 +95,12 @@ export const createHistoryRecord = (analysis: CurrentAnalysis): HistoryRecord =>
     deepAnalysis: analysis.deepAnalysis ?? undefined,
     selectedRole: analysis.customRole || analysis.selectedRole,
     priorities:
-      analysis.priorities.length > 0
-        ? analysis.priorities
-        : buildSuggestedPriorities(analysis.quickScan).slice(0, 3),
+      analysis.priorities.length > 0 ? analysis.priorities : buildSuggestedPriorities(analysis.quickScan).slice(0, 3),
   });
 
-export const toVerdictTone = (riskLevel: 'Low' | 'Medium' | 'High' | 'Very High'): 'LOW' | 'CAUTION' | 'HIGH' | 'DANGER' => {
+export const toVerdictTone = (
+  riskLevel: 'Low' | 'Medium' | 'High' | 'Very High',
+): 'LOW' | 'CAUTION' | 'HIGH' | 'DANGER' => {
   switch (riskLevel) {
     case 'Low':
       return 'LOW';

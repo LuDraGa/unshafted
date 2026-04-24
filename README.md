@@ -6,14 +6,14 @@ A Chrome extension that uses AI to analyze contracts, surface risks, and help yo
 
 ## Features
 
-- **PDF & TXT upload** with client-side text extraction (no files leave your browser)
+- **PDF & TXT upload** with client-side text extraction before contract text is sent to your chosen AI provider
 - **Quick scan** — instant risk flags, party identification, key obligations, and a rough risk level in seconds
-- **Deep analysis** — multi-pass, prioritized analysis covering liability, payment, termination, IP, confidentiality, and more across 10 concern categories
+- **Deep analysis** — role-aware review with a decision summary, top risks, negotiation asks, evidence, and secondary details
 - **Google Sign-In** via Supabase auth with persistent sessions across popup opens
-- **Google Drive sync** — analysis results saved to a dedicated "Unshafted" folder in your Drive, with content-hash deduplication and cross-device hydration
+- **Optional Google Drive backup** — signed-in users can explicitly enable report/source-file backup to a dedicated "Unshafted" folder in their Drive
 - **BYOK LLM** — works with OpenRouter (default) or OpenAI. You provide the API key; no data touches our servers
 - **Anonymous access** — 3 free quick scans per day without signing in. Sign in for unlimited quick scans and deep analysis
-- **Verdict-first UI** — accordion-based progressive disclosure with risk badges, count indicators, and a compact verdict strip
+- **Decision-first UI** — signing posture, top risks, top asks, risk badges, coverage indicators, and secondary detail sections
 
 ## Supported Formats
 
@@ -65,7 +65,7 @@ Unshafted/
 1. **Upload** — User picks a PDF or TXT file. Text is extracted client-side and normalized.
 2. **Quick scan** — Text excerpt (up to ~5k tokens) is sent to the LLM with a structured prompt. Response is Zod-validated into typed results (risk level, flags, parties, obligations).
 3. **Deep analysis** — User selects their role and priority topics. A larger excerpt (up to ~10k tokens) goes through a multi-pass prompt covering 10 concern categories. Results are validated and rendered as expandable accordion sections.
-4. **Drive sync** — On completion, results are saved as JSON to the user's Google Drive (fire-and-forget, silent on failure). Content hash prevents duplicates.
+4. **Optional Drive backup** — If the signed-in user enables Drive backup, source files and results are saved to the user's Google Drive. Content hash prevents duplicates.
 
 LLM calls happen from the **service worker**, not the popup — so closing the popup doesn't kill in-flight analysis.
 
@@ -100,7 +100,6 @@ Copy the `.env.example` or create `.env` in the project root:
 CEB_SUPABASE_URL=https://your-project.supabase.co
 CEB_SUPABASE_ANON_KEY=your-anon-key
 CEB_GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
-CEB_OPENROUTER_API_KEY=your-openrouter-key   # optional — user can set in extension options
 ```
 
 ### Database Setup

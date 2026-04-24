@@ -1,20 +1,10 @@
 import '@src/Popup.css';
-import {
-  buildDocumentFromFile,
-  configurePdfWorker,
-  createCurrentAnalysis,
-  getActiveProviderConfig,
-  getOnboardingKeyHash,
-  PRIORITY_OPTIONS,
-} from '@extension/unshafted-core';
-import type { IngestedDocument, OnboardingState, OnboardingStep } from '@extension/unshafted-core';
-
-configurePdfWorker(chrome.runtime.getURL('popup/pdf.worker.min.mjs'));
-
-import { useStorage } from '@extension/shared';
-import { withErrorBoundary, withSuspense } from '@extension/shared';
+import { AnalysisWorkspace } from './components/AnalysisWorkspace';
+import { ResultsView } from './components/ResultCards';
+import { useStorage, withErrorBoundary, withSuspense } from '@extension/shared';
 import {
   analysisHistoryStorage,
+  clearLegacyPersistentAnalysisState,
   currentAnalysisStorage,
   unshaftedOnboardingStorage,
   unshaftedSettingsStorage,
@@ -26,14 +16,27 @@ import {
   getSession,
   loadHistoryFromDrive,
   onAuthStateChange,
-  type Session,
+  deleteFromDrive,
   signInWithGoogle,
   signOut,
 } from '@extension/supabase';
 import { ErrorDisplay, LoadingSpinner, SpotlightTour } from '@extension/ui';
+import {
+  buildDocumentFromFile,
+  configurePdfWorker,
+  createCurrentAnalysis,
+  createSampleAnalysis,
+  getActiveProviderConfig,
+  getOnboardingKeyHash,
+  PRIORITY_OPTIONS,
+} from '@extension/unshafted-core';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { Session } from '@extension/supabase';
 import type { SpotlightTourStep } from '@extension/ui';
-import { type ChangeEvent, useCallback, useEffect, useRef, useState } from 'react';
-import { AnalysisWorkspace } from './components/AnalysisWorkspace';
+import type { HistoryRecord, IngestedDocument, OnboardingState, OnboardingStep } from '@extension/unshafted-core';
+import type { ChangeEvent } from 'react';
+
+configurePdfWorker(chrome.runtime.getURL('popup/pdf.worker.min.mjs'));
 
 const onboardingSteps: OnboardingStep[] = [
   'provider',
@@ -124,38 +127,30 @@ const getActiveOnboardingStep = ({
   return null;
 };
 
-const UserAvatar = ({
-  avatarUrl,
-  email,
-  onSignOut,
-}: {
-  avatarUrl?: string;
-  email: string;
-  onSignOut: () => void;
-}) => {
+const UserAvatar = ({ avatarUrl, email, onSignOut }: { avatarUrl?: string; email: string; onSignOut: () => void }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const initial = email.charAt(0).toUpperCase();
 
   return (
     <div className="relative">
       <button
-        className="h-7 w-7 rounded-full overflow-hidden border-2 border-stone-200 hover:border-stone-400 transition flex-shrink-0"
+        className="h-7 w-7 flex-shrink-0 overflow-hidden rounded-full border-2 border-stone-200 transition hover:border-stone-400"
         onClick={() => setMenuOpen(o => !o)}
         title={email}
         type="button">
         {avatarUrl ? (
           <img src={avatarUrl} alt="" className="h-full w-full object-cover" referrerPolicy="no-referrer" />
         ) : (
-          <div className="h-full w-full bg-stone-900 text-stone-50 flex items-center justify-center text-xs font-bold">
+          <div className="flex h-full w-full items-center justify-center bg-stone-900 text-xs font-bold text-stone-50">
             {initial}
           </div>
         )}
       </button>
       {menuOpen ? (
-        <div className="absolute right-0 top-9 z-50 min-w-[180px] rounded-xl border border-stone-200 bg-white shadow-lg p-2">
-          <p className="px-2 py-1 text-[11px] text-stone-500 truncate">{email}</p>
+        <div className="absolute right-0 top-9 z-50 min-w-[180px] rounded-xl border border-stone-200 bg-white p-2 shadow-lg">
+          <p className="truncate px-2 py-1 text-[11px] text-stone-500">{email}</p>
           <button
-            className="w-full text-left px-2 py-1.5 text-xs font-semibold text-stone-700 hover:bg-stone-100 rounded-lg transition"
+            className="w-full rounded-lg px-2 py-1.5 text-left text-xs font-semibold text-stone-700 transition hover:bg-stone-100"
             onClick={() => {
               setMenuOpen(false);
               onSignOut();
@@ -173,9 +168,12 @@ const Popup = () => {
   const onboarding = useStorage(unshaftedOnboardingStorage);
   const settings = useStorage(unshaftedSettingsStorage);
   const currentAnalysis = useStorage(currentAnalysisStorage);
+  const history = useStorage(analysisHistoryStorage);
 
   const [launchError, setLaunchError] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [selectedHistory, setSelectedHistory] = useState<HistoryRecord | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [signingIn, setSigningIn] = useState(false);
@@ -204,66 +202,72 @@ const Popup = () => {
   const hasFlags = Boolean(currentAnalysis?.quickScan?.redFlags.length);
   const spotlightStep: PopupSpotlightStep | null = activeOnboardingStep
     ? activeOnboardingStep === 'results'
-      ? ({
-          summary: {
-            id: 'summary',
-            target: 'summary',
-            text: 'Start here for the quick read.',
-          },
-          flags: {
-            id: 'flags',
-            target: 'flags',
-            text: 'Flags are the fastest risk triage.',
-          },
-          customize: {
-            id: 'customize',
-            target: 'customize',
-            text: 'Set your role before deeper review.',
-          },
-          cta: {
-            id: 'cta',
-            target: 'cta',
-            text: session ? 'Run detailed analysis when ready.' : 'Sign in for deeper review and Drive backup.',
-            final: true,
-          },
-        } satisfies Record<ResultGuideStep, PopupSpotlightStep>)[resultGuidanceStep]
-      : ({
-          provider: {
-            id: 'provider',
-            target: 'api-key',
-            text: 'Start by choosing your AI provider.',
-            nextLabel: 'Open',
-          },
-          'api-key': {
-            id: 'api-key',
-            target: 'api-key',
-            text: 'Paste your API key in Options.',
-            nextLabel: 'Open',
-          },
-          'save-settings': {
-            id: 'save-settings',
-            target: 'api-key',
-            text: 'Save the key before testing it.',
-            nextLabel: 'Open',
-          },
-          'test-connection': {
-            id: 'test-connection',
-            target: 'api-key',
-            text: 'Test the key before your first scan.',
-            nextLabel: 'Open',
-          },
-          'sign-in': {
-            id: 'sign-in',
-            target: 'sign-in',
-            text: 'Sign in for Drive backup and detailed analysis.',
-            skipLabel: 'Skip',
-          },
-          upload: {
-            id: 'upload',
-            target: 'upload',
-            text: 'Upload a PDF or TXT contract.',
-          },
-        } satisfies Partial<Record<OnboardingStep, PopupSpotlightStep>>)[activeOnboardingStep] ?? null
+      ? (
+          {
+            summary: {
+              id: 'summary',
+              target: 'summary',
+              text: 'Start here for the quick read.',
+            },
+            flags: {
+              id: 'flags',
+              target: 'flags',
+              text: 'Flags are the fastest risk triage.',
+            },
+            customize: {
+              id: 'customize',
+              target: 'customize',
+              text: 'Set your role before deeper review.',
+            },
+            cta: {
+              id: 'cta',
+              target: 'cta',
+              text: session
+                ? 'Run detailed analysis when ready.'
+                : 'Sign in for deeper review. Drive backup stays separate.',
+              final: true,
+            },
+          } satisfies Record<ResultGuideStep, PopupSpotlightStep>
+        )[resultGuidanceStep]
+      : ((
+          {
+            provider: {
+              id: 'provider',
+              target: 'api-key',
+              text: 'Start by choosing your AI provider.',
+              nextLabel: 'Open',
+            },
+            'api-key': {
+              id: 'api-key',
+              target: 'api-key',
+              text: 'Paste your API key in Options.',
+              nextLabel: 'Open',
+            },
+            'save-settings': {
+              id: 'save-settings',
+              target: 'api-key',
+              text: 'Save the key before testing it.',
+              nextLabel: 'Open',
+            },
+            'test-connection': {
+              id: 'test-connection',
+              target: 'api-key',
+              text: 'Test the key before your first scan.',
+              nextLabel: 'Open',
+            },
+            'sign-in': {
+              id: 'sign-in',
+              target: 'sign-in',
+              text: 'Sign in for detailed analysis. You can enable Drive backup separately.',
+              skipLabel: 'Skip',
+            },
+            upload: {
+              id: 'upload',
+              target: 'upload',
+              text: 'Upload a PDF or TXT contract.',
+            },
+          } satisfies Partial<Record<OnboardingStep, PopupSpotlightStep>>
+        )[activeOnboardingStep] ?? null)
     : null;
 
   const advanceOnboarding = useCallback(async (nextStep: OnboardingStep) => {
@@ -282,6 +286,10 @@ const Popup = () => {
       currentStep: 'results',
       seenResultGuidance: true,
     }));
+  }, []);
+
+  useEffect(() => {
+    void clearLegacyPersistentAnalysisState();
   }, []);
 
   useEffect(() => {
@@ -311,7 +319,9 @@ const Popup = () => {
       setAuthLoading(false);
     });
 
-    const { data: { subscription } } = onAuthStateChange((_event, s) => {
+    const {
+      data: { subscription },
+    } = onAuthStateChange((_event, s) => {
       setSession(s);
       setAuthLoading(false);
     });
@@ -408,7 +418,11 @@ const Popup = () => {
               source: {
                 kind: 'file' as const,
                 name: quickFile.documentName,
-                slug: quickFile.documentName.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 60) || 'unnamed-document',
+                slug:
+                  quickFile.documentName
+                    .toLowerCase()
+                    .replace(/[^a-z0-9]+/g, '-')
+                    .slice(0, 60) || 'unnamed-document',
                 contentHash: quickFile.contentHash,
                 charCount: quickFile.charCount || 0,
                 estimatedTokens: quickFile.estimatedTokens || 0,
@@ -471,7 +485,21 @@ const Popup = () => {
 
   const handleUploadFlow = useCallback(() => {
     setLaunchError('');
+    setSelectedHistory(null);
     fileInputRef.current?.click();
+  }, []);
+
+  const handleDemo = useCallback(async () => {
+    setLaunchError('');
+    setUploading(true);
+    try {
+      setSelectedHistory(null);
+      await currentAnalysisStorage.set(await createSampleAnalysis());
+    } catch (error) {
+      setLaunchError(error instanceof Error ? error.message : 'Unable to load the sample analysis.');
+    } finally {
+      setUploading(false);
+    }
   }, []);
 
   const dismissWizard = useCallback(async () => {
@@ -528,13 +556,16 @@ const Popup = () => {
     if (!file) return;
 
     setLaunchError('');
+    setSelectedHistory(null);
     setUploading(true);
 
     try {
-      const document = await buildDocumentFromFile(file);
-      await currentAnalysisStorage.set(createCurrentAnalysis(document));
+      const shouldBackupSource = Boolean(session && settings.driveBackupEnabled);
+      const document = await buildDocumentFromFile(file, { includeOriginalFileBase64: shouldBackupSource });
+      const storageDocument = { ...document, originalFileBase64: undefined };
+      await currentAnalysisStorage.set(createCurrentAnalysis(storageDocument));
 
-      if (session && document.originalFileBase64 && document.contentHash) {
+      if (shouldBackupSource && document.originalFileBase64 && document.contentHash) {
         void uploadSourceToDrive(document);
       }
     } catch (error) {
@@ -544,6 +575,68 @@ const Popup = () => {
       setUploading(false);
     }
   };
+
+  const toggleDriveBackup = useCallback(async () => {
+    await unshaftedSettingsStorage.set(current => ({
+      ...current,
+      driveBackupEnabled: !current.driveBackupEnabled,
+    }));
+  }, []);
+
+  const clearLocalReports = useCallback(async () => {
+    setSelectedHistory(null);
+    await currentAnalysisStorage.set(null);
+    await analysisHistoryStorage.clear();
+  }, []);
+
+  const clearAllLocalData = useCallback(async () => {
+    setLaunchError('');
+    setSelectedHistory(null);
+    setHistoryOpen(false);
+
+    try {
+      await signOut();
+    } catch {
+      // Best-effort sign-out; local storage clearing below is the real wipe.
+    }
+
+    await chrome.storage.local.clear();
+    await chrome.storage.session.clear();
+  }, []);
+
+  const deleteHistoryRecord = useCallback(
+    async (record: HistoryRecord) => {
+      if (selectedHistory?.id === record.id) {
+        setSelectedHistory(null);
+      }
+
+      await analysisHistoryStorage.remove(record.id);
+      if (record.source.contentHash) {
+        void deleteFromDrive(record.source.contentHash, 'quick-scan');
+        void deleteFromDrive(record.source.contentHash, 'deep-analysis');
+      }
+    },
+    [selectedHistory?.id],
+  );
+
+  const copyHistoryRecord = useCallback(async (record: HistoryRecord) => {
+    const lines = [
+      `Unshafted report: ${record.source.name}`,
+      `Risk: ${record.deepAnalysis?.overallRiskLevel ?? record.quickScan.roughRiskLevel}`,
+      '',
+      record.deepAnalysis?.bottomLine ?? record.quickScan.cautionLine,
+      '',
+      'Top risks:',
+      ...(record.quickScan.redFlags.length > 0
+        ? record.quickScan.redFlags.slice(0, 3).map(flag => `- ${flag.title}: ${flag.reason}`)
+        : ['- No major quick-scan flags found.']),
+      '',
+      'What to ask for:',
+      ...(record.deepAnalysis?.negotiationIdeas ?? []).slice(0, 3).map(item => `- ${item.ask}`),
+    ];
+
+    await navigator.clipboard.writeText(lines.join('\n'));
+  }, []);
 
   return (
     <div className="popup-shell">
@@ -558,14 +651,14 @@ const Popup = () => {
 
         <div className="popup-sticky-header">
           <div className="flex items-start justify-between gap-3">
-            <div className="space-y-1 min-w-0 flex-1">
+            <div className="min-w-0 flex-1 space-y-1">
               <p className="popup-eyebrow">Unshafted</p>
               <h1 className="popup-title">Contract risk, without the fog.</h1>
               <p className="popup-subtitle truncate">
                 {currentAnalysis ? currentAnalysis.source.name : 'Upload a contract to review (.pdf or .txt).'}
               </p>
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex flex-shrink-0 items-center gap-2">
               <div
                 className={`rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${
                   hasActiveApiKey ? 'bg-emerald-100 text-emerald-800' : 'bg-stone-200 text-stone-700'
@@ -603,7 +696,7 @@ const Popup = () => {
                   />
                 ) : (
                   <button
-                    className="rounded-full bg-stone-900 px-3 py-1 text-[11px] font-semibold text-stone-50 hover:bg-stone-700 transition"
+                    className="rounded-full bg-stone-900 px-3 py-1 text-[11px] font-semibold text-stone-50 transition hover:bg-stone-700"
                     onClick={handleSignIn}
                     disabled={signingIn}
                     data-onboarding-target="sign-in"
@@ -617,15 +710,50 @@ const Popup = () => {
         </div>
 
         <div className="popup-content">
-          {!currentAnalysis ? (
-            <button
-              className="popup-primary-button"
-              onClick={handleUploadFlow}
-              disabled={uploading || !hasActiveApiKey}
-              data-onboarding-target="upload"
-              type="button">
-              {uploading ? 'Loading contract...' : 'Upload your contract'}
-            </button>
+          {selectedHistory ? (
+            <div className="space-y-3">
+              <button className="popup-link-button" onClick={() => setSelectedHistory(null)} type="button">
+                Back to current scan
+              </button>
+              <ResultsView record={selectedHistory} />
+            </div>
+          ) : !currentAnalysis ? (
+            <section className="popup-card space-y-3">
+              <div className="space-y-1">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500">
+                  {hasActiveApiKey ? 'Ready to scan' : 'Try it before setup'}
+                </p>
+                <p className="text-sm leading-5 text-stone-700">
+                  Contract text is sent to your selected AI provider for analysis. API keys stay local. Drive backup is
+                  off until you enable it.
+                </p>
+              </div>
+              {hasActiveApiKey ? (
+                <button
+                  className="popup-primary-button"
+                  onClick={handleUploadFlow}
+                  disabled={uploading}
+                  data-onboarding-target="upload"
+                  type="button">
+                  {uploading ? 'Loading contract...' : 'Upload your contract'}
+                </button>
+              ) : (
+                <button
+                  className="popup-primary-button"
+                  onClick={() => void openOptions(true)}
+                  data-onboarding-target="api-key"
+                  type="button">
+                  Set up API key
+                </button>
+              )}
+              <button
+                className="popup-secondary-button"
+                onClick={() => void handleDemo()}
+                disabled={uploading}
+                type="button">
+                View sample analysis
+              </button>
+            </section>
           ) : (
             <AnalysisWorkspace
               session={session}
@@ -636,17 +764,93 @@ const Popup = () => {
 
           {!hasActiveApiKey ? (
             <section className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-              <p className="font-semibold">API key required</p>
+              <p className="font-semibold">API key required for your own contracts</p>
               <p className="mt-1 text-amber-800">
-                Save your {settings.provider === 'openai' ? 'OpenAI' : 'OpenRouter'} API key in Options first.
+                You can inspect the sample now, then save your{' '}
+                {settings.provider === 'openai' ? 'OpenAI' : 'OpenRouter'} key when ready.
               </p>
               <button
-                className="mt-3 popup-link-button"
+                className="popup-link-button mt-3"
                 onClick={() => void openOptions(true)}
                 data-onboarding-target="api-key"
                 type="button">
                 Open Options
               </button>
+            </section>
+          ) : null}
+
+          <section className="mt-4 rounded-2xl border border-stone-200 bg-white/70 px-4 py-3 text-xs text-stone-700">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="font-semibold text-stone-950">Privacy and sync</p>
+                <p className="mt-1 leading-5">
+                  Reports save locally.{' '}
+                  {settings.driveBackupEnabled
+                    ? 'Drive backup is enabled for signed-in scans.'
+                    : 'Drive backup is currently off.'}
+                </p>
+              </div>
+              <button className="popup-link-button" onClick={() => void toggleDriveBackup()} type="button">
+                {settings.driveBackupEnabled ? 'Turn off Drive' : 'Enable Drive'}
+              </button>
+            </div>
+            <div className="mt-2 flex flex-wrap gap-3">
+              <button className="popup-link-button" onClick={() => void clearLocalReports()} type="button">
+                Clear local reports
+              </button>
+              <button className="popup-link-button" onClick={() => void clearAllLocalData()} type="button">
+                Clear all local data
+              </button>
+            </div>
+          </section>
+
+          {history.length > 0 ? (
+            <section className="popup-card mt-4 space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-stone-950">Recent analyses</p>
+                  <p className="text-xs text-stone-600">
+                    {settings.driveBackupEnabled
+                      ? 'Local and Drive-backed reports appear here.'
+                      : 'Local reports appear here.'}
+                  </p>
+                </div>
+                <button className="popup-link-button" onClick={() => setHistoryOpen(open => !open)} type="button">
+                  {historyOpen ? 'Hide' : 'Show'}
+                </button>
+              </div>
+              {historyOpen ? (
+                <div className="space-y-2">
+                  {history.map(record => (
+                    <div
+                      key={record.id}
+                      className="rounded-2xl border border-stone-200 bg-white/80 px-3 py-2 text-xs text-stone-700">
+                      <p className="line-clamp-1 font-semibold text-stone-950">{record.source.name}</p>
+                      <p className="mt-1 text-stone-500">
+                        {record.deepAnalysis?.overallRiskLevel ?? record.quickScan.roughRiskLevel} risk ·{' '}
+                        {settings.driveBackupEnabled ? 'Drive backup on' : 'Local only'}
+                      </p>
+                      <div className="mt-2 flex flex-wrap gap-3">
+                        <button className="popup-link-button" onClick={() => setSelectedHistory(record)} type="button">
+                          Reopen
+                        </button>
+                        <button
+                          className="popup-link-button"
+                          onClick={() => void copyHistoryRecord(record)}
+                          type="button">
+                          Copy
+                        </button>
+                        <button
+                          className="popup-link-button"
+                          onClick={() => void deleteHistoryRecord(record)}
+                          type="button">
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
             </section>
           ) : null}
 

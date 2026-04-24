@@ -20,11 +20,11 @@ Your chosen AI provider, model selection, temperature setting, and API keys (Ope
 
 ### 3. Contract and agreement text
 
-When you upload a `.pdf` or `.txt` file for analysis, the document text is extracted and held in local extension storage for the duration of the analysis session. If you are signed in, the original source file is also uploaded to your Google Drive alongside the analysis results.
+When you upload a `.pdf` or `.txt` file for analysis, the document text is extracted and held in local extension storage for the duration of the analysis session. If you are signed in and explicitly enable Drive backup, the original source file is uploaded to your Google Drive alongside the analysis results.
 
 ### 4. Analysis results
 
-AI-generated risk analysis results (quick scans and deep analyses) are stored locally. The analysis results contain the AI-generated risk summary, which includes referenced excerpts from the contract. If you are signed in, the analysis results and the original source file are synced to an "Unshafted" folder in **your own Google Drive** account so you can access them across devices.
+AI-generated risk analysis results (quick scans and deep analyses) are stored locally. The analysis results contain the AI-generated risk summary, which includes referenced excerpts from the contract. If you are signed in and enable Drive backup, the analysis results and the original source file are synced to an "Unshafted" folder in **your own Google Drive** account so you can access them across devices.
 
 ### 5. Usage counters
 
@@ -40,8 +40,8 @@ How we use your data
 | Email and profile | Authenticate your session; display your account in the extension |
 | API keys | Sent directly to the AI provider you configured (OpenRouter or OpenAI) to authorize model requests |
 | Contract text | Sent to the AI provider you configured so the model can generate a risk analysis |
-| Original source file | Signed-in users: uploaded to your Google Drive for cross-device access. Anonymous users: kept locally only |
-| Analysis results | Displayed in the extension. Signed-in users: synced to your Google Drive |
+| Original source file | Signed-in users with Drive backup enabled: uploaded to your Google Drive for cross-device access. Otherwise kept locally only during the active scan flow |
+| Analysis results | Displayed in the extension and stored locally. Signed-in users with Drive backup enabled: synced to your Google Drive |
 | Usage counters | Enforce free-tier daily limits for anonymous users |
 
 ---
@@ -56,7 +56,7 @@ Unshafted works without an account. Signing in with Google unlocks additional fe
 | Quick scans | 3 per day | Unlimited |
 | Deep analysis | Available | Available |
 | Data stored locally | Yes | Yes |
-| Data synced to Google Drive | No | Yes (analysis results + original source file) |
+| Data synced to Google Drive | No | Only if Drive backup is enabled |
 | Account info collected | None | Email, display name, profile picture |
 | Auth session | None | Supabase + Google OAuth tokens (stored locally) |
 
@@ -65,9 +65,9 @@ Unshafted works without an account. Signing in with Google unlocks additional fe
 How we store your data
 ----------------------
 
-- **On your device:** API keys, preferences, the current analysis session, a short analysis history, and usage counters are stored in `chrome.storage.local`. This data never leaves your device except as described below.
+- **On your device:** API keys, preferences, a short analysis history, and usage counters are stored in `chrome.storage.local`. The active contract text for the current scan is stored in `chrome.storage.session`, so it is cleared when the browser session ends. This data never leaves your device except as described below.
 - **Supabase (authentication):** Your Google user ID and email are stored in our Supabase project's auth database for session management. No contract text or analysis results are stored in Supabase.
-- **Your Google Drive (signed-in users only):** Signing in with Google grants the extension the `drive.file` scope, which is required for cross-device sync. Analysis results (JSON) and original source files (PDF or TXT) are saved to an "Unshafted" folder in your personal Google Drive. The `drive.file` scope limits access to only files created by the extension — it cannot read or modify any other files in your Drive. These files count against your own Drive storage quota and are visible to you in Drive. Anonymous users' data never leaves the device.
+- **Your Google Drive (optional for signed-in users):** Signing in with Google grants the extension the `drive.file` scope, but analysis results and original source files are saved to Drive only after you enable Drive backup. The `drive.file` scope limits access to only files created by the extension — it cannot read or modify any other files in your Drive. These files count against your own Drive storage quota and are visible to you in Drive. Anonymous users' data never leaves the device except for AI-provider analysis requests.
 
 ---
 
@@ -87,7 +87,7 @@ We do **not** sell, rent, or transfer your data to any other third parties. We d
 Data retention and deletion
 ---------------------------
 
-- **Local data:** You can clear all local data at any time by uninstalling the extension or clearing extension storage from your browser settings.
+- **Local data:** You can clear local reports or all local extension data from the popup. Clearing all local data removes local API keys, auth/session data, active scan text, local history, preferences, and usage counters. You can also remove this data by uninstalling the extension or clearing extension storage from your browser settings.
 - **Google Drive files:** Analysis files in your Drive persist until you delete them. You can delete them directly from Google Drive or from the extension's history view.
 - **Supabase auth records:** If you want your authentication record removed, email us at the address below and we will delete it within 30 days.
 

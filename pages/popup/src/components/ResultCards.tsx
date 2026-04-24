@@ -1,3 +1,4 @@
+import { cn } from '@extension/ui';
 import { DISCLAIMER_LINE, toVerdictTone } from '@extension/unshafted-core';
 import type {
   CurrentAnalysis,
@@ -7,7 +8,6 @@ import type {
   PotentialAdvantage,
   TopicConcern,
 } from '@extension/unshafted-core';
-import { cn } from '@extension/ui';
 
 const verdictToneClasses: Record<'LOW' | 'CAUTION' | 'HIGH' | 'DANGER', string> = {
   LOW: 'border-emerald-300 bg-emerald-50 text-emerald-900',
@@ -23,13 +23,21 @@ const severityClasses: Record<'low' | 'medium' | 'high', string> = {
 };
 
 export const RiskBadge = ({ label }: { label: 'LOW' | 'CAUTION' | 'HIGH' | 'DANGER' }) => (
-  <span className={cn('rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]', verdictToneClasses[label])}>
+  <span
+    className={cn(
+      'rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]',
+      verdictToneClasses[label],
+    )}>
     {label}
   </span>
 );
 
 export const SeverityBadge = ({ severity }: { severity: 'low' | 'medium' | 'high' }) => (
-  <span className={cn('rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]', severityClasses[severity])}>
+  <span
+    className={cn(
+      'rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]',
+      severityClasses[severity],
+    )}>
     {severity}
   </span>
 );
@@ -57,7 +65,12 @@ const ResultAccordion = ({
     <summary>
       <span>{title}</span>
       {count !== undefined ? (
-        <span className={cn('popup-accordion-count', severity === 'high' && 'severity-high', severity === 'medium' && 'severity-medium')}>
+        <span
+          className={cn(
+            'popup-accordion-count',
+            severity === 'high' && 'severity-high',
+            severity === 'medium' && 'severity-medium',
+          )}>
           {count}
         </span>
       ) : null}
@@ -114,7 +127,9 @@ const TopicConcernCard = ({ item }: { item: TopicConcern }) => (
       <SeverityBadge severity={item.severity} />
     </div>
     <p className="mt-2 text-xs leading-5 text-stone-700">{item.whyItMatters}</p>
-    {item.reference?.label ? <p className="mt-2 text-[11px] text-stone-500">Reference: {item.reference.label}</p> : null}
+    {item.reference?.label ? (
+      <p className="mt-2 text-[11px] text-stone-500">Reference: {item.reference.label}</p>
+    ) : null}
   </div>
 );
 
@@ -122,17 +137,56 @@ const AdvantageCard = ({ item }: { item: PotentialAdvantage }) => (
   <div className="rounded-2xl border border-emerald-200 bg-emerald-50/90 p-3">
     <p className="text-sm font-semibold text-emerald-950">{item.title}</p>
     <p className="mt-1.5 text-xs leading-5 text-emerald-900">{item.whyItHelps}</p>
-    {item.reference?.label ? <p className="mt-2 text-[11px] text-emerald-800">Reference: {item.reference.label}</p> : null}
+    {item.reference?.label ? (
+      <p className="mt-2 text-[11px] text-emerald-800">Reference: {item.reference.label}</p>
+    ) : null}
   </div>
 );
 
 /** Helper: highest severity in a list of findings */
 const maxSeverity = (items: { severity: 'low' | 'medium' | 'high' }[]): 'low' | 'medium' | 'high' => {
   const order = { low: 0, medium: 1, high: 2 } as const;
-  return items.reduce<'low' | 'medium' | 'high'>((max, item) => (order[item.severity] > order[max] ? item.severity : max), 'low');
+  return items.reduce<'low' | 'medium' | 'high'>(
+    (max, item) => (order[item.severity] > order[max] ? item.severity : max),
+    'low',
+  );
 };
 
-type ResultsViewRecord = Pick<CurrentAnalysis, 'quickScan' | 'deepAnalysis' | 'selectedRole' | 'customRole'> | HistoryRecord;
+const severityRank = { low: 0, medium: 1, high: 2 } as const;
+
+const getDecisionCopy = (riskLevel: 'Low' | 'Medium' | 'High' | 'Very High') => {
+  switch (riskLevel) {
+    case 'Low':
+      return {
+        action: 'Likely okay to proceed',
+        rationale: 'No major blockers surfaced, but confirm the facts and any missing context.',
+      };
+    case 'Medium':
+      return {
+        action: 'Review before signing',
+        rationale: 'There are issues worth clarifying or tightening before you commit.',
+      };
+    case 'High':
+      return {
+        action: 'Negotiate first',
+        rationale: 'Several terms could materially affect cost, control, liability, or exit options.',
+      };
+    case 'Very High':
+      return {
+        action: 'Pause and get help',
+        rationale: 'The agreement appears risky enough that you should not treat this as routine.',
+      };
+    default:
+      return {
+        action: 'Review before signing',
+        rationale: 'Check the highlighted risks before you commit.',
+      };
+  }
+};
+
+type ResultsViewRecord =
+  | Pick<CurrentAnalysis, 'quickScan' | 'deepAnalysis' | 'selectedRole' | 'customRole'>
+  | HistoryRecord;
 
 export const ResultsView = ({ record }: { record: ResultsViewRecord }) => {
   const deep = record.deepAnalysis;
@@ -144,6 +198,20 @@ export const ResultsView = ({ record }: { record: ResultsViewRecord }) => {
 
   const tone = toVerdictTone(deep.overallRiskLevel);
   const reviewedAs = 'customRole' in record && record.customRole.trim() ? record.customRole : record.selectedRole;
+  const decision = getDecisionCopy(deep.overallRiskLevel);
+  const topRisks = [
+    ...deep.immediateWorries,
+    ...deep.oneSidedClauses,
+    ...deep.timingAndLockIn,
+    ...deep.couldShaftYouLater,
+  ]
+    .sort((a, b) => severityRank[b.severity] - severityRank[a.severity])
+    .slice(0, 3);
+  const topAsks = [
+    ...deep.negotiationIdeas.map(item => ({ title: item.ask, detail: item.why })),
+    ...deep.suggestedEdits.map(item => ({ title: item.title, detail: item.plainEnglishEdit })),
+    ...deep.missingProtections.map(item => ({ title: item.title, detail: item.commonFix })),
+  ].slice(0, 3);
 
   return (
     <div className="space-y-3">
@@ -151,13 +219,53 @@ export const ResultsView = ({ record }: { record: ResultsViewRecord }) => {
       <section className="popup-card !border-stone-950 !bg-stone-950 !text-stone-50">
         <div className="space-y-2">
           <RiskBadge label={tone} />
-          <h2 className="text-lg font-semibold tracking-[-0.04em]">{deep.bottomLine}</h2>
+          <h2 className="text-lg font-semibold tracking-[-0.04em]">{decision.action}</h2>
+          <p className="text-sm font-semibold text-stone-200">{deep.bottomLine}</p>
           <p className="text-xs leading-5 text-stone-300">{deep.plainEnglishSummary}</p>
         </div>
         <div className="mt-3 rounded-xl bg-white/10 px-3 py-2 text-xs text-stone-200">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-400">Reviewed as</p>
-          <p className="mt-1 font-semibold text-stone-50">{reviewedAs}</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-400">Next best action</p>
+          <p className="mt-1 font-semibold text-stone-50">{decision.rationale}</p>
+          <p className="mt-2 text-[11px] text-stone-400">Reviewed as {reviewedAs}</p>
           {quick?.documentType ? <p className="mt-0.5 text-[11px] text-stone-400">{quick.documentType}</p> : null}
+        </div>
+      </section>
+
+      <section className="grid gap-2">
+        <div className="rounded-2xl border border-rose-100 bg-rose-50/80 px-3 py-3">
+          <p className="text-sm font-semibold text-rose-950">Top risks</p>
+          {topRisks.length > 0 ? (
+            <div className="mt-2 space-y-2">
+              {topRisks.map(item => (
+                <div key={item.title} className="text-xs leading-5 text-rose-900">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="font-semibold">{item.title}</p>
+                    <SeverityBadge severity={item.severity} />
+                  </div>
+                  <p className="mt-0.5">{item.whyItMatters}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-1 text-xs leading-5 text-rose-900">
+              No major risk blockers were identified in the detailed analysis.
+            </p>
+          )}
+        </div>
+        <div className="rounded-2xl border border-emerald-100 bg-emerald-50/80 px-3 py-3">
+          <p className="text-sm font-semibold text-emerald-950">What to ask for</p>
+          {topAsks.length > 0 ? (
+            <div className="mt-2 space-y-2 text-xs leading-5 text-emerald-900">
+              {topAsks.map(item => (
+                <div key={item.title}>
+                  <p className="font-semibold">{item.title}</p>
+                  <p className="mt-0.5">{item.detail}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-1 text-xs leading-5 text-emerald-900">No specific negotiation asks were generated.</p>
+          )}
         </div>
       </section>
 
@@ -165,7 +273,8 @@ export const ResultsView = ({ record }: { record: ResultsViewRecord }) => {
         <section className="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-3 text-xs text-rose-900">
           <p className="font-semibold">High-stakes warning</p>
           <p className="mt-1 leading-5">
-            This agreement has significant risk areas. For anything material, consider a contracts or commercial lawyer before signing.
+            This agreement has significant risk areas. For anything material, consider a contracts or commercial lawyer
+            before signing.
           </p>
         </section>
       ) : null}
@@ -173,17 +282,27 @@ export const ResultsView = ({ record }: { record: ResultsViewRecord }) => {
       {/* Accordion sections — empty sections are omitted */}
 
       {deep.immediateWorries.length > 0 ? (
-        <ResultAccordion title="Immediate worries" count={deep.immediateWorries.length} severity={maxSeverity(deep.immediateWorries)}>
+        <ResultAccordion
+          title="Top risks: immediate issues"
+          count={deep.immediateWorries.length}
+          severity={maxSeverity(deep.immediateWorries)}>
           <div className="space-y-2">
-            {deep.immediateWorries.map(item => <FindingDetails key={item.title} item={item} />)}
+            {deep.immediateWorries.map(item => (
+              <FindingDetails key={item.title} item={item} />
+            ))}
           </div>
         </ResultAccordion>
       ) : null}
 
       {deep.oneSidedClauses.length > 0 ? (
-        <ResultAccordion title="One-sided clauses" count={deep.oneSidedClauses.length} severity={maxSeverity(deep.oneSidedClauses)}>
+        <ResultAccordion
+          title="Top risks: one-sided terms"
+          count={deep.oneSidedClauses.length}
+          severity={maxSeverity(deep.oneSidedClauses)}>
           <div className="space-y-2">
-            {deep.oneSidedClauses.map(item => <FindingDetails key={item.title} item={item} />)}
+            {deep.oneSidedClauses.map(item => (
+              <FindingDetails key={item.title} item={item} />
+            ))}
           </div>
         </ResultAccordion>
       ) : null}
@@ -191,29 +310,41 @@ export const ResultsView = ({ record }: { record: ResultsViewRecord }) => {
       {deep.missingProtections.length > 0 ? (
         <ResultAccordion title="Missing protections" count={deep.missingProtections.length}>
           <div className="space-y-2">
-            {deep.missingProtections.map(item => <MissingProtectionCard key={item.title} item={item} />)}
+            {deep.missingProtections.map(item => (
+              <MissingProtectionCard key={item.title} item={item} />
+            ))}
           </div>
         </ResultAccordion>
       ) : null}
 
       {deep.timingAndLockIn.length > 0 ? (
-        <ResultAccordion title="Deadlines, renewals, lock-ins" count={deep.timingAndLockIn.length} severity={maxSeverity(deep.timingAndLockIn)}>
+        <ResultAccordion
+          title="Deadlines, renewals, lock-ins"
+          count={deep.timingAndLockIn.length}
+          severity={maxSeverity(deep.timingAndLockIn)}>
           <div className="space-y-2">
-            {deep.timingAndLockIn.map(item => <FindingDetails key={item.title} item={item} />)}
+            {deep.timingAndLockIn.map(item => (
+              <FindingDetails key={item.title} item={item} />
+            ))}
           </div>
         </ResultAccordion>
       ) : null}
 
       {deep.topicConcerns.length > 0 ? (
-        <ResultAccordion title="Core concerns" count={deep.topicConcerns.length} severity={maxSeverity(deep.topicConcerns)}>
+        <ResultAccordion
+          title="Core concerns"
+          count={deep.topicConcerns.length}
+          severity={maxSeverity(deep.topicConcerns)}>
           <div className="space-y-2">
-            {deep.topicConcerns.map(item => <TopicConcernCard key={`${item.category}-${item.title}`} item={item} />)}
+            {deep.topicConcerns.map(item => (
+              <TopicConcernCard key={`${item.category}-${item.title}`} item={item} />
+            ))}
           </div>
         </ResultAccordion>
       ) : null}
 
       {deep.negotiationIdeas.length > 0 ? (
-        <ResultAccordion title="Negotiation ideas" count={deep.negotiationIdeas.length}>
+        <ResultAccordion title="What to negotiate" count={deep.negotiationIdeas.length}>
           <div className="space-y-2">
             {deep.negotiationIdeas.map(item => (
               <div key={item.ask} className="rounded-2xl border border-stone-200 bg-white/80 p-3">
@@ -224,7 +355,9 @@ export const ResultsView = ({ record }: { record: ResultsViewRecord }) => {
                     <span className="font-semibold text-stone-900">Fallback:</span> {item.fallback}
                   </p>
                 ) : null}
-                {item.targetClause ? <p className="mt-2 text-[11px] text-stone-500">Target clause: {item.targetClause}</p> : null}
+                {item.targetClause ? (
+                  <p className="mt-2 text-[11px] text-stone-500">Target clause: {item.targetClause}</p>
+                ) : null}
               </div>
             ))}
           </div>
@@ -246,7 +379,7 @@ export const ResultsView = ({ record }: { record: ResultsViewRecord }) => {
       ) : null}
 
       {deep.questionsToAsk.length > 0 ? (
-        <ResultAccordion title="Questions to ask" count={deep.questionsToAsk.length}>
+        <ResultAccordion title="Questions to ask before signing" count={deep.questionsToAsk.length}>
           <ul className="space-y-2 text-xs leading-5 text-stone-700">
             {deep.questionsToAsk.map(question => (
               <li key={question} className="rounded-2xl border border-stone-200 bg-white/80 px-3 py-2">
@@ -258,9 +391,14 @@ export const ResultsView = ({ record }: { record: ResultsViewRecord }) => {
       ) : null}
 
       {deep.couldShaftYouLater.length > 0 ? (
-        <ResultAccordion title="Could shaft you later" count={deep.couldShaftYouLater.length} severity={maxSeverity(deep.couldShaftYouLater)}>
+        <ResultAccordion
+          title="Later risks"
+          count={deep.couldShaftYouLater.length}
+          severity={maxSeverity(deep.couldShaftYouLater)}>
           <div className="space-y-2">
-            {deep.couldShaftYouLater.map(item => <FindingDetails key={item.title} item={item} />)}
+            {deep.couldShaftYouLater.map(item => (
+              <FindingDetails key={item.title} item={item} />
+            ))}
           </div>
         </ResultAccordion>
       ) : null}
@@ -268,13 +406,17 @@ export const ResultsView = ({ record }: { record: ResultsViewRecord }) => {
       {deep.potentialAdvantages.length > 0 ? (
         <ResultAccordion title="Advantages for you" count={deep.potentialAdvantages.length}>
           <div className="space-y-2">
-            {deep.potentialAdvantages.map(item => <AdvantageCard key={item.title} item={item} />)}
+            {deep.potentialAdvantages.map(item => (
+              <AdvantageCard key={item.title} item={item} />
+            ))}
           </div>
         </ResultAccordion>
       ) : null}
 
       {deep.protectionChecklist.length > 0 ? (
-        <ResultAccordion title="Protection checklist" count={deep.protectionChecklist.reduce((sum, g) => sum + g.items.length, 0)}>
+        <ResultAccordion
+          title="Protection checklist"
+          count={deep.protectionChecklist.reduce((sum, g) => sum + g.items.length, 0)}>
           <div className="space-y-2">
             {deep.protectionChecklist.map(group => (
               <div key={group.label} className="rounded-2xl border border-stone-200 bg-white/80 p-3">
@@ -295,7 +437,9 @@ export const ResultsView = ({ record }: { record: ResultsViewRecord }) => {
 
       {/* Clause references — only if content exists */}
       {deep.clauseReferenceNotes.length > 0 || deep.assumptionsAndUnknowns.length > 0 ? (
-        <ResultAccordion title="References and caveats" count={deep.clauseReferenceNotes.length + deep.assumptionsAndUnknowns.length}>
+        <ResultAccordion
+          title="References and caveats"
+          count={deep.clauseReferenceNotes.length + deep.assumptionsAndUnknowns.length}>
           <div className="space-y-2 text-xs leading-5 text-stone-700">
             {deep.clauseReferenceNotes.map(note => (
               <div key={note} className="rounded-2xl border border-stone-200 bg-white/80 px-3 py-2">
