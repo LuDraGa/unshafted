@@ -31,6 +31,13 @@ export const analysisHistoryStorage = {
   remove: async (id: string) => {
     await storage.set(currentRecords => (currentRecords ?? []).filter(record => record.id !== id));
   },
+  removeReport: async (record: HistoryRecord) => {
+    await storage.set(currentRecords =>
+      (currentRecords ?? []).filter(
+        current => current.id !== record.id && current.source.contentHash !== record.source.contentHash,
+      ),
+    );
+  },
   clear: async () => {
     await storage.set([]);
   },

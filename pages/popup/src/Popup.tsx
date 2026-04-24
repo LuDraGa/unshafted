@@ -206,6 +206,7 @@ const Popup = () => {
   const [resultGuidanceStep, setResultGuidanceStep] = useState<ResultGuideStep>('summary');
   const [activeKeyHash, setActiveKeyHash] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const selectedReportRef = useRef<HTMLElement | null>(null);
 
   const activeProviderConfig = getActiveProviderConfig(settings);
   const activeProvider = activeProviderConfig.provider;
@@ -413,6 +414,15 @@ const Popup = () => {
       setResultGuidanceStep('customize');
     }
   }, [activeOnboardingStep, hasFlags, resultGuidanceStep]);
+
+  useEffect(() => {
+    if (!selectedHistory) return;
+
+    window.requestAnimationFrame(() => {
+      selectedReportRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      selectedReportRef.current?.focus({ preventScroll: true });
+    });
+  }, [selectedHistory]);
 
   const hydrateHistoryFromDrive = useCallback(
     async ({ onlyWhenEmpty = false }: { onlyWhenEmpty?: boolean } = {}) => {
@@ -647,7 +657,7 @@ const Popup = () => {
   const deleteHistoryRecord = useCallback(
     async (record: HistoryRecord) => {
       const confirmed = window.confirm(
-        'Delete this local report? If matching Drive files exist, Unshafted will also ask Drive to remove them.',
+        `Delete "${record.source.name}" from local reports? If matching Drive files exist, Unshafted will also ask Drive to remove them.`,
       );
       if (!confirmed) return;
 
@@ -655,7 +665,7 @@ const Popup = () => {
         setSelectedHistory(null);
       }
 
-      await analysisHistoryStorage.remove(record.id);
+      await analysisHistoryStorage.removeReport(record);
       if (record.source.contentHash) {
         void deleteFromDrive(record.source.contentHash, 'quick-scan');
         void deleteFromDrive(record.source.contentHash, 'deep-analysis');
@@ -676,6 +686,11 @@ const Popup = () => {
     anchor.download = createReportFilename(record);
     anchor.click();
     window.setTimeout(() => URL.revokeObjectURL(url), 0);
+  }, []);
+
+  const openHistoryRecord = useCallback((record: HistoryRecord) => {
+    setSelectedHistory(record);
+    setHistoryOpen(false);
   }, []);
 
   return (
@@ -751,7 +766,11 @@ const Popup = () => {
 
         <div className="popup-content">
           {selectedHistory ? (
-            <div className="space-y-3">
+            <section
+              ref={selectedReportRef}
+              className="space-y-3 rounded-3xl outline-none focus-visible:ring-4 focus-visible:ring-amber-200"
+              tabIndex={-1}
+              aria-label={`Opened report for ${selectedHistory.source.name}`}>
               <section className="popup-report-toolbar">
                 <div>
                   <button className="popup-link-button" onClick={() => setSelectedHistory(null)} type="button">
@@ -783,7 +802,7 @@ const Popup = () => {
                 </div>
               </section>
               <ResultsView record={selectedHistory} />
-            </div>
+            </section>
           ) : !currentAnalysis ? (
             <section className="popup-card space-y-3">
               <div className="space-y-1">
@@ -852,14 +871,26 @@ const Popup = () => {
                 <p className="font-semibold text-stone-950">Privacy and sync</p>
                 <p className="mt-1 leading-5">
                   Reports save locally.{' '}
-                  {settings.driveBackupEnabled
-                    ? 'Drive backup is enabled for signed-in scans.'
-                    : 'Drive backup is currently off.'}
+                  {!session
+                    ? 'Sign in first if you want optional Drive backup.'
+                    : settings.driveBackupEnabled
+                      ? 'Drive backup is enabled for signed-in scans.'
+                      : 'Drive backup is currently off.'}
                 </p>
               </div>
-              <button className="popup-link-button" onClick={() => void toggleDriveBackup()} type="button">
-                {settings.driveBackupEnabled ? 'Turn off Drive' : 'Enable Drive'}
-              </button>
+              {session ? (
+                <button className="popup-link-button" onClick={() => void toggleDriveBackup()} type="button">
+                  {settings.driveBackupEnabled ? 'Turn off Drive' : 'Enable Drive'}
+                </button>
+              ) : (
+                <button
+                  className="popup-link-button"
+                  onClick={() => void handleSignIn()}
+                  disabled={signingIn}
+                  type="button">
+                  {signingIn ? 'Signing in...' : 'Sign in'}
+                </button>
+              )}
             </div>
             <div className="mt-2 flex flex-wrap gap-3">
               <button className="popup-link-button" onClick={() => void clearLocalReports()} type="button">
@@ -933,7 +964,7 @@ const Popup = () => {
                         {storageStateCopy[record.storageState]}
                       </p>
                       <div className="mt-2 flex flex-wrap gap-3">
-                        <button className="popup-link-button" onClick={() => setSelectedHistory(record)} type="button">
+                        <button className="popup-link-button" onClick={() => openHistoryRecord(record)} type="button">
                           Open
                         </button>
                         <button
