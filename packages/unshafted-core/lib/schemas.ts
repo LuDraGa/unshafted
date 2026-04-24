@@ -1,4 +1,3 @@
-import { z } from 'zod';
 import {
   DEFAULT_DEEP_MODEL,
   DEFAULT_MONTHLY_SOFT_LIMIT,
@@ -12,6 +11,7 @@ import {
   DISCLAIMER_LINE,
   PRIORITY_OPTIONS,
 } from './constants.js';
+import { z } from 'zod';
 
 export const ConfidenceSchema = z.enum(['low', 'medium', 'high']);
 export const SeveritySchema = z.enum(['low', 'medium', 'high']);
@@ -178,6 +178,7 @@ export const AppSettingsSchema = z.object({
   openaiDeepModel: z.string().min(1).default(DEFAULT_OPENAI_DEEP_MODEL),
   temperature: z.number().min(0).max(1).default(DEFAULT_TEMPERATURE),
   monthlySoftLimit: z.number().int().positive().default(DEFAULT_MONTHLY_SOFT_LIMIT),
+  driveBackupEnabled: z.boolean().default(false),
 });
 
 export const CurrentAnalysisSchema = z.object({

@@ -190,17 +190,18 @@ const isValidAnalysisFile = (data: unknown): data is DriveAnalysisFile => {
   );
 };
 
-/** List all analysis files from the Unshafted folder */
-export const listAnalysisFiles = async (
-  token: string,
-  folderId: string,
-): Promise<DriveAnalysisFile[]> => {
+/** List analysis JSON files from the Unshafted folder. */
+export const listAnalysisFiles = async (token: string, folderId: string): Promise<DriveAnalysisFile[]> => {
   const files: DriveAnalysisFile[] = [];
   let pageToken: string | undefined;
 
   do {
-    const q = `'${folderId}' in parents and trashed=false`;
-    let url = `${DRIVE_API}?q=${encodeURIComponent(q)}&fields=files(id)&spaces=drive&pageSize=100`;
+    const q = [
+      `'${folderId}' in parents`,
+      `(appProperties has { key='analysisType' and value='quick-scan' } or appProperties has { key='analysisType' and value='deep-analysis' })`,
+      `trashed=false`,
+    ].join(' and ');
+    let url = `${DRIVE_API}?q=${encodeURIComponent(q)}&fields=nextPageToken,files(id,appProperties,mimeType)&spaces=drive&pageSize=100`;
     if (pageToken) url += `&pageToken=${encodeURIComponent(pageToken)}`;
 
     const listRes = await fetch(url, { headers: headers(token) });
@@ -252,11 +253,7 @@ export const deleteAnalysisFile = async (
 // ── Source file management ──
 
 /** Find existing source file by contentHash */
-export const findSourceFile = async (
-  token: string,
-  folderId: string,
-  contentHash: string,
-): Promise<string | null> => {
+export const findSourceFile = async (token: string, folderId: string, contentHash: string): Promise<string | null> => {
   const q = [
     `'${folderId}' in parents`,
     `appProperties has { key='contentHash' and value='${contentHash}' }`,

@@ -46,15 +46,14 @@ const LINE_BREAK_PATTERN = /\n{3,}/g;
 const WHITESPACE_PATTERN = /[ \t]{2,}/g;
 
 export const normalizeDocumentText = (text: string): string =>
-  text
-    .replace(/\r\n/g, '\n')
-    .replace(WHITESPACE_PATTERN, ' ')
-    .replace(LINE_BREAK_PATTERN, '\n\n')
-    .trim();
+  text.replace(/\r\n/g, '\n').replace(WHITESPACE_PATTERN, ' ').replace(LINE_BREAK_PATTERN, '\n\n').trim();
 
 export const estimateTokens = (text: string): number => Math.ceil(text.length / 4);
 
-export const buildDocumentFromFile = async (file: File): Promise<IngestedDocument> => {
+export const buildDocumentFromFile = async (
+  file: File,
+  options: { includeOriginalFileBase64?: boolean } = {},
+): Promise<IngestedDocument> => {
   const extension = file.name.split('.').pop()?.toLowerCase();
 
   if (extension !== 'txt' && extension !== 'pdf') {
@@ -97,7 +96,7 @@ export const buildDocumentFromFile = async (file: File): Promise<IngestedDocumen
     estimatedTokens: estimateTokens(text),
     preview: makePreview(text),
     text,
-    originalFileBase64: arrayBufferToBase64(originalBuffer),
+    ...(options.includeOriginalFileBase64 ? { originalFileBase64: arrayBufferToBase64(originalBuffer) } : {}),
     originalMimeType: mimeType,
     quality: text.length < 1200 ? 'thin' : 'good',
     warnings,
@@ -141,7 +140,9 @@ export const buildBalancedExcerpt = (text: string, maxChars: number): { text: st
 export const prepareQuickScanText = (text: string) => buildBalancedExcerpt(text, QUICK_SCAN_CHAR_LIMIT);
 export const prepareDeepAnalysisText = (text: string) => buildBalancedExcerpt(text, DEEP_ANALYSIS_CHAR_LIMIT);
 
-export const buildSuggestedPriorities = (quickScan: QuickScanResult | null): Array<(typeof PRIORITY_OPTIONS)[number]> => {
+export const buildSuggestedPriorities = (
+  quickScan: QuickScanResult | null,
+): Array<(typeof PRIORITY_OPTIONS)[number]> => {
   const fallback: Array<(typeof PRIORITY_OPTIONS)[number]> = ['Liability', 'Payment', 'Termination'];
 
   if (!quickScan) {
@@ -170,7 +171,8 @@ export const buildRoleOptions = (quickScan: QuickScanResult | null): string[] =>
   return combined.slice(0, 8);
 };
 
-export const createMonthKey = (date = new Date()): string => `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
+export const createMonthKey = (date = new Date()): string =>
+  `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
 
 export const createDayKey = (date = new Date()): string =>
   `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
@@ -178,8 +180,12 @@ export const createDayKey = (date = new Date()): string =>
 export const clampHistory = (records: HistoryRecord[]): HistoryRecord[] =>
   [...records].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, HISTORY_LIMIT);
 
-export const stripDocumentTextForHistory = (document: IngestedDocument): Omit<IngestedDocument, 'text' | 'originalFileBase64'> => {
-  const { text: _text, originalFileBase64: _binary, ...rest } = document;
+export const stripDocumentTextForHistory = (
+  document: IngestedDocument,
+): Omit<IngestedDocument, 'text' | 'originalFileBase64'> => {
+  const { text, originalFileBase64, ...rest } = document;
+  void text;
+  void originalFileBase64;
   return rest;
 };
 
