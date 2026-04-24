@@ -1,12 +1,11 @@
 import {
   EXTRACT_PAGE_MESSAGE_TYPE,
-  type ExtractPageRequest,
-  type ExtractPageResponse,
   IngestedDocumentSchema,
   estimateTokens,
   makePreview,
   normalizeDocumentText,
 } from '@extension/unshafted-core';
+import type { ExtractPageRequest, ExtractPageResponse } from '@extension/unshafted-core';
 
 const SKIP_TAGS = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'FOOTER', 'HEADER', 'NAV', 'ASIDE', 'FORM', 'BUTTON']);
 const NOISE_HINTS = ['cookie', 'consent', 'subscribe', 'newsletter', 'footer', 'header', 'banner', 'advert', 'promo'];
@@ -84,7 +83,10 @@ const pickBestRoot = (): HTMLElement => {
 
 const assessQuality = (text: string): { quality: 'good' | 'thin' | 'noisy'; warnings: string[] } => {
   const warnings: string[] = [];
-  const lines = text.split('\n').map(line => line.trim()).filter(Boolean);
+  const lines = text
+    .split('\n')
+    .map(line => line.trim())
+    .filter(Boolean);
   const shortLineRatio = lines.length > 0 ? lines.filter(line => line.split(' ').length <= 3).length / lines.length : 0;
 
   if (text.length < 1200) {
@@ -92,7 +94,9 @@ const assessQuality = (text: string): { quality: 'good' | 'thin' | 'noisy'; warn
   }
 
   if (shortLineRatio > 0.48) {
-    warnings.push('This page contains a lot of short or menu-like lines. Uploading a clean `.txt` file may work better.');
+    warnings.push(
+      'This page contains a lot of short or menu-like lines. Uploading a clean `.txt` file may work better.',
+    );
   }
 
   if (text.length < 1200) {
@@ -137,7 +141,8 @@ chrome.runtime.onMessage.addListener((message: ExtractPageRequest, _sender, send
     if (documentPayload.charCount < 200) {
       sendResponse({
         ok: false,
-        error: 'This page does not contain enough readable agreement text. Try a cleaner page or upload a local `.txt` file.',
+        error:
+          'This page does not contain enough readable agreement text. Try a cleaner page or upload a local `.txt` file.',
       } satisfies ExtractPageResponse);
 
       return true;

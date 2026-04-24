@@ -14,7 +14,7 @@ import {
   RUN_QUICK_SCAN_MESSAGE,
   RUN_DEEP_ANALYSIS_MESSAGE,
 } from '@extension/unshafted-core';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Session } from '@extension/supabase';
 import type { CurrentAnalysis, AnalysisMessageResponse } from '@extension/unshafted-core';
 
@@ -81,6 +81,40 @@ export const AnalysisWorkspace = ({
   const [stepIndex, setStepIndex] = useState(0);
   const autoQuickScanRef = useRef<string | null>(null);
 
+  const startQuickScan = useCallback(
+    async (analysis: CurrentAnalysis) => {
+      setPanelError('');
+      setStepIndex(0);
+
+      await currentAnalysisStorage.set({
+        ...analysis,
+        quickScan: null,
+        deepAnalysis: null,
+        status: 'ready',
+        error: null,
+        updatedAt: new Date().toISOString(),
+      });
+
+      let response: AnalysisMessageResponse;
+      try {
+        response = await chrome.runtime.sendMessage({
+          type: RUN_QUICK_SCAN_MESSAGE,
+          isSignedIn: !!session,
+        });
+      } catch (error) {
+        response = {
+          ok: false,
+          error: error instanceof Error ? error.message : 'Unable to start quick scan.',
+        };
+      }
+
+      if (!response.ok) {
+        setPanelError(response.error);
+      }
+    },
+    [session],
+  );
+
   // Auto-trigger quick scan when a new analysis is ready
   useEffect(() => {
     const activeKey = settings.provider === 'openai' ? settings.openaiApiKey : settings.apiKey;
@@ -94,7 +128,7 @@ export const AnalysisWorkspace = ({
 
     autoQuickScanRef.current = currentAnalysis.id;
     void startQuickScan(currentAnalysis);
-  }, [currentAnalysis, settings.apiKey, settings.openaiApiKey, settings.provider]);
+  }, [currentAnalysis, settings.apiKey, settings.openaiApiKey, settings.provider, startQuickScan]);
 
   // Animate loading steps
   useEffect(() => {
@@ -108,37 +142,6 @@ export const AnalysisWorkspace = ({
 
     return () => window.clearInterval(timer);
   }, [currentAnalysis?.status]);
-
-  const startQuickScan = async (analysis: CurrentAnalysis) => {
-    setPanelError('');
-    setStepIndex(0);
-
-    await currentAnalysisStorage.set({
-      ...analysis,
-      quickScan: null,
-      deepAnalysis: null,
-      status: 'ready',
-      error: null,
-      updatedAt: new Date().toISOString(),
-    });
-
-    let response: AnalysisMessageResponse;
-    try {
-      response = await chrome.runtime.sendMessage({
-        type: RUN_QUICK_SCAN_MESSAGE,
-        isSignedIn: !!session,
-      });
-    } catch (error) {
-      response = {
-        ok: false,
-        error: error instanceof Error ? error.message : 'Unable to start quick scan.',
-      };
-    }
-
-    if (!response.ok) {
-      setPanelError(response.error);
-    }
-  };
 
   const startDeepAnalysis = async () => {
     if (!currentAnalysis) return;

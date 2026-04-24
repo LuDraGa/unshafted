@@ -11,7 +11,7 @@ import { IngestedDocumentSchema } from './schemas.js';
 import type { HistoryRecord, IngestedDocument, QuickScanResult } from './types.js';
 
 /** Sanitize a document name for use in filenames */
-export const sanitizeDocumentName = (name: string): string =>
+const sanitizeDocumentName = (name: string): string =>
   name
     .replace(/\.[^.]+$/, '')
     .replace(/[^a-zA-Z0-9\s-]/g, '')
@@ -23,7 +23,7 @@ export const sanitizeDocumentName = (name: string): string =>
     .slice(0, 60) || 'unnamed-document';
 
 /** Encode an ArrayBuffer as a base64 string (chunked to avoid stack overflow) */
-export const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
+const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
   const bytes = new Uint8Array(buffer);
   let binary = '';
   const chunkSize = 8192;
@@ -34,7 +34,7 @@ export const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
 };
 
 /** SHA256 hash of text, returned as hex string */
-export const computeContentHash = async (text: string): Promise<string> => {
+const computeContentHash = async (text: string): Promise<string> => {
   const data = new TextEncoder().encode(text);
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
   return Array.from(new Uint8Array(hashBuffer))
@@ -45,12 +45,12 @@ export const computeContentHash = async (text: string): Promise<string> => {
 const LINE_BREAK_PATTERN = /\n{3,}/g;
 const WHITESPACE_PATTERN = /[ \t]{2,}/g;
 
-export const normalizeDocumentText = (text: string): string =>
+const normalizeDocumentText = (text: string): string =>
   text.replace(/\r\n/g, '\n').replace(WHITESPACE_PATTERN, ' ').replace(LINE_BREAK_PATTERN, '\n\n').trim();
 
-export const estimateTokens = (text: string): number => Math.ceil(text.length / 4);
+const estimateTokens = (text: string): number => Math.ceil(text.length / 4);
 
-export const buildDocumentFromFile = async (
+const buildDocumentFromFile = async (
   file: File,
   options: { includeOriginalFileBase64?: boolean } = {},
 ): Promise<IngestedDocument> => {
@@ -104,7 +104,7 @@ export const buildDocumentFromFile = async (
   });
 };
 
-export const makePreview = (text: string, limit = PREVIEW_CHAR_LIMIT): string => {
+const makePreview = (text: string, limit = PREVIEW_CHAR_LIMIT): string => {
   const normalized = normalizeDocumentText(text);
   if (normalized.length <= limit) {
     return normalized;
@@ -113,7 +113,7 @@ export const makePreview = (text: string, limit = PREVIEW_CHAR_LIMIT): string =>
   return `${normalized.slice(0, limit).trimEnd()}…`;
 };
 
-export const buildBalancedExcerpt = (text: string, maxChars: number): { text: string; truncated: boolean } => {
+const buildBalancedExcerpt = (text: string, maxChars: number): { text: string; truncated: boolean } => {
   const normalized = normalizeDocumentText(text);
   if (normalized.length <= maxChars) {
     return { text: normalized, truncated: false };
@@ -137,12 +137,10 @@ export const buildBalancedExcerpt = (text: string, maxChars: number): { text: st
   };
 };
 
-export const prepareQuickScanText = (text: string) => buildBalancedExcerpt(text, QUICK_SCAN_CHAR_LIMIT);
-export const prepareDeepAnalysisText = (text: string) => buildBalancedExcerpt(text, DEEP_ANALYSIS_CHAR_LIMIT);
+const prepareQuickScanText = (text: string) => buildBalancedExcerpt(text, QUICK_SCAN_CHAR_LIMIT);
+const prepareDeepAnalysisText = (text: string) => buildBalancedExcerpt(text, DEEP_ANALYSIS_CHAR_LIMIT);
 
-export const buildSuggestedPriorities = (
-  quickScan: QuickScanResult | null,
-): Array<(typeof PRIORITY_OPTIONS)[number]> => {
+const buildSuggestedPriorities = (quickScan: QuickScanResult | null): Array<(typeof PRIORITY_OPTIONS)[number]> => {
   const fallback: Array<(typeof PRIORITY_OPTIONS)[number]> = ['Liability', 'Payment', 'Termination'];
 
   if (!quickScan) {
@@ -165,22 +163,22 @@ export const buildSuggestedPriorities = (
   return (combined.length > 0 ? combined : fallback).slice(0, 3);
 };
 
-export const buildRoleOptions = (quickScan: QuickScanResult | null): string[] => {
+const buildRoleOptions = (quickScan: QuickScanResult | null): string[] => {
   const fromModel = quickScan?.likelyRoles ?? [];
   const combined = Array.from(new Set([...fromModel, ...ROLE_FALLBACKS]));
   return combined.slice(0, 8);
 };
 
-export const createMonthKey = (date = new Date()): string =>
+const createMonthKey = (date = new Date()): string =>
   `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
 
-export const createDayKey = (date = new Date()): string =>
+const createDayKey = (date = new Date()): string =>
   `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
 
-export const clampHistory = (records: HistoryRecord[]): HistoryRecord[] =>
+const clampHistory = (records: HistoryRecord[]): HistoryRecord[] =>
   [...records].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, HISTORY_LIMIT);
 
-export const stripDocumentTextForHistory = (
+const stripDocumentTextForHistory = (
   document: IngestedDocument,
 ): Omit<IngestedDocument, 'text' | 'originalFileBase64'> => {
   const { text, originalFileBase64, ...rest } = document;
@@ -189,7 +187,7 @@ export const stripDocumentTextForHistory = (
   return rest;
 };
 
-export const formatBytes = (bytes?: number): string => {
+const formatBytes = (bytes?: number): string => {
   if (typeof bytes !== 'number' || Number.isNaN(bytes)) {
     return 'Unknown size';
   }
@@ -203,4 +201,24 @@ export const formatBytes = (bytes?: number): string => {
   }
 
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
+export {
+  arrayBufferToBase64,
+  buildBalancedExcerpt,
+  buildDocumentFromFile,
+  buildRoleOptions,
+  buildSuggestedPriorities,
+  clampHistory,
+  computeContentHash,
+  createDayKey,
+  createMonthKey,
+  estimateTokens,
+  formatBytes,
+  makePreview,
+  normalizeDocumentText,
+  prepareDeepAnalysisText,
+  prepareQuickScanText,
+  sanitizeDocumentName,
+  stripDocumentTextForHistory,
 };

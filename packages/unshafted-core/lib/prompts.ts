@@ -1,9 +1,11 @@
-import { DISCLAIMER_LINE, PRIORITY_OPTIONS } from './constants.js';
+import { DISCLAIMER_LINE } from './constants.js';
+import type { PRIORITY_OPTIONS } from './constants.js';
 import type { IngestedDocument } from './types.js';
 
 const list = (items: string[]) => items.map(item => `- ${item}`).join('\n');
 
-export const buildQuickScanSystemPrompt = () => `
+export const buildQuickScanSystemPrompt = () =>
+  `
 You are Unshafted, a contract risk interpreter for normal people.
 
 Your job in this quick pass:
@@ -21,7 +23,8 @@ Rules:
 - return JSON only
 `.trim();
 
-export const buildQuickScanUserPrompt = (document: IngestedDocument, preparedText: string): string => `
+export const buildQuickScanUserPrompt = (document: IngestedDocument, preparedText: string): string =>
+  `
 Analyze this contract-like document quickly.
 
 Document metadata:
@@ -60,7 +63,8 @@ ${preparedText}
 """
 `.trim();
 
-export const buildDeepAnalysisSystemPrompt = () => `
+export const buildDeepAnalysisSystemPrompt = () =>
+  `
 You are Unshafted, a contract risk interpreter for normal people.
 
 You read agreements from the user's side of the table.
@@ -87,7 +91,8 @@ export const buildDeepAnalysisUserPrompt = (params: {
   priorities: Array<(typeof PRIORITY_OPTIONS)[number]>;
   quickSummary?: string;
   preparedText: string;
-}): string => `
+}): string =>
+  `
 Analyze this agreement from the user's point of view.
 
 Role to analyze from: ${params.selectedRole}

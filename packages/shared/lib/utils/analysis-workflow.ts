@@ -144,7 +144,10 @@ export const runDeepAnalysis = async (analysis: CurrentAnalysis, settings: AppSe
             document: prepared.truncated
               ? {
                   ...analysis.source,
-                  warnings: [...analysis.source.warnings, 'Deep analysis used an excerpt because the document is long.'],
+                  warnings: [
+                    ...analysis.source.warnings,
+                    'Deep analysis used an excerpt because the document is long.',
+                  ],
                 }
               : analysis.source,
             selectedRole,

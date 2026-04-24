@@ -12,9 +12,7 @@ const readChromeExtensionKey = () => {
 
   try {
     const envFile = readFileSync(rootEnvPath, 'utf8');
-    const envLine = envFile
-      .split('\n')
-      .find(line => line.trim().startsWith('CEB_CHROME_EXTENSION_KEY='));
+    const envLine = envFile.split('\n').find(line => line.trim().startsWith('CEB_CHROME_EXTENSION_KEY='));
 
     if (!envLine) {
       return undefined;

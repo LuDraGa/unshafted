@@ -14,7 +14,7 @@ let folderCache: { id: string; verifiedAt: number } | null = null;
 let folderInflight: Promise<string> | null = null;
 
 /** Ensure "Unshafted" folder exists in Drive. Deduplicates concurrent calls and caches with TTL. */
-export const getOrCreateFolder = (token: string): Promise<string> => {
+const getOrCreateFolder = (token: string): Promise<string> => {
   // Return in-memory cache if fresh
   if (folderCache && Date.now() - folderCache.verifiedAt < FOLDER_CACHE_TTL) {
     return Promise.resolve(folderCache.id);
@@ -83,7 +83,7 @@ const resolveFolder = async (token: string): Promise<string> => {
 };
 
 /** Find an existing file by contentHash + analysisType via appProperties query */
-export const findExistingFile = async (
+const findExistingFile = async (
   token: string,
   folderId: string,
   contentHash: string,
@@ -107,7 +107,7 @@ export const findExistingFile = async (
 };
 
 /** Create or update a Drive file (handles dedup via findExistingFile) */
-export const upsertAnalysisFile = async (
+const upsertAnalysisFile = async (
   token: string,
   folderId: string,
   filename: string,
@@ -191,7 +191,7 @@ const isValidAnalysisFile = (data: unknown): data is DriveAnalysisFile => {
 };
 
 /** List analysis JSON files from the Unshafted folder. */
-export const listAnalysisFiles = async (token: string, folderId: string): Promise<DriveAnalysisFile[]> => {
+const listAnalysisFiles = async (token: string, folderId: string): Promise<DriveAnalysisFile[]> => {
   const files: DriveAnalysisFile[] = [];
   let pageToken: string | undefined;
 
@@ -235,7 +235,7 @@ export const listAnalysisFiles = async (token: string, folderId: string): Promis
 };
 
 /** Delete a file by appProperties match (contentHash + analysisType) */
-export const deleteAnalysisFile = async (
+const deleteAnalysisFile = async (
   token: string,
   folderId: string,
   contentHash: string,
@@ -253,7 +253,7 @@ export const deleteAnalysisFile = async (
 // ── Source file management ──
 
 /** Find existing source file by contentHash */
-export const findSourceFile = async (token: string, folderId: string, contentHash: string): Promise<string | null> => {
+const findSourceFile = async (token: string, folderId: string, contentHash: string): Promise<string | null> => {
   const q = [
     `'${folderId}' in parents`,
     `appProperties has { key='contentHash' and value='${contentHash}' }`,
@@ -271,7 +271,7 @@ export const findSourceFile = async (token: string, folderId: string, contentHas
 };
 
 /** Ensure original source file exists in Drive (idempotent — skips if already present) */
-export const ensureSourceFile = async (
+const ensureSourceFile = async (
   token: string,
   folderId: string,
   filename: string,
@@ -324,11 +324,7 @@ export const ensureSourceFile = async (
 };
 
 /** Delete source file if no analysis files reference this contentHash */
-export const deleteSourceFileIfOrphaned = async (
-  token: string,
-  folderId: string,
-  contentHash: string,
-): Promise<void> => {
+const deleteSourceFileIfOrphaned = async (token: string, folderId: string, contentHash: string): Promise<void> => {
   const quickId = await findExistingFile(token, folderId, contentHash, 'quick-scan');
   const deepId = await findExistingFile(token, folderId, contentHash, 'deep-analysis');
 
@@ -341,4 +337,15 @@ export const deleteSourceFileIfOrphaned = async (
     method: 'DELETE',
     headers: headers(token),
   });
+};
+
+export {
+  deleteAnalysisFile,
+  deleteSourceFileIfOrphaned,
+  ensureSourceFile,
+  findExistingFile,
+  findSourceFile,
+  getOrCreateFolder,
+  listAnalysisFiles,
+  upsertAnalysisFile,
 };

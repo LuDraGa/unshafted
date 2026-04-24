@@ -1,4 +1,5 @@
-import { EXTRACT_PAGE_MESSAGE_TYPE, type ExtractPageResponse } from '@extension/unshafted-core';
+import { EXTRACT_PAGE_MESSAGE_TYPE } from '@extension/unshafted-core';
+import type { ExtractPageResponse } from '@extension/unshafted-core';
 
 const INTERNAL_URL_RE = /^(chrome|about|edge|brave|moz-extension|chrome-extension):/i;
 const PDF_URL_RE = /\.pdf(?:$|[?#])/i;
@@ -10,18 +11,18 @@ const PDF_UNSUPPORTED_MESSAGE =
 const GENERIC_UNSUPPORTED_MESSAGE =
   'This browser page cannot be analyzed directly. Try a normal webpage or upload a local `.txt` file instead.';
 
-export type TabReadability = {
+type TabReadability = {
   supported: boolean;
   label: 'Readable' | 'PDF' | 'Unsupported';
   reason: string;
 };
 
-export const getCurrentActiveTab = async (): Promise<chrome.tabs.Tab | null> => {
+const getCurrentActiveTab = async (): Promise<chrome.tabs.Tab | null> => {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   return tab ?? null;
 };
 
-export const isSupportedTabUrl = (url?: string): boolean => {
+const isSupportedTabUrl = (url?: string): boolean => {
   if (!url) {
     return false;
   }
@@ -45,7 +46,7 @@ const inspectTabContent = async (tabId: number) => {
   return result?.result;
 };
 
-export const getTabReadability = async (tab: chrome.tabs.Tab | null): Promise<TabReadability> => {
+const getTabReadability = async (tab: chrome.tabs.Tab | null): Promise<TabReadability> => {
   if (!tab?.id || !tab.url) {
     return {
       supported: false,
@@ -112,7 +113,7 @@ export const getTabReadability = async (tab: chrome.tabs.Tab | null): Promise<Ta
   };
 };
 
-export const extractCurrentPageDocument = async (tabId: number): Promise<ExtractPageResponse> => {
+const extractCurrentPageDocument = async (tabId: number): Promise<ExtractPageResponse> => {
   const sendExtractRequest = async () =>
     (await chrome.tabs.sendMessage(tabId, {
       type: EXTRACT_PAGE_MESSAGE_TYPE,
@@ -166,9 +167,13 @@ export const extractCurrentPageDocument = async (tabId: number): Promise<Extract
     return {
       ok: false,
       error:
-        (/Receiving end does not exist|Could not establish connection/i.test(errorMessage) || PDF_OR_VIEWER_ERROR_RE.test(errorMessage))
+        /Receiving end does not exist|Could not establish connection/i.test(errorMessage) ||
+        PDF_OR_VIEWER_ERROR_RE.test(errorMessage)
           ? PDF_UNSUPPORTED_MESSAGE
           : errorMessage || 'This page cannot be read directly. Upload a local `.txt` file instead.',
     };
   }
 };
+
+export { extractCurrentPageDocument, getCurrentActiveTab, getTabReadability, isSupportedTabUrl };
+export type { TabReadability };

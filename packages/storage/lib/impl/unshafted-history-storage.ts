@@ -1,6 +1,6 @@
+import { createStorage, StorageEnum } from '../base/index.js';
 import { HistoryRecordSchema, clampHistory } from '@extension/unshafted-core';
 import type { HistoryRecord } from '@extension/unshafted-core';
-import { createStorage, StorageEnum } from '../base/index.js';
 
 const fallback: HistoryRecord[] = [];
 

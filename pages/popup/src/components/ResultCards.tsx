@@ -22,7 +22,7 @@ const severityClasses: Record<'low' | 'medium' | 'high', string> = {
   high: 'bg-rose-100 text-rose-900',
 };
 
-export const RiskBadge = ({ label }: { label: 'LOW' | 'CAUTION' | 'HIGH' | 'DANGER' }) => (
+const RiskBadge = ({ label }: { label: 'LOW' | 'CAUTION' | 'HIGH' | 'DANGER' }) => (
   <span
     className={cn(
       'rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]',
@@ -32,7 +32,7 @@ export const RiskBadge = ({ label }: { label: 'LOW' | 'CAUTION' | 'HIGH' | 'DANG
   </span>
 );
 
-export const SeverityBadge = ({ severity }: { severity: 'low' | 'medium' | 'high' }) => (
+const SeverityBadge = ({ severity }: { severity: 'low' | 'medium' | 'high' }) => (
   <span
     className={cn(
       'rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]',
@@ -42,7 +42,7 @@ export const SeverityBadge = ({ severity }: { severity: 'low' | 'medium' | 'high
   </span>
 );
 
-export const SectionHeader = ({ title, subtitle }: { title: string; subtitle?: string }) => (
+const SectionHeader = ({ title, subtitle }: { title: string; subtitle?: string }) => (
   <div className="space-y-1">
     <h2 className="text-base font-semibold tracking-[-0.03em] text-stone-950">{title}</h2>
     {subtitle ? <p className="text-xs text-stone-600">{subtitle}</p> : null}
@@ -188,7 +188,7 @@ type ResultsViewRecord =
   | Pick<CurrentAnalysis, 'quickScan' | 'deepAnalysis' | 'selectedRole' | 'customRole'>
   | HistoryRecord;
 
-export const ResultsView = ({ record }: { record: ResultsViewRecord }) => {
+const ResultsView = ({ record }: { record: ResultsViewRecord }) => {
   const deep = record.deepAnalysis;
   const quick = record.quickScan;
 
@@ -461,3 +461,5 @@ export const ResultsView = ({ record }: { record: ResultsViewRecord }) => {
     </div>
   );
 };
+
+export { ResultsView, RiskBadge, SectionHeader, SeverityBadge };

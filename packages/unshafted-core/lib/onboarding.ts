@@ -1,7 +1,4 @@
-import {
-  DEFAULT_OPENAI_QUICK_MODEL,
-  DEFAULT_QUICK_MODEL,
-} from './constants.js';
+import { DEFAULT_OPENAI_QUICK_MODEL, DEFAULT_QUICK_MODEL } from './constants.js';
 import type { AppSettings } from './types.js';
 
 export const getActiveProviderConfig = (settings: AppSettings) => {

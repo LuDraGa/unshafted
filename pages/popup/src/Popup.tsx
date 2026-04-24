@@ -182,6 +182,9 @@ const Popup = () => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const activeProviderConfig = getActiveProviderConfig(settings);
+  const activeProvider = activeProviderConfig.provider;
+  const activeProviderApiKey = activeProviderConfig.apiKey;
+  const activeProviderModel = activeProviderConfig.model;
   const hasActiveApiKey = Boolean(activeProviderConfig.apiKey);
   const hasTestedActiveKey = Boolean(
     hasActiveApiKey &&
@@ -295,13 +298,17 @@ const Popup = () => {
   useEffect(() => {
     let cancelled = false;
 
-    if (!activeProviderConfig.apiKey) {
+    if (!activeProviderApiKey) {
       setActiveKeyHash(null);
       return;
     }
 
     setActiveKeyHash(null);
-    void getOnboardingKeyHash(activeProviderConfig).then(hash => {
+    void getOnboardingKeyHash({
+      provider: activeProvider,
+      apiKey: activeProviderApiKey,
+      model: activeProviderModel,
+    }).then(hash => {
       if (!cancelled) {
         setActiveKeyHash(hash);
       }
@@ -310,7 +317,7 @@ const Popup = () => {
     return () => {
       cancelled = true;
     };
-  }, [activeProviderConfig.apiKey, activeProviderConfig.model, activeProviderConfig.provider]);
+  }, [activeProvider, activeProviderApiKey, activeProviderModel]);
 
   // Load auth state on mount
   useEffect(() => {
