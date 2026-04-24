@@ -19,12 +19,15 @@ import {
   deleteFromDrive,
   signInWithGoogle,
   signOut,
+  syncDeepAnalysisToDrive,
+  syncQuickScanToDrive,
 } from '@extension/supabase';
 import { ErrorDisplay, LoadingSpinner, SpotlightTour } from '@extension/ui';
 import {
   buildDocumentFromFile,
   configurePdfWorker,
   createCurrentAnalysis,
+  createHistoryRecord,
   createReportMarkdown,
   createSampleAnalysis,
   getActiveProviderConfig,
@@ -627,11 +630,34 @@ const Popup = () => {
   };
 
   const toggleDriveBackup = useCallback(async () => {
+    if (!session) {
+      await handleSignIn();
+      return;
+    }
+
+    const nextEnabled = !settings.driveBackupEnabled;
     await unshaftedSettingsStorage.set(current => ({
       ...current,
-      driveBackupEnabled: !current.driveBackupEnabled,
+      driveBackupEnabled: nextEnabled,
     }));
-  }, []);
+
+    if (!nextEnabled || !currentAnalysis?.quickScan) {
+      return;
+    }
+
+    const shouldBackUpCurrent = window.confirm(
+      'Drive backup is now enabled. Back up the current visible analysis too?',
+    );
+    if (!shouldBackUpCurrent) {
+      return;
+    }
+
+    await analysisHistoryStorage.push(createHistoryRecord(currentAnalysis, { storageState: 'drive-backup-requested' }));
+    void syncQuickScanToDrive(currentAnalysis);
+    if (currentAnalysis.deepAnalysis) {
+      void syncDeepAnalysisToDrive(currentAnalysis);
+    }
+  }, [currentAnalysis, handleSignIn, session, settings.driveBackupEnabled]);
 
   const clearLocalReports = useCallback(async () => {
     setSelectedHistory(null);
