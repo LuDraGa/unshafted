@@ -206,6 +206,8 @@ const Popup = () => {
   const [authLoading, setAuthLoading] = useState(true);
   const [signingIn, setSigningIn] = useState(false);
   const [historySyncing, setHistorySyncing] = useState(false);
+  const [pendingDriveBackupId, setPendingDriveBackupId] = useState<string | null>(null);
+  const [syncNotice, setSyncNotice] = useState('');
   const [resultGuidanceStep, setResultGuidanceStep] = useState<ResultGuideStep>('summary');
   const [activeKeyHash, setActiveKeyHash] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -630,6 +632,8 @@ const Popup = () => {
   };
 
   const toggleDriveBackup = useCallback(async () => {
+    setSyncNotice('');
+
     if (!session) {
       await handleSignIn();
       return;
@@ -641,23 +645,38 @@ const Popup = () => {
       driveBackupEnabled: nextEnabled,
     }));
 
-    if (!nextEnabled || !currentAnalysis?.quickScan) {
+    if (!nextEnabled) {
+      setPendingDriveBackupId(null);
+      setSyncNotice('Drive backup is off. Existing local reports stay local unless you delete them.');
       return;
     }
 
-    const shouldBackUpCurrent = window.confirm(
-      'Drive backup is now enabled. Back up the current visible analysis too?',
-    );
-    if (!shouldBackUpCurrent) {
+    if (!currentAnalysis?.quickScan) {
+      setSyncNotice('Drive backup is enabled for future analyses.');
       return;
     }
+
+    setPendingDriveBackupId(currentAnalysis.id);
+    setSyncNotice('Drive backup is enabled. Choose whether to back up the current visible analysis.');
+  }, [currentAnalysis?.id, currentAnalysis?.quickScan, handleSignIn, session, settings.driveBackupEnabled]);
+
+  const backUpCurrentAnalysisToDrive = useCallback(async () => {
+    if (!currentAnalysis?.quickScan) return;
 
     await analysisHistoryStorage.push(createHistoryRecord(currentAnalysis, { storageState: 'drive-backup-requested' }));
     void syncQuickScanToDrive(currentAnalysis);
     if (currentAnalysis.deepAnalysis) {
       void syncDeepAnalysisToDrive(currentAnalysis);
     }
-  }, [currentAnalysis, handleSignIn, session, settings.driveBackupEnabled]);
+
+    setPendingDriveBackupId(null);
+    setSyncNotice('Current analysis backup requested.');
+  }, [currentAnalysis]);
+
+  const dismissCurrentBackupPrompt = useCallback(() => {
+    setPendingDriveBackupId(null);
+    setSyncNotice('Drive backup is enabled for future analyses.');
+  }, []);
 
   const clearLocalReports = useCallback(async () => {
     setSelectedHistory(null);
@@ -926,6 +945,27 @@ const Popup = () => {
                 Clear all local data
               </button>
             </div>
+            {pendingDriveBackupId && currentAnalysis?.id === pendingDriveBackupId ? (
+              <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-3 text-xs text-amber-900">
+                <p className="font-semibold">Back up the current visible analysis?</p>
+                <p className="mt-1 leading-5">
+                  This requests Drive sync for the current report. Original source files are not backfilled unless they
+                  are still available in memory.
+                </p>
+                <div className="mt-2 flex flex-wrap gap-3">
+                  <button
+                    className="popup-link-button"
+                    onClick={() => void backUpCurrentAnalysisToDrive()}
+                    type="button">
+                    Back up current report
+                  </button>
+                  <button className="popup-link-button" onClick={dismissCurrentBackupPrompt} type="button">
+                    Not now
+                  </button>
+                </div>
+              </div>
+            ) : null}
+            {syncNotice ? <p className="mt-2 text-xs leading-5 text-stone-600">{syncNotice}</p> : null}
           </section>
 
           {history.length > 0 || session ? (
