@@ -1,5 +1,3 @@
-import test from 'node:test';
-import assert from 'node:assert/strict';
 import {
   DeepAnalysisResultSchema,
   QuickScanResultSchema,
@@ -8,6 +6,8 @@ import {
   sampleDeepAnalysis,
   sampleQuickScan,
 } from '../index.mts';
+import assert from 'node:assert/strict';
+import test from 'node:test';
 
 test('extractJsonFromText pulls JSON out of fenced blocks', () => {
   const raw = 'Here you go:\n```json\n{"ok":true,"nested":{"value":1}}\n```';

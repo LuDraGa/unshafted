@@ -1,6 +1,6 @@
+import { createStorage, StorageEnum } from '../base/index.js';
 import { UsageSnapshotSchema, createMonthKey, createDayKey } from '@extension/unshafted-core';
 import type { UsageSnapshot } from '@extension/unshafted-core';
-import { createStorage, StorageEnum } from '../base/index.js';
 
 const makeFallback = (): UsageSnapshot => ({
   monthKey: createMonthKey(),

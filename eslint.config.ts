@@ -25,7 +25,7 @@ export default config(
   },
   // Custom config
   {
-    ignores: ['**/build/**', '**/dist/**', '**/node_modules/**', 'chrome-extension/manifest.js'],
+    ignores: ['**/build/**', '**/dist/**', '**/node_modules/**', '**/*.min.mjs', 'chrome-extension/manifest.js'],
   },
   {
     files: ['**/*.{ts,tsx}'],
@@ -35,7 +35,9 @@ export default config(
       sourceType: 'module',
       parserOptions: {
         ecmaFeatures: { jsx: true },
-        projectService: true,
+        projectService: {
+          allowDefaultProject: ['packages/unshafted-core/test/*.ts'],
+        },
       },
       globals: {
         ...browser,

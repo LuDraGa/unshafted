@@ -1,6 +1,6 @@
+import { createStorage, StorageEnum } from '../base/index.js';
 import { CurrentAnalysisSchema, PendingActionSchema } from '@extension/unshafted-core';
 import type { CurrentAnalysis, PendingAction } from '@extension/unshafted-core';
-import { createStorage, StorageEnum } from '../base/index.js';
 
 const analysisFallback: CurrentAnalysis | null = null;
 const pendingActionFallback: PendingAction = {

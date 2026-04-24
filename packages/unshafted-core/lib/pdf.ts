@@ -1,12 +1,12 @@
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 
-export interface PdfExtractionResult {
+interface PdfExtractionResult {
   text: string;
   pageCount: number;
   warnings: string[];
 }
 
-export const configurePdfWorker = (workerSrc: string): void => {
+const configurePdfWorker = (workerSrc: string): void => {
   pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
 };
 
@@ -64,7 +64,10 @@ const groupIntoLines = (items: RawItem[]): TextLine[] => {
     let domFont = bucket[0].fontName;
     let domLen = 0;
     for (const [name, len] of fontLen) {
-      if (len > domLen) { domLen = len; domFont = name; }
+      if (len > domLen) {
+        domLen = len;
+        domFont = name;
+      }
     }
 
     // Weighted average height (by char count)
@@ -79,7 +82,11 @@ const groupIntoLines = (items: RawItem[]): TextLine[] => {
     }
 
     lines.push({
-      text: bucket.map(it => it.str).join(' ').replace(/\s+/g, ' ').trim(),
+      text: bucket
+        .map(it => it.str)
+        .join(' ')
+        .replace(/\s+/g, ' ')
+        .trim(),
       y: bucket[0].y,
       fontSize: totalW > 0 ? wHeight / totalW : bucket[0].height,
       fontName: domFont,
@@ -121,7 +128,10 @@ const detectMetrics = (allLines: TextLine[]): DocMetrics => {
   let bodyFontSize = 10;
   let maxChars = 0;
   for (const [size, chars] of sizeCharCount) {
-    if (chars > maxChars) { maxChars = chars; bodyFontSize = size; }
+    if (chars > maxChars) {
+      maxChars = chars;
+      bodyFontSize = size;
+    }
   }
 
   // Body font name: most common font among body-sized lines
@@ -134,7 +144,10 @@ const detectMetrics = (allLines: TextLine[]): DocMetrics => {
   let bodyFontName = '';
   let maxFontChars = 0;
   for (const [name, chars] of fontCharCount) {
-    if (chars > maxFontChars) { maxFontChars = chars; bodyFontName = name; }
+    if (chars > maxFontChars) {
+      maxFontChars = chars;
+      bodyFontName = name;
+    }
   }
 
   // Left margin: most common x among body-sized lines
@@ -148,7 +161,10 @@ const detectMetrics = (allLines: TextLine[]): DocMetrics => {
   let leftMargin = 0;
   let maxXCount = 0;
   for (const [x, count] of xCounts) {
-    if (count > maxXCount) { maxXCount = count; leftMargin = x; }
+    if (count > maxXCount) {
+      maxXCount = count;
+      leftMargin = x;
+    }
   }
 
   return { bodyFontSize, bodyFontName, leftMargin };
@@ -248,7 +264,7 @@ const assemblePageText = (lines: TextLine[], metrics: DocMetrics): string => {
 
 // --- Main extraction ---
 
-export const extractTextFromPdf = async (fileBuffer: ArrayBuffer): Promise<PdfExtractionResult> => {
+const extractTextFromPdf = async (fileBuffer: ArrayBuffer): Promise<PdfExtractionResult> => {
   const warnings: string[] = [];
 
   let pdf: pdfjsLib.PDFDocumentProxy;
@@ -327,3 +343,6 @@ export const extractTextFromPdf = async (fileBuffer: ArrayBuffer): Promise<PdfEx
 
   return { text, pageCount: numPages, warnings };
 };
+
+export { configurePdfWorker, extractTextFromPdf };
+export type { PdfExtractionResult };

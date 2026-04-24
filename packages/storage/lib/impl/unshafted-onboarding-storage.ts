@@ -1,6 +1,6 @@
+import { createStorage, StorageEnum } from '../base/index.js';
 import { OnboardingStateSchema } from '@extension/unshafted-core';
 import type { OnboardingState } from '@extension/unshafted-core';
-import { createStorage, StorageEnum } from '../base/index.js';
 
 const fallback = OnboardingStateSchema.parse({});
 

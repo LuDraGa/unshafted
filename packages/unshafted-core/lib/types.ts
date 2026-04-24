@@ -1,4 +1,3 @@
-import type { z } from 'zod';
 import type {
   AnalysisErrorSchema,
   AppSettingsSchema,
@@ -18,6 +17,7 @@ import type {
   TopicConcernSchema,
   UsageSnapshotSchema,
 } from './schemas.js';
+import type { z } from 'zod';
 
 export type ClauseReference = z.infer<typeof ClauseReferenceSchema>;
 export type QuickScanResult = z.infer<typeof QuickScanResultSchema>;

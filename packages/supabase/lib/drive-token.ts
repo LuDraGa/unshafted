@@ -1,12 +1,12 @@
-export const DRIVE_TOKEN_KEY = 'unshafted-drive-token';
-export const DRIVE_EXPIRES_KEY = 'unshafted-drive-expires-at';
+const DRIVE_TOKEN_KEY = 'unshafted-drive-token';
+const DRIVE_EXPIRES_KEY = 'unshafted-drive-expires-at';
 const GOOGLE_CLIENT_ID = process.env.CEB_GOOGLE_CLIENT_ID ?? '';
 
 // Single-flight: deduplicate concurrent refresh attempts
 let refreshInflight: Promise<string | null> | null = null;
 
 /** Get a valid Drive access token, silently refreshing if expired. Returns null if unavailable. */
-export const getDriveToken = async (): Promise<string | null> => {
+const getDriveToken = async (): Promise<string | null> => {
   try {
     const stored = await chrome.storage.local.get([DRIVE_TOKEN_KEY, DRIVE_EXPIRES_KEY]);
     const token = stored[DRIVE_TOKEN_KEY] as string | undefined;
@@ -71,6 +71,8 @@ const silentRefresh = async (): Promise<string | null> => {
 };
 
 /** Clear Drive token (called on sign-out) */
-export const clearDriveToken = async (): Promise<void> => {
+const clearDriveToken = async (): Promise<void> => {
   await chrome.storage.local.remove([DRIVE_TOKEN_KEY, DRIVE_EXPIRES_KEY]);
 };
+
+export { DRIVE_EXPIRES_KEY, DRIVE_TOKEN_KEY, clearDriveToken, getDriveToken };

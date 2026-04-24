@@ -25,7 +25,8 @@ This Service Agreement is entered into between Bright Acre Studio ("Contractor")
 
 export const sampleQuickScan: QuickScanResult = {
   documentType: 'Service Agreement',
-  summary: 'A client-friendly service agreement for design work. It pushes payment leverage, IP ownership, liability, and post-term restrictions heavily toward the client.',
+  summary:
+    'A client-friendly service agreement for design work. It pushes payment leverage, IP ownership, liability, and post-term restrictions heavily toward the client.',
   roughRiskLevel: 'High',
   cautionLine: 'Client gets broad control while your downside stays mostly uncapped.',
   parties: [
@@ -48,7 +49,12 @@ export const sampleQuickScan: QuickScanResult = {
       reference: { label: 'Intellectual Property', quote: 'become Client property upon creation' },
     },
   ],
-  keyObligations: ['Deliver services', 'Maintain confidentiality indefinitely', 'Refund prepaid fees on termination', 'Indemnify the client'],
+  keyObligations: [
+    'Deliver services',
+    'Maintain confidentiality indefinitely',
+    'Refund prepaid fees on termination',
+    'Indemnify the client',
+  ],
   extractionConcerns: [],
 };
 
@@ -57,7 +63,8 @@ export const sampleDeepAnalysis: DeepAnalysisResult = {
     'This agreement is workable only if you have very little leverage and are comfortable carrying most of the risk. The client controls payment, termination, IP ownership, and damages in a way that can leave you doing the work while still exposed afterward.',
   overallRiskLevel: 'Very High',
   rolePerspective: 'Contractor',
-  bottomLine: 'Yes, this can shaft the contractor later because the client keeps most of the control while your financial exposure stays wide open.',
+  bottomLine:
+    'Yes, this can shaft the contractor later because the client keeps most of the control while your financial exposure stays wide open.',
   immediateWorries: [
     {
       title: 'You can lose payment based on vague dissatisfaction',
@@ -155,7 +162,8 @@ export const sampleDeepAnalysis: DeepAnalysisResult = {
     },
     {
       title: 'Add mutual confidentiality',
-      plainEnglishEdit: 'Both parties must protect each other’s confidential information using the same standard of care.',
+      plainEnglishEdit:
+        'Both parties must protect each other’s confidential information using the same standard of care.',
       why: 'The current version protects only the client.',
     },
   ],
@@ -176,7 +184,8 @@ export const sampleDeepAnalysis: DeepAnalysisResult = {
   potentialAdvantages: [
     {
       title: 'Short notice termination can also free you up quickly',
-      whyItHelps: 'If the relationship is going badly, you can exit without a long tail, assuming refund rules are fixed.',
+      whyItHelps:
+        'If the relationship is going badly, you can exit without a long tail, assuming refund rules are fixed.',
       reference: { label: 'Term and Termination' },
     },
   ],
@@ -191,10 +200,7 @@ export const sampleDeepAnalysis: DeepAnalysisResult = {
     },
     {
       label: 'During the engagement',
-      items: [
-        'Keep a written record of approvals and feedback.',
-        'Send invoices and milestone summaries promptly.',
-      ],
+      items: ['Keep a written record of approvals and feedback.', 'Send invoices and milestone summaries promptly.'],
     },
   ],
   assumptionsAndUnknowns: ['No statement of work or deliverable acceptance rubric was provided.'],

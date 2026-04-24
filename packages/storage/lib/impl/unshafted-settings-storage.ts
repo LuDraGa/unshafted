@@ -1,6 +1,6 @@
+import { createStorage, StorageEnum } from '../base/index.js';
 import { AppSettingsSchema } from '@extension/unshafted-core';
 import type { AppSettings } from '@extension/unshafted-core';
-import { createStorage, StorageEnum } from '../base/index.js';
 
 const fallback = AppSettingsSchema.parse({});
 
