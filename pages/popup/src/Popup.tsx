@@ -207,6 +207,7 @@ const Popup = () => {
   const [signingIn, setSigningIn] = useState(false);
   const [historySyncing, setHistorySyncing] = useState(false);
   const [pendingDriveBackupId, setPendingDriveBackupId] = useState<string | null>(null);
+  const [pendingDeleteReportId, setPendingDeleteReportId] = useState<string | null>(null);
   const [syncNotice, setSyncNotice] = useState('');
   const [resultGuidanceStep, setResultGuidanceStep] = useState<ResultGuideStep>('summary');
   const [activeKeyHash, setActiveKeyHash] = useState<string | null>(null);
@@ -699,17 +700,21 @@ const Popup = () => {
     await chrome.storage.session.clear();
   }, []);
 
-  const deleteHistoryRecord = useCallback(
-    async (record: HistoryRecord) => {
-      const confirmed = window.confirm(
-        `Delete "${record.source.name}" from local reports? If matching Drive files exist, Unshafted will also ask Drive to remove them.`,
-      );
-      if (!confirmed) return;
+  const requestDeleteHistoryRecord = useCallback((record: HistoryRecord) => {
+    setPendingDeleteReportId(record.id);
+  }, []);
 
+  const cancelDeleteHistoryRecord = useCallback(() => {
+    setPendingDeleteReportId(null);
+  }, []);
+
+  const confirmDeleteHistoryRecord = useCallback(
+    async (record: HistoryRecord) => {
       if (selectedHistory?.id === record.id) {
         setSelectedHistory(null);
       }
 
+      setPendingDeleteReportId(null);
       await analysisHistoryStorage.removeReport(record);
       if (record.source.contentHash) {
         void deleteFromDrive(record.source.contentHash, 'quick-scan');
@@ -840,12 +845,32 @@ const Popup = () => {
                   </button>
                   <button
                     className="popup-link-button"
-                    onClick={() => void deleteHistoryRecord(selectedHistory)}
+                    onClick={() => requestDeleteHistoryRecord(selectedHistory)}
                     type="button">
                     Delete
                   </button>
                 </div>
               </section>
+              {pendingDeleteReportId === selectedHistory.id ? (
+                <section className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+                  <p className="font-semibold">Delete this report?</p>
+                  <p className="mt-1 text-xs leading-5">
+                    This removes it from local recent analyses. If matching Drive files exist, Unshafted will also ask
+                    Drive to remove them.
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-3">
+                    <button
+                      className="popup-link-button text-rose-800"
+                      onClick={() => void confirmDeleteHistoryRecord(selectedHistory)}
+                      type="button">
+                      Delete permanently
+                    </button>
+                    <button className="popup-link-button" onClick={cancelDeleteHistoryRecord} type="button">
+                      Cancel
+                    </button>
+                  </div>
+                </section>
+              ) : null}
               <ResultsView record={selectedHistory} />
             </section>
           ) : !currentAnalysis ? (
@@ -1009,48 +1034,74 @@ const Popup = () => {
                       No reports saved yet. Run a quick scan or refresh Drive if you already backed up analyses.
                     </div>
                   ) : null}
-                  {history.map(record => (
-                    <div key={record.id} className="popup-history-row">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                          <p className="line-clamp-1 font-semibold text-stone-950">{record.source.name}</p>
-                          <p className="mt-1 text-stone-500">
-                            {formatReportDate(record.createdAt)} ·{' '}
-                            {record.deepAnalysis ? 'Detailed report' : 'Quick scan only'}
-                          </p>
+                  {history.map(record => {
+                    const isPendingDelete = pendingDeleteReportId === record.id;
+
+                    return (
+                      <div key={record.id} className="popup-history-row">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="line-clamp-1 font-semibold text-stone-950">{record.source.name}</p>
+                            <p className="mt-1 text-stone-500">
+                              {formatReportDate(record.createdAt)} ·{' '}
+                              {record.deepAnalysis ? 'Detailed report' : 'Quick scan only'}
+                            </p>
+                          </div>
+                          <span
+                            className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
+                              riskToneClasses[record.deepAnalysis?.overallRiskLevel ?? record.quickScan.roughRiskLevel]
+                            }`}>
+                            {record.deepAnalysis?.overallRiskLevel ?? record.quickScan.roughRiskLevel}
+                          </span>
                         </div>
-                        <span
-                          className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
-                            riskToneClasses[record.deepAnalysis?.overallRiskLevel ?? record.quickScan.roughRiskLevel]
-                          }`}>
-                          {record.deepAnalysis?.overallRiskLevel ?? record.quickScan.roughRiskLevel}
-                        </span>
+                        <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+                          {storageStateCopy[record.storageState]}
+                        </p>
+                        <div className="mt-2 flex flex-wrap gap-3">
+                          <button className="popup-link-button" onClick={() => openHistoryRecord(record)} type="button">
+                            Open
+                          </button>
+                          <button
+                            className="popup-link-button"
+                            onClick={() => void copyHistoryRecord(record)}
+                            type="button">
+                            Copy report
+                          </button>
+                          <button
+                            className="popup-link-button"
+                            onClick={() => exportHistoryRecord(record)}
+                            type="button">
+                            Export .md
+                          </button>
+                          <button
+                            className="popup-link-button"
+                            onClick={() => requestDeleteHistoryRecord(record)}
+                            type="button">
+                            Delete
+                          </button>
+                        </div>
+                        {isPendingDelete ? (
+                          <div className="mt-3 rounded-2xl border border-rose-200 bg-rose-50 px-3 py-3 text-rose-900">
+                            <p className="font-semibold">Delete this report?</p>
+                            <p className="mt-1 text-xs leading-5">
+                              This cannot be undone locally. Matching Drive files will be removed when possible.
+                            </p>
+                            <div className="mt-3 flex flex-wrap gap-3">
+                              <button
+                                className="popup-link-button text-rose-800"
+                                onClick={() => void confirmDeleteHistoryRecord(record)}
+                                type="button">
+                                Delete permanently
+                              </button>
+                              <button className="popup-link-button" onClick={cancelDeleteHistoryRecord} type="button">
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : null}
                       </div>
-                      <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">
-                        {storageStateCopy[record.storageState]}
-                      </p>
-                      <div className="mt-2 flex flex-wrap gap-3">
-                        <button className="popup-link-button" onClick={() => openHistoryRecord(record)} type="button">
-                          Open
-                        </button>
-                        <button
-                          className="popup-link-button"
-                          onClick={() => void copyHistoryRecord(record)}
-                          type="button">
-                          Copy report
-                        </button>
-                        <button className="popup-link-button" onClick={() => exportHistoryRecord(record)} type="button">
-                          Export .md
-                        </button>
-                        <button
-                          className="popup-link-button"
-                          onClick={() => void deleteHistoryRecord(record)}
-                          type="button">
-                          Delete
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : null}
             </section>
