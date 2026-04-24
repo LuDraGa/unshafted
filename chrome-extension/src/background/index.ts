@@ -1,22 +1,18 @@
-import { supabase, syncQuickScanToDrive, syncDeepAnalysisToDrive } from '@extension/supabase';
 import { runQuickScan, runDeepAnalysis } from '@extension/shared';
 import {
   currentAnalysisStorage,
   unshaftedSettingsStorage,
   usageSnapshotStorage,
   analysisHistoryStorage,
+  clearLegacyPersistentAnalysisState,
 } from '@extension/storage';
-import {
-  createHistoryRecord,
-  RUN_QUICK_SCAN_MESSAGE,
-  RUN_DEEP_ANALYSIS_MESSAGE,
-} from '@extension/unshafted-core';
-import type {
-  RunQuickScanRequest,
-  AnalysisMessageResponse,
-} from '@extension/unshafted-core';
+import { supabase, syncQuickScanToDrive, syncDeepAnalysisToDrive } from '@extension/supabase';
+import { createHistoryRecord, RUN_QUICK_SCAN_MESSAGE, RUN_DEEP_ANALYSIS_MESSAGE } from '@extension/unshafted-core';
+import type { RunQuickScanRequest, AnalysisMessageResponse } from '@extension/unshafted-core';
 
 console.info('[Unshafted] background worker ready');
+
+void clearLegacyPersistentAnalysisState();
 
 supabase.auth.onAuthStateChange((event, session) => {
   console.info('[Unshafted] auth state:', event, session?.user?.email ?? 'no user');
@@ -26,18 +22,28 @@ supabase.auth.onAuthStateChange((event, session) => {
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type === RUN_QUICK_SCAN_MESSAGE) {
-    handleQuickScan(message as RunQuickScanRequest).then(sendResponse);
+    respondSafely(handleQuickScan(message as RunQuickScanRequest), sendResponse);
     return true;
   }
   if (message.type === RUN_DEEP_ANALYSIS_MESSAGE) {
-    handleDeepAnalysis().then(sendResponse);
+    respondSafely(handleDeepAnalysis(), sendResponse);
     return true;
   }
 
   return false;
 });
 
-async function handleQuickScan(req: RunQuickScanRequest): Promise<AnalysisMessageResponse> {
+const respondSafely = (
+  task: Promise<AnalysisMessageResponse>,
+  sendResponse: (response: AnalysisMessageResponse) => void,
+) => {
+  task.then(sendResponse).catch(error => {
+    const message = error instanceof Error ? error.message : 'Unexpected background error.';
+    sendResponse({ ok: false, error: message });
+  });
+};
+
+const handleQuickScan = async (req: RunQuickScanRequest): Promise<AnalysisMessageResponse> => {
   const analysis = await currentAnalysisStorage.get();
   if (!analysis) return { ok: false, error: 'No analysis loaded.' };
   if (analysis.status === 'quick-running' || analysis.status === 'deep-running') {
@@ -53,10 +59,17 @@ async function handleQuickScan(req: RunQuickScanRequest): Promise<AnalysisMessag
   }
 
   const analysisId = analysis.id;
-  await currentAnalysisStorage.set({ ...analysis, status: 'quick-running', error: null });
+  const scanInput = {
+    ...analysis,
+    quickScan: null,
+    deepAnalysis: null,
+    status: 'quick-running' as const,
+    error: null,
+  };
+  await currentAnalysisStorage.set(scanInput);
 
   const settings = await unshaftedSettingsStorage.get();
-  const result = await runQuickScan({ ...analysis, status: 'quick-running', error: null }, settings);
+  const result = await runQuickScan(scanInput, settings);
 
   // Stale check — user may have uploaded a new document while scan was running
   const current = await currentAnalysisStorage.get();
@@ -71,14 +84,16 @@ async function handleQuickScan(req: RunQuickScanRequest): Promise<AnalysisMessag
 
   // Drive sync (fire-and-forget)
   if (result.quickScan) {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) void syncQuickScanToDrive(result);
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (session && settings.driveBackupEnabled) void syncQuickScanToDrive(result);
   }
 
   return { ok: true };
-}
+};
 
-async function handleDeepAnalysis(): Promise<AnalysisMessageResponse> {
+const handleDeepAnalysis = async (): Promise<AnalysisMessageResponse> => {
   const analysis = await currentAnalysisStorage.get();
   if (!analysis) return { ok: false, error: 'No analysis loaded.' };
   if (analysis.status === 'deep-running') return { ok: false, error: 'Deep analysis already in progress.' };
@@ -99,8 +114,8 @@ async function handleDeepAnalysis(): Promise<AnalysisMessageResponse> {
   if (result.status === 'complete' && result.quickScan && result.deepAnalysis) {
     await usageSnapshotStorage.incrementFullAnalyses();
     await analysisHistoryStorage.push(createHistoryRecord(result));
-    void syncDeepAnalysisToDrive(result);
+    if (settings.driveBackupEnabled) void syncDeepAnalysisToDrive(result);
   }
 
   return { ok: true };
-}
+};

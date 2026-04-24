@@ -1,7 +1,7 @@
 import { supabase } from './client.js';
-import type { Session, AuthChangeEvent } from '@supabase/supabase-js';
-import type { Profile } from './types.js';
 import { clearDriveToken, DRIVE_TOKEN_KEY, DRIVE_EXPIRES_KEY } from './drive-token.js';
+import type { Profile } from './types.js';
+import type { Session, AuthChangeEvent } from '@supabase/supabase-js';
 
 const GOOGLE_CLIENT_ID = process.env.CEB_GOOGLE_CLIENT_ID ?? '';
 
@@ -27,6 +27,7 @@ const sha256Hex = async (input: string): Promise<string> => {
 export const signInWithGoogle = async (): Promise<{ ok: true } | { ok: false; error: string }> => {
   try {
     const rawNonce = crypto.randomUUID();
+    const oauthState = crypto.randomUUID();
     const hashedNonce = await sha256Hex(rawNonce);
     const redirectUri = chrome.identity.getRedirectURL();
 
@@ -36,6 +37,7 @@ export const signInWithGoogle = async (): Promise<{ ok: true } | { ok: false; er
     authUrl.searchParams.set('response_type', 'token id_token');
     authUrl.searchParams.set('scope', 'openid email profile https://www.googleapis.com/auth/drive.file');
     authUrl.searchParams.set('nonce', hashedNonce);
+    authUrl.searchParams.set('state', oauthState);
     authUrl.searchParams.set('prompt', 'select_account');
 
     const responseUrl = await chrome.identity.launchWebAuthFlow({
@@ -50,22 +52,26 @@ export const signInWithGoogle = async (): Promise<{ ok: true } | { ok: false; er
     // Extract id_token from the URL fragment
     const hash = new URL(responseUrl).hash.substring(1);
     const params = new URLSearchParams(hash);
+    const returnedState = params.get('state');
+    const oauthError = params.get('error_description') ?? params.get('error');
+    if (oauthError) {
+      await clearDriveToken();
+      return { ok: false, error: oauthError };
+    }
+
+    if (!returnedState || returnedState !== oauthState) {
+      await clearDriveToken();
+      return { ok: false, error: 'Sign-in state validation failed. Please try again.' };
+    }
+
     const idToken = params.get('id_token');
 
     if (!idToken) {
       return { ok: false, error: 'No ID token received from Google.' };
     }
 
-    // Persist Drive access token for Google Drive API calls
     const accessToken = params.get('access_token');
     const expiresIn = params.get('expires_in');
-    if (accessToken && expiresIn) {
-      const expiresAt = Date.now() + parseInt(expiresIn, 10) * 1000;
-      await chrome.storage.local.set({
-        [DRIVE_TOKEN_KEY]: accessToken,
-        [DRIVE_EXPIRES_KEY]: expiresAt,
-      });
-    }
 
     const { error } = await supabase.auth.signInWithIdToken({
       provider: 'google',
@@ -74,7 +80,17 @@ export const signInWithGoogle = async (): Promise<{ ok: true } | { ok: false; er
     });
 
     if (error) {
+      await clearDriveToken();
       return { ok: false, error: error.message };
+    }
+
+    // Persist Drive access only after Supabase has accepted the Google identity.
+    if (accessToken && expiresIn) {
+      const expiresAt = Date.now() + parseInt(expiresIn, 10) * 1000;
+      await chrome.storage.local.set({
+        [DRIVE_TOKEN_KEY]: accessToken,
+        [DRIVE_EXPIRES_KEY]: expiresAt,
+      });
     }
 
     return { ok: true };
@@ -93,9 +109,8 @@ export const getSession = () => supabase.auth.getSession();
 
 export const getUser = () => supabase.auth.getUser();
 
-export const onAuthStateChange = (
-  callback: (event: AuthChangeEvent, session: Session | null) => void,
-) => supabase.auth.onAuthStateChange(callback);
+export const onAuthStateChange = (callback: (event: AuthChangeEvent, session: Session | null) => void) =>
+  supabase.auth.onAuthStateChange(callback);
 
 export const getProfile = async (): Promise<Profile | null> => {
   const {
@@ -103,7 +118,11 @@ export const getProfile = async (): Promise<Profile | null> => {
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data } = await supabase.schema('unshafted').from('profiles').select('*').eq('id', user.id).single();
+  const { data, error } = await supabase.schema('unshafted').from('profiles').select('*').eq('id', user.id).single();
+  if (error) {
+    console.warn('[Unshafted] profile fetch failed:', error.message);
+    return null;
+  }
 
   return data as Profile | null;
 };

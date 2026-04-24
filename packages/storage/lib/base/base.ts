@@ -61,6 +61,7 @@ export const createStorage = <D = string>(
   let cache: D | null = null;
   let initialCache = false;
   let listeners: Array<() => void> = [];
+  let writeQueue = Promise.resolve();
 
   const storageEnum = config?.storageEnum ?? StorageEnum.Local;
   const liveUpdate = config?.liveUpdate ?? false;
@@ -100,13 +101,21 @@ export const createStorage = <D = string>(
   };
 
   const set = async (valueOrUpdate: ValueOrUpdateType<D>) => {
-    if (!initialCache) {
-      cache = await get();
-    }
-    cache = await updateCache(valueOrUpdate, cache);
+    const write = async () => {
+      const isUpdater = typeof valueOrUpdate === 'function';
+      if (!initialCache || isUpdater) {
+        cache = await get();
+        initialCache = true;
+      }
 
-    await chrome?.storage[storageEnum].set({ [key]: serialize(cache) });
-    _emitChange();
+      cache = await updateCache(valueOrUpdate, cache);
+
+      await chrome?.storage[storageEnum].set({ [key]: serialize(cache) });
+      _emitChange();
+    };
+
+    writeQueue = writeQueue.then(write, write);
+    await writeQueue;
   };
 
   const subscribe = (listener: () => void) => {

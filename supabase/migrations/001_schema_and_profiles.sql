@@ -18,13 +18,21 @@ CREATE TABLE unshafted.profiles (
 -- Row-Level Security
 ALTER TABLE unshafted.profiles ENABLE ROW LEVEL SECURITY;
 
+REVOKE ALL ON SCHEMA unshafted FROM PUBLIC;
+GRANT USAGE ON SCHEMA unshafted TO authenticated;
+GRANT SELECT (id, email, display_name, avatar_url, created_at, updated_at)
+  ON unshafted.profiles TO authenticated;
+GRANT UPDATE (display_name, avatar_url, updated_at)
+  ON unshafted.profiles TO authenticated;
+
 CREATE POLICY "Users read own profile"
   ON unshafted.profiles FOR SELECT
   USING (auth.uid() = id);
 
 CREATE POLICY "Users update own profile"
   ON unshafted.profiles FOR UPDATE
-  USING (auth.uid() = id);
+  USING (auth.uid() = id)
+  WITH CHECK (auth.uid() = id);
 
 -- Auto-create profile on signup
 CREATE OR REPLACE FUNCTION unshafted.handle_new_user()

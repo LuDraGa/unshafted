@@ -32,12 +32,14 @@ export const getDriveToken = async (): Promise<string | null> => {
 const silentRefresh = async (): Promise<string | null> => {
   try {
     const redirectUri = chrome.identity.getRedirectURL();
+    const oauthState = crypto.randomUUID();
 
     const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
     authUrl.searchParams.set('client_id', GOOGLE_CLIENT_ID);
     authUrl.searchParams.set('redirect_uri', redirectUri);
     authUrl.searchParams.set('response_type', 'token');
     authUrl.searchParams.set('scope', 'https://www.googleapis.com/auth/drive.file');
+    authUrl.searchParams.set('state', oauthState);
     authUrl.searchParams.set('prompt', 'none');
 
     const responseUrl = await chrome.identity.launchWebAuthFlow({
@@ -49,6 +51,8 @@ const silentRefresh = async (): Promise<string | null> => {
 
     const hash = new URL(responseUrl).hash.substring(1);
     const params = new URLSearchParams(hash);
+    if (params.get('state') !== oauthState) return null;
+
     const accessToken = params.get('access_token');
     const expiresIn = params.get('expires_in');
 
