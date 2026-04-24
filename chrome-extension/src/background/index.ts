@@ -87,6 +87,11 @@ const handleQuickScan = async (req: RunQuickScanRequest): Promise<AnalysisMessag
     const {
       data: { session },
     } = await supabase.auth.getSession();
+    await analysisHistoryStorage.push(
+      createHistoryRecord(result, {
+        storageState: session && settings.driveBackupEnabled ? 'drive-backup-requested' : 'local-only',
+      }),
+    );
     if (session && settings.driveBackupEnabled) void syncQuickScanToDrive(result);
   }
 

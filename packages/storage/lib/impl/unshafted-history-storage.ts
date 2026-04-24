@@ -19,7 +19,14 @@ const storage = createStorage<HistoryRecord[]>('unshafted-history', fallback, {
 export const analysisHistoryStorage = {
   ...storage,
   push: async (record: HistoryRecord) => {
-    await storage.set(currentRecords => clampHistory([record, ...(currentRecords ?? [])]));
+    await storage.set(currentRecords =>
+      clampHistory([
+        record,
+        ...(currentRecords ?? []).filter(
+          current => current.id !== record.id && current.source.contentHash !== record.source.contentHash,
+        ),
+      ]),
+    );
   },
   remove: async (id: string) => {
     await storage.set(currentRecords => (currentRecords ?? []).filter(record => record.id !== id));

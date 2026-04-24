@@ -202,6 +202,7 @@ const Popup = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [signingIn, setSigningIn] = useState(false);
+  const [historySyncing, setHistorySyncing] = useState(false);
   const [resultGuidanceStep, setResultGuidanceStep] = useState<ResultGuideStep>('summary');
   const [activeKeyHash, setActiveKeyHash] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -413,14 +414,14 @@ const Popup = () => {
     }
   }, [activeOnboardingStep, hasFlags, resultGuidanceStep]);
 
-  // Hydrate local history from Drive when signed in + history is empty
-  useEffect(() => {
-    if (!session) return;
+  const hydrateHistoryFromDrive = useCallback(
+    async ({ onlyWhenEmpty = false }: { onlyWhenEmpty?: boolean } = {}) => {
+      if (!session) return;
 
-    const hydrate = async () => {
+      setHistorySyncing(true);
       try {
-        const history = await analysisHistoryStorage.get();
-        if (history.length > 0) return;
+        const localHistory = await analysisHistoryStorage.get();
+        if (onlyWhenEmpty && localHistory.length > 0) return;
 
         const driveFiles = await loadHistoryFromDrive();
         if (driveFiles.length === 0) return;
@@ -477,11 +478,17 @@ const Popup = () => {
         }
       } catch {
         // Drive hydration is best-effort.
+      } finally {
+        setHistorySyncing(false);
       }
-    };
+    },
+    [session],
+  );
 
-    void hydrate();
-  }, [session]);
+  // Hydrate local history from Drive when signed in + history is empty.
+  useEffect(() => {
+    void hydrateHistoryFromDrive({ onlyWhenEmpty: true });
+  }, [hydrateHistoryFromDrive]);
 
   const openUrlInTab = useCallback(async (url: string) => {
     try {
@@ -864,7 +871,7 @@ const Popup = () => {
             </div>
           </section>
 
-          {history.length > 0 ? (
+          {history.length > 0 || session ? (
             <section className="popup-card mt-4 space-y-3">
               <div className="flex items-center justify-between gap-3">
                 <div>
@@ -875,12 +882,36 @@ const Popup = () => {
                       : 'Local reports appear here.'}
                   </p>
                 </div>
-                <button className="popup-link-button" onClick={() => setHistoryOpen(open => !open)} type="button">
+                <button
+                  className="popup-link-button"
+                  onClick={() => {
+                    const willOpen = !historyOpen;
+                    setHistoryOpen(willOpen);
+                    if (willOpen && session) void hydrateHistoryFromDrive();
+                  }}
+                  type="button">
                   {historyOpen ? 'Hide' : 'Show'}
                 </button>
               </div>
               {historyOpen ? (
                 <div className="space-y-2">
+                  {session ? (
+                    <div className="flex items-center justify-between gap-3 rounded-2xl border border-stone-200 bg-white/60 px-3 py-2 text-xs text-stone-600">
+                      <span>{historySyncing ? 'Checking Drive...' : 'Need older synced reports?'}</span>
+                      <button
+                        className="popup-link-button"
+                        onClick={() => void hydrateHistoryFromDrive()}
+                        disabled={historySyncing}
+                        type="button">
+                        Refresh Drive
+                      </button>
+                    </div>
+                  ) : null}
+                  {history.length === 0 ? (
+                    <div className="rounded-2xl border border-stone-200 bg-white/70 px-3 py-3 text-xs leading-5 text-stone-600">
+                      No reports saved yet. Run a quick scan or refresh Drive if you already backed up analyses.
+                    </div>
+                  ) : null}
                   {history.map(record => (
                     <div key={record.id} className="popup-history-row">
                       <div className="flex items-start justify-between gap-2">
