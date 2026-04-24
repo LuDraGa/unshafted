@@ -6,8 +6,8 @@ export const OPENAI_KEYS_URL = 'https://platform.openai.com/api-keys';
 export const OPENAI_API_KEYS_DOCS_URL = 'https://platform.openai.com/docs/api-reference/introduction/api-keys';
 export const OPENAI_API_KEYS_QUICKSTART_URL = 'https://developers.openai.com/api/docs/quickstart';
 
-export const DEFAULT_OPENROUTER_API_KEY = process.env.CEB_OPENROUTER_API_KEY ?? process.env.OPENROUTER_API_KEY ?? '';
-export const DEFAULT_OPENAI_API_KEY = process.env.CEB_OPENAI_API_KEY ?? '';
+export const DEFAULT_OPENROUTER_API_KEY = '';
+export const DEFAULT_OPENAI_API_KEY = '';
 export const DEFAULT_PROVIDER: 'openrouter' | 'openai' = 'openrouter';
 
 export const DEFAULT_QUICK_MODEL = 'google/gemma-4-26b-a4b-it:free';
