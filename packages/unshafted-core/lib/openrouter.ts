@@ -1,7 +1,8 @@
-import type { ZodSchema } from 'zod';
-import { zodToJsonSchema } from 'zod-to-json-schema';
 import { parseStructuredJson } from './json.js';
+import { ZodError } from 'zod';
+import { zodToJsonSchema } from 'zod-to-json-schema';
 import type { OpenRouterMessage, OpenRouterStructuredResponse } from './types.js';
+import type { ZodSchema } from 'zod';
 
 type Provider = 'openrouter' | 'openai';
 
@@ -87,7 +88,12 @@ const checkResponseHealth = (payload: ChatCompletionResponse, label: string) => 
   }
 };
 
-const buildResponseFormat = <T>(provider: Provider, schema: ZodSchema<T> | undefined, schemaName: string, jsonMode: boolean) => {
+const buildResponseFormat = <T>(
+  provider: Provider,
+  schema: ZodSchema<T> | undefined,
+  schemaName: string,
+  jsonMode: boolean,
+) => {
   if (!jsonMode) return undefined;
 
   // OpenAI: use json_schema with strict: true for constrained decoding
@@ -133,7 +139,12 @@ const requestChatCompletion = async <T>(params: {
     body.temperature = params.temperature ?? 0.2;
   }
 
-  const responseFormat = buildResponseFormat(params.provider, params.schema, params.schemaName ?? 'response', params.jsonMode);
+  const responseFormat = buildResponseFormat(
+    params.provider,
+    params.schema,
+    params.schemaName ?? 'response',
+    params.jsonMode,
+  );
   if (responseFormat) {
     body.response_format = responseFormat;
   }
@@ -153,8 +164,7 @@ const requestChatCompletion = async <T>(params: {
   if (!response.ok) {
     if (response.status === 429) {
       throw new Error(
-        payload.error?.message ??
-          `${config.label} rate limit hit. Wait a bit, retry, or switch models in Options.`,
+        payload.error?.message ?? `${config.label} rate limit hit. Wait a bit, retry, or switch models in Options.`,
       );
     }
 
@@ -167,7 +177,9 @@ const requestChatCompletion = async <T>(params: {
   return payload;
 };
 
-export const callOpenRouterStructured = async <T>(params: StructuredRequestParams<T>): Promise<OpenRouterStructuredResponse<T>> => {
+export const callOpenRouterStructured = async <T>(
+  params: StructuredRequestParams<T>,
+): Promise<OpenRouterStructuredResponse<T>> => {
   const provider = params.provider ?? 'openrouter';
 
   const attempt = async (jsonMode: boolean) => {
@@ -203,7 +215,7 @@ export const callOpenRouterStructured = async <T>(params: StructuredRequestParam
   try {
     return await attempt(true);
   } catch (error) {
-    if (error instanceof SyntaxError || error instanceof Error) {
+    if (error instanceof SyntaxError || error instanceof ZodError) {
       return attempt(false);
     }
 
