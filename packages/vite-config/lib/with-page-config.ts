@@ -6,6 +6,21 @@ import { defineConfig } from 'vite';
 import { nodePolyfills } from 'vite-plugin-node-polyfills';
 import type { UserConfig } from 'vite';
 
+const PUBLIC_ENV_KEYS = [
+  'CEB_DEV_LOCALE',
+  'CEB_SUPABASE_URL',
+  'CEB_SUPABASE_ANON_KEY',
+  'CEB_GOOGLE_CLIENT_ID',
+  'CEB_NODE_ENV',
+  'CLI_CEB_DEV',
+  'CLI_CEB_FIREFOX',
+] as const;
+
+export const publicExtensionEnv = PUBLIC_ENV_KEYS.reduce<Record<string, string>>((publicEnv, key) => {
+  publicEnv[key] = env[key] ?? '';
+  return publicEnv;
+}, {});
+
 export const watchOption = IS_DEV
   ? {
       chokidar: {
@@ -19,7 +34,7 @@ export const withPageConfig = (config: UserConfig) =>
     deepmerge(
       {
         define: {
-          'process.env': env,
+          'process.env': publicExtensionEnv,
         },
         base: '',
         plugins: [react(), IS_DEV && watchRebuildPlugin({ refresh: true }), nodePolyfills()],
