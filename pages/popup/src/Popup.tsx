@@ -34,7 +34,7 @@ import {
   getOnboardingKeyHash,
   PRIORITY_OPTIONS,
 } from '@extension/unshafted-core';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Session } from '@extension/supabase';
 import type { SpotlightTourStep } from '@extension/ui';
 import type { HistoryRecord, IngestedDocument, OnboardingState, OnboardingStep } from '@extension/unshafted-core';
@@ -192,6 +192,8 @@ const riskToneClasses = {
 const createReportFilename = (record: HistoryRecord): string =>
   `${record.source.slug || 'unshafted-report'}-${record.createdAt.slice(0, 10)}.md`;
 
+const hasReportDetails = (record: HistoryRecord | null | undefined): boolean => Boolean(record?.quickScan);
+
 const Popup = () => {
   const onboarding = useStorage(unshaftedOnboardingStorage);
   const settings = useStorage(unshaftedSettingsStorage);
@@ -236,6 +238,20 @@ const Popup = () => {
     session,
   });
   const hasFlags = Boolean(currentAnalysis?.quickScan?.redFlags.length);
+  const openedHistoryReport = useMemo(() => {
+    if (!selectedHistory) return null;
+    if (hasReportDetails(selectedHistory)) return selectedHistory;
+
+    const matchesCurrentAnalysis =
+      currentAnalysis?.quickScan &&
+      (currentAnalysis.id === selectedHistory.id ||
+        (!!currentAnalysis.source.contentHash &&
+          currentAnalysis.source.contentHash === selectedHistory.source.contentHash));
+
+    if (!matchesCurrentAnalysis) return selectedHistory;
+
+    return createHistoryRecord(currentAnalysis, { storageState: selectedHistory.storageState });
+  }, [currentAnalysis, selectedHistory]);
   const spotlightStep: PopupSpotlightStep | null = activeOnboardingStep
     ? activeOnboardingStep === 'results'
       ? (
@@ -760,7 +776,11 @@ const Popup = () => {
               <p className="popup-eyebrow">Unshafted</p>
               <h1 className="popup-title">Contract risk, without the fog.</h1>
               <p className="popup-subtitle truncate">
-                {currentAnalysis ? currentAnalysis.source.name : 'Upload a contract to review (.pdf or .txt).'}
+                {selectedHistory
+                  ? selectedHistory.source.name
+                  : currentAnalysis
+                    ? currentAnalysis.source.name
+                    : 'Upload a contract to review (.pdf or .txt).'}
               </p>
             </div>
             <div className="flex flex-shrink-0 items-center gap-2">
@@ -871,7 +891,33 @@ const Popup = () => {
                   </div>
                 </section>
               ) : null}
-              <ResultsView record={selectedHistory} />
+              {openedHistoryReport && hasReportDetails(openedHistoryReport) ? (
+                <ResultsView record={openedHistoryReport} />
+              ) : (
+                <section className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                  <p className="font-semibold">Report details are missing</p>
+                  <p className="mt-1 text-xs leading-5">
+                    This saved entry has metadata, but no quick-scan or detailed-analysis payload. It may be from an
+                    older broken save. Reopen the current scan if it is still loaded, or re-run the contract to create a
+                    complete report.
+                  </p>
+                  {currentAnalysis?.quickScan &&
+                  (currentAnalysis.id === selectedHistory.id ||
+                    (!!currentAnalysis.source.contentHash &&
+                      currentAnalysis.source.contentHash === selectedHistory.source.contentHash)) ? (
+                    <button
+                      className="popup-link-button mt-3"
+                      onClick={() =>
+                        setSelectedHistory(
+                          createHistoryRecord(currentAnalysis, { storageState: selectedHistory.storageState }),
+                        )
+                      }
+                      type="button">
+                      Restore details from current scan
+                    </button>
+                  ) : null}
+                </section>
+              )}
             </section>
           ) : !currentAnalysis ? (
             <section className="popup-card space-y-3">
