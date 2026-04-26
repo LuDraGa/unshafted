@@ -208,9 +208,138 @@ const getDecisionCopy = (riskLevel: 'Low' | 'Medium' | 'High' | 'Very High') => 
   }
 };
 
+type ActionSummaryItem = {
+  title: string;
+  detail: string;
+  severity?: 'low' | 'medium' | 'high';
+};
+
+const buildQuickBlockers = (quick: QuickScanResult): ActionSummaryItem[] =>
+  quick.redFlags
+    .slice()
+    .sort((a, b) => severityRank[b.severity] - severityRank[a.severity])
+    .slice(0, 3)
+    .map(flag => ({
+      title: flag.title,
+      detail: flag.reason,
+      severity: flag.severity,
+    }));
+
+const buildQuickAsks = (quick: QuickScanResult): ActionSummaryItem[] => {
+  const flagAsks = quick.redFlags.slice(0, 2).map(flag => ({
+    title: `Clarify ${flag.title}`,
+    detail: flag.reference?.label
+      ? `Ask how ${flag.reference.label} applies to you and whether it can be narrowed.`
+      : 'Ask the other side to explain this term plainly and whether it can be narrowed.',
+    severity: flag.severity,
+  }));
+
+  const obligationAsks = quick.keyObligations.slice(0, 3 - flagAsks.length).map(item => ({
+    title: 'Confirm this obligation',
+    detail: item,
+  }));
+
+  return [...flagAsks, ...obligationAsks].slice(0, 3);
+};
+
+const ActionSummaryGrid = ({ blockers, asks }: { blockers: ActionSummaryItem[]; asks: ActionSummaryItem[] }) => (
+  <section className="grid gap-2">
+    <div className="rounded-2xl border border-rose-100 bg-rose-50/80 px-3 py-3">
+      <p className="text-sm font-semibold text-rose-950">Top blockers</p>
+      {blockers.length > 0 ? (
+        <div className="mt-2 space-y-2">
+          {blockers.map(item => (
+            <div key={item.title} className="text-xs leading-5 text-rose-900">
+              <div className="flex items-start justify-between gap-2">
+                <p className="font-semibold">{item.title}</p>
+                {item.severity ? <SeverityBadge severity={item.severity} /> : null}
+              </div>
+              <p className="mt-0.5">{item.detail}</p>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-1 text-xs leading-5 text-rose-900">
+          No major blockers surfaced. Still confirm the facts, missing context, and any extraction warnings.
+        </p>
+      )}
+    </div>
+    <div className="rounded-2xl border border-emerald-100 bg-emerald-50/80 px-3 py-3">
+      <p className="text-sm font-semibold text-emerald-950">Ask for this</p>
+      {asks.length > 0 ? (
+        <div className="mt-2 space-y-2 text-xs leading-5 text-emerald-900">
+          {asks.map(item => (
+            <div key={`${item.title}-${item.detail}`}>
+              <p className="font-semibold">{item.title}</p>
+              <p className="mt-0.5">{item.detail}</p>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-1 text-xs leading-5 text-emerald-900">
+          No specific asks were generated. Ask the other side to confirm the summary and any obligations in writing.
+        </p>
+      )}
+    </div>
+  </section>
+);
+
 type ResultsViewRecord =
   | Pick<CurrentAnalysis, 'quickScan' | 'deepAnalysis' | 'selectedRole' | 'customRole' | 'source'>
   | HistoryRecord;
+
+const QuickDecisionSummary = ({
+  quick,
+  reviewedAs,
+  coverageLine,
+  sourceWarnings = [],
+  action,
+}: {
+  quick: QuickScanResult;
+  reviewedAs: string;
+  coverageLine: string;
+  sourceWarnings?: string[];
+  action?: React.ReactNode;
+}) => {
+  const decision = getDecisionCopy(quick.roughRiskLevel);
+  const blockers = buildQuickBlockers(quick);
+  const asks = buildQuickAsks(quick);
+
+  return (
+    <div className="space-y-3">
+      <section className="popup-card !border-stone-950 !bg-stone-950 !text-stone-50">
+        <div className="flex items-start justify-between gap-3">
+          <RiskBadge label={toVerdictTone(quick.roughRiskLevel)} />
+          {action}
+        </div>
+        <div className="mt-3 space-y-2">
+          <h2 className="text-lg font-semibold tracking-[-0.04em]">{decision.action}</h2>
+          <p className="text-sm font-semibold text-stone-200">{quick.cautionLine}</p>
+          <p className="text-xs leading-5 text-stone-300">{quick.summary}</p>
+        </div>
+        <div className="mt-3 rounded-xl bg-white/10 px-3 py-2 text-xs text-stone-200">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-400">
+            Why this recommendation
+          </p>
+          <p className="mt-1 font-semibold text-stone-50">{decision.rationale}</p>
+          <p className="mt-2 text-[11px] text-stone-400">
+            {coverageLine} · Reviewed as {reviewedAs}
+          </p>
+          <p className="mt-0.5 text-[11px] text-stone-400">{quick.documentType}</p>
+        </div>
+      </section>
+
+      <ActionSummaryGrid blockers={blockers} asks={asks} />
+
+      {quick.extractionConcerns.length > 0 || sourceWarnings.length > 0 ? (
+        <section className="rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] leading-5 text-amber-900">
+          Check extraction warnings before relying on this result. Scanned PDFs, tables, and missing text can reduce
+          accuracy.
+        </section>
+      ) : null}
+    </div>
+  );
+};
 
 const QuickScanReadout = ({
   quick,
@@ -222,20 +351,12 @@ const QuickScanReadout = ({
   sourceWarnings?: string[];
 }) => (
   <div className="space-y-3">
-    <div className="popup-verdict-strip">
-      <RiskBadge label={toVerdictTone(quick.roughRiskLevel)} />
-      <p>{quick.cautionLine}</p>
-    </div>
-
-    <section className="rounded-2xl border border-stone-200 bg-white/70 px-3 py-2 text-[11px] leading-5 text-stone-600">
-      <p>Coverage: saved quick scan · Reviewed as {reviewedAs}</p>
-      {quick.extractionConcerns.length > 0 || sourceWarnings.length > 0 ? (
-        <p className="mt-1 text-amber-800">
-          Check extraction warnings before relying on this result. Scanned PDFs, tables, and missing text can reduce
-          accuracy.
-        </p>
-      ) : null}
-    </section>
+    <QuickDecisionSummary
+      quick={quick}
+      reviewedAs={reviewedAs}
+      coverageLine="Saved quick scan"
+      sourceWarnings={sourceWarnings}
+    />
 
     <ResultAccordion title="Summary" defaultOpen>
       <div className="space-y-2">
@@ -362,6 +483,15 @@ const ResultsView = ({
     ...deep.suggestedEdits.map(item => ({ title: item.title, detail: item.plainEnglishEdit })),
     ...deep.missingProtections.map(item => ({ title: item.title, detail: item.commonFix })),
   ].slice(0, 3);
+  const detailedBlockers = topRisks.map(item => ({
+    title: item.title,
+    detail: item.whyItMatters,
+    severity: item.severity,
+  }));
+  const detailedAsks = topAsks.map(item => ({
+    title: item.title,
+    detail: item.detail,
+  }));
 
   return (
     <div className="space-y-3">
@@ -390,43 +520,7 @@ const ResultsView = ({
         </div>
       </section>
 
-      <section className="grid gap-2">
-        <div className="rounded-2xl border border-rose-100 bg-rose-50/80 px-3 py-3">
-          <p className="text-sm font-semibold text-rose-950">Top risks</p>
-          {topRisks.length > 0 ? (
-            <div className="mt-2 space-y-2">
-              {topRisks.map(item => (
-                <div key={item.title} className="text-xs leading-5 text-rose-900">
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="font-semibold">{item.title}</p>
-                    <SeverityBadge severity={item.severity} />
-                  </div>
-                  <p className="mt-0.5">{item.whyItMatters}</p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="mt-1 text-xs leading-5 text-rose-900">
-              No major risk blockers were identified in the detailed analysis.
-            </p>
-          )}
-        </div>
-        <div className="rounded-2xl border border-emerald-100 bg-emerald-50/80 px-3 py-3">
-          <p className="text-sm font-semibold text-emerald-950">What to ask for</p>
-          {topAsks.length > 0 ? (
-            <div className="mt-2 space-y-2 text-xs leading-5 text-emerald-900">
-              {topAsks.map(item => (
-                <div key={item.title}>
-                  <p className="font-semibold">{item.title}</p>
-                  <p className="mt-0.5">{item.detail}</p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="mt-1 text-xs leading-5 text-emerald-900">No specific negotiation asks were generated.</p>
-          )}
-        </div>
-      </section>
+      <ActionSummaryGrid blockers={detailedBlockers} asks={detailedAsks} />
 
       {deep.overallRiskLevel === 'Very High' ? (
         <section className="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-3 text-xs text-rose-900">
@@ -621,4 +715,4 @@ const ResultsView = ({
   );
 };
 
-export { ResultsView, RiskBadge, SectionHeader, SeverityBadge };
+export { ResultsView, RiskBadge, SectionHeader, SeverityBadge, QuickDecisionSummary };

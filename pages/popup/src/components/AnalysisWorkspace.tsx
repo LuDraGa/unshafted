@@ -1,4 +1,4 @@
-import { RiskBadge, SectionHeader, SeverityBadge, ResultsView } from './ResultCards';
+import { QuickDecisionSummary, RiskBadge, SectionHeader, SeverityBadge, ResultsView } from './ResultCards';
 import { useStorage } from '@extension/shared';
 import { currentAnalysisStorage, unshaftedSettingsStorage } from '@extension/storage';
 import { cn } from '@extension/ui';
@@ -302,33 +302,21 @@ export const AnalysisWorkspace = ({
         </section>
       ) : null}
 
-      {/* ── Verdict strip ── */}
       {quickScan ? (
-        <div className="popup-verdict-strip">
-          <RiskBadge label={toVerdictTone(quickScan.roughRiskLevel)} />
-          <p>{quickScan.cautionLine}</p>
-          <button
-            className="popup-rerun-link"
-            onClick={() => void startQuickScan({ ...currentAnalysis, quickScan: null })}>
-            Re-scan
-          </button>
-        </div>
-      ) : null}
-
-      {quickScan ? (
-        <section className="rounded-2xl border border-stone-200 bg-white/70 px-3 py-2 text-[11px] leading-5 text-stone-600">
-          <p>
-            Coverage:{' '}
-            {quickUsesExcerpt ? 'quick scan used a balanced excerpt' : 'quick scan used the full extracted text'} ·
-            Model: {activeModel || 'default model'}
-          </p>
-          {quickScan.extractionConcerns.length > 0 || currentAnalysis.source.warnings.length > 0 ? (
-            <p className="mt-1 text-amber-800">
-              Check extraction warnings before relying on this result. Scanned PDFs, tables, and missing text can reduce
-              accuracy.
-            </p>
-          ) : null}
-        </section>
+        <QuickDecisionSummary
+          quick={quickScan}
+          reviewedAs={selectedRole}
+          coverageLine={`${quickUsesExcerpt ? 'Quick scan used a balanced excerpt' : 'Quick scan used the full extracted text'} · Model: ${activeModel || 'default model'}`}
+          sourceWarnings={currentAnalysis.source.warnings}
+          action={
+            <button
+              className="rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-100 transition hover:bg-white/20"
+              onClick={() => void startQuickScan({ ...currentAnalysis, quickScan: null })}
+              type="button">
+              Re-scan
+            </button>
+          }
+        />
       ) : null}
 
       {/* ── Quick scan accordion sections ── */}
