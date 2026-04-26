@@ -307,7 +307,7 @@ const QuickDecisionSummary = ({
 
   return (
     <div className="space-y-3">
-      <section className="popup-card !border-stone-950 !bg-stone-950 !text-stone-50">
+      <section className="popup-card !border-stone-950 !bg-stone-950 !text-stone-50" data-onboarding-target="summary">
         <div className="flex items-start justify-between gap-3">
           <RiskBadge label={toVerdictTone(quick.roughRiskLevel)} />
           {action}
@@ -357,15 +357,6 @@ const QuickScanReadout = ({
       coverageLine="Saved quick scan"
       sourceWarnings={sourceWarnings}
     />
-
-    <ResultAccordion title="Summary" defaultOpen>
-      <div className="space-y-2">
-        <span className="inline-block rounded-full bg-stone-100 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-700">
-          {quick.documentType}
-        </span>
-        <p className="text-xs leading-5 text-stone-700">{quick.summary}</p>
-      </div>
-    </ResultAccordion>
 
     {quick.parties.length > 0 ? (
       <ResultAccordion title="Parties" count={quick.parties.length}>
