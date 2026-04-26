@@ -55,14 +55,16 @@ const ResultAccordion = ({
   title,
   count,
   severity,
+  defaultOpen = false,
   children,
 }: {
   title: string;
   count?: number;
   severity?: 'low' | 'medium' | 'high';
+  defaultOpen?: boolean;
   children: React.ReactNode;
 }) => (
-  <details className="popup-accordion">
+  <details className="popup-accordion" open={defaultOpen || undefined}>
     <summary>
       <span>{title}</span>
       {count !== undefined ? (
@@ -147,15 +149,13 @@ const AdvantageCard = ({ item }: { item: PotentialAdvantage }) => (
 type QuickFlag = QuickScanResult['redFlags'][number];
 
 const QuickFlagCard = ({ item }: { item: QuickFlag }) => (
-  <div className="rounded-2xl border border-stone-200 bg-white/80 p-3">
-    <div className="flex items-start justify-between gap-2">
-      <div>
-        <p className="text-sm font-semibold text-stone-950">{item.title}</p>
-        {item.reference?.label ? <p className="mt-1 text-[11px] text-stone-500">{item.reference.label}</p> : null}
-      </div>
+  <div className="rounded-lg bg-stone-100/80 px-2.5 py-2 text-xs text-stone-700">
+    <div className="flex items-center justify-between gap-2">
+      <p className="font-semibold text-stone-950">{item.title}</p>
       <SeverityBadge severity={item.severity} />
     </div>
-    <p className="mt-2 text-xs leading-5 text-stone-700">{item.reason}</p>
+    <p className="mt-1 leading-5">{item.reason}</p>
+    {item.reference?.label ? <p className="mt-1 text-[11px] text-stone-500">{item.reference.label}</p> : null}
     {item.reference?.quote ? (
       <div className="mt-2 rounded-xl bg-stone-100 px-3 py-2 text-xs leading-5 text-stone-700">
         "{item.reference.quote}"
@@ -174,6 +174,9 @@ const maxSeverity = (items: { severity: 'low' | 'medium' | 'high' }[]): 'low' | 
 };
 
 const severityRank = { low: 0, medium: 1, high: 2 } as const;
+
+const maxQuickFlagSeverity = (items: QuickFlag[]): 'low' | 'medium' | 'high' | undefined =>
+  items.length > 0 ? maxSeverity(items) : undefined;
 
 const getDecisionCopy = (riskLevel: 'Low' | 'Medium' | 'High' | 'Very High') => {
   switch (riskLevel) {
@@ -206,10 +209,123 @@ const getDecisionCopy = (riskLevel: 'Low' | 'Medium' | 'High' | 'Very High') => 
 };
 
 type ResultsViewRecord =
-  | Pick<CurrentAnalysis, 'quickScan' | 'deepAnalysis' | 'selectedRole' | 'customRole'>
+  | Pick<CurrentAnalysis, 'quickScan' | 'deepAnalysis' | 'selectedRole' | 'customRole' | 'source'>
   | HistoryRecord;
 
-const ResultsView = ({ record }: { record: ResultsViewRecord }) => {
+const QuickScanReadout = ({
+  quick,
+  reviewedAs,
+  sourceWarnings = [],
+}: {
+  quick: QuickScanResult;
+  reviewedAs: string;
+  sourceWarnings?: string[];
+}) => (
+  <div className="space-y-3">
+    <div className="popup-verdict-strip">
+      <RiskBadge label={toVerdictTone(quick.roughRiskLevel)} />
+      <p>{quick.cautionLine}</p>
+    </div>
+
+    <section className="rounded-2xl border border-stone-200 bg-white/70 px-3 py-2 text-[11px] leading-5 text-stone-600">
+      <p>Coverage: saved quick scan · Reviewed as {reviewedAs}</p>
+      {quick.extractionConcerns.length > 0 || sourceWarnings.length > 0 ? (
+        <p className="mt-1 text-amber-800">
+          Check extraction warnings before relying on this result. Scanned PDFs, tables, and missing text can reduce
+          accuracy.
+        </p>
+      ) : null}
+    </section>
+
+    <ResultAccordion title="Summary" defaultOpen>
+      <div className="space-y-2">
+        <span className="inline-block rounded-full bg-stone-100 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-700">
+          {quick.documentType}
+        </span>
+        <p className="text-xs leading-5 text-stone-700">{quick.summary}</p>
+      </div>
+    </ResultAccordion>
+
+    {quick.parties.length > 0 ? (
+      <ResultAccordion title="Parties" count={quick.parties.length}>
+        <div className="flex flex-wrap gap-1.5">
+          {quick.parties.map(party => (
+            <span
+              key={`${party.name}-${party.role}`}
+              className="rounded-full bg-stone-100/80 px-2.5 py-1.5 text-xs text-stone-700">
+              <span className="font-semibold text-stone-950">{party.name}</span>
+              <span className="text-stone-500"> · {party.role}</span>
+            </span>
+          ))}
+        </div>
+      </ResultAccordion>
+    ) : null}
+
+    {quick.redFlags.length > 0 ? (
+      <ResultAccordion title="Flags" count={quick.redFlags.length} severity={maxQuickFlagSeverity(quick.redFlags)}>
+        <div className="space-y-1.5">
+          {quick.redFlags.map(flag => (
+            <QuickFlagCard key={flag.title} item={flag} />
+          ))}
+        </div>
+      </ResultAccordion>
+    ) : (
+      <section className="mt-1 rounded-2xl border border-emerald-200 bg-emerald-50/85 px-3 py-2 text-xs leading-5 text-emerald-900">
+        <p className="font-semibold">No major quick-scan flags found</p>
+        <p>
+          Still review the summary, extraction coverage, and detailed analysis before relying on this for a high-stakes
+          contract.
+        </p>
+      </section>
+    )}
+
+    {quick.keyObligations.length > 0 ? (
+      <ResultAccordion title="Key obligations" count={quick.keyObligations.length}>
+        <ul className="space-y-2 text-xs leading-5 text-stone-700">
+          {quick.keyObligations.map(item => (
+            <li key={item} className="rounded-2xl border border-stone-200 bg-white/80 px-3 py-2">
+              {item}
+            </li>
+          ))}
+        </ul>
+      </ResultAccordion>
+    ) : null}
+
+    {quick.topics.length > 0 ? (
+      <ResultAccordion title="Topics detected" count={quick.topics.length}>
+        <div className="flex flex-wrap gap-2">
+          {quick.topics.map(topic => (
+            <span
+              key={topic}
+              className="rounded-full border border-stone-200 bg-white/80 px-3 py-1 text-xs font-semibold text-stone-700">
+              {topic}
+            </span>
+          ))}
+        </div>
+      </ResultAccordion>
+    ) : null}
+
+    {quick.extractionConcerns.length > 0 || sourceWarnings.length > 0 ? (
+      <ResultAccordion title="Coverage warnings" count={quick.extractionConcerns.length + sourceWarnings.length}>
+        <div className="space-y-2 text-xs leading-5 text-amber-900">
+          {[...quick.extractionConcerns, ...sourceWarnings].map(item => (
+            <div key={item} className="rounded-2xl border border-amber-200 bg-amber-50/85 px-3 py-2">
+              {item}
+            </div>
+          ))}
+        </div>
+      </ResultAccordion>
+    ) : null}
+  </div>
+);
+
+const ResultsView = ({
+  record,
+  includeQuickReadout = false,
+}: {
+  record: ResultsViewRecord;
+  includeQuickReadout?: boolean;
+}) => {
   const deep = record.deepAnalysis;
   const quick = record.quickScan;
 
@@ -218,101 +334,12 @@ const ResultsView = ({ record }: { record: ResultsViewRecord }) => {
   }
 
   const reviewedAs = 'customRole' in record && record.customRole.trim() ? record.customRole : record.selectedRole;
+  const sourceWarnings = 'source' in record ? record.source.warnings : [];
 
   if (!deep) {
-    const tone = toVerdictTone(quick.roughRiskLevel);
-    const decision = getDecisionCopy(quick.roughRiskLevel);
-
     return (
       <div className="space-y-3">
-        <section className="popup-card !border-stone-950 !bg-stone-950 !text-stone-50">
-          <div className="space-y-2">
-            <RiskBadge label={tone} />
-            <h2 className="text-lg font-semibold tracking-[-0.04em]">{decision.action}</h2>
-            <p className="text-sm font-semibold text-stone-200">{quick.cautionLine}</p>
-            <p className="text-xs leading-5 text-stone-300">{quick.summary}</p>
-          </div>
-          <div className="mt-3 rounded-xl bg-white/10 px-3 py-2 text-xs text-stone-200">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-400">Quick scan only</p>
-            <p className="mt-1 font-semibold text-stone-50">
-              Detailed analysis was not saved for this report. Use the quick findings as triage, not a final review.
-            </p>
-            <p className="mt-2 text-[11px] text-stone-400">Reviewed as {reviewedAs}</p>
-            <p className="mt-0.5 text-[11px] text-stone-400">{quick.documentType}</p>
-          </div>
-        </section>
-
-        {quick.redFlags.length > 0 ? (
-          <section className="space-y-2">
-            <SectionHeader title="Red flags" subtitle="Issues that may change the signing decision." />
-            {quick.redFlags.map(flag => (
-              <QuickFlagCard key={flag.title} item={flag} />
-            ))}
-          </section>
-        ) : (
-          <section className="rounded-2xl border border-emerald-200 bg-emerald-50/85 px-3 py-3 text-xs text-emerald-900">
-            <p className="font-semibold">No major quick-scan flags found</p>
-            <p className="mt-1 leading-5">
-              Still verify names, dates, payment terms, renewal terms, and anything missing from the extracted text.
-            </p>
-          </section>
-        )}
-
-        {quick.keyObligations.length > 0 ? (
-          <ResultAccordion title="Key obligations" count={quick.keyObligations.length}>
-            <ul className="space-y-2 text-xs leading-5 text-stone-700">
-              {quick.keyObligations.map(item => (
-                <li key={item} className="rounded-2xl border border-stone-200 bg-white/80 px-3 py-2">
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </ResultAccordion>
-        ) : null}
-
-        {quick.parties.length > 0 ? (
-          <ResultAccordion title="Parties" count={quick.parties.length}>
-            <div className="space-y-2">
-              {quick.parties.map(party => (
-                <div
-                  key={`${party.name}-${party.role}`}
-                  className="rounded-2xl border border-stone-200 bg-white/80 p-3">
-                  <p className="text-sm font-semibold text-stone-950">{party.name}</p>
-                  <p className="mt-1 text-xs text-stone-600">
-                    {party.role} · {party.confidence} confidence
-                  </p>
-                </div>
-              ))}
-            </div>
-          </ResultAccordion>
-        ) : null}
-
-        {quick.topics.length > 0 ? (
-          <ResultAccordion title="Topics detected" count={quick.topics.length}>
-            <div className="flex flex-wrap gap-2">
-              {quick.topics.map(topic => (
-                <span
-                  key={topic}
-                  className="rounded-full border border-stone-200 bg-white/80 px-3 py-1 text-xs font-semibold text-stone-700">
-                  {topic}
-                </span>
-              ))}
-            </div>
-          </ResultAccordion>
-        ) : null}
-
-        {quick.extractionConcerns.length > 0 ? (
-          <ResultAccordion title="Coverage warnings" count={quick.extractionConcerns.length}>
-            <div className="space-y-2 text-xs leading-5 text-amber-900">
-              {quick.extractionConcerns.map(item => (
-                <div key={item} className="rounded-2xl border border-amber-200 bg-amber-50/85 px-3 py-2">
-                  {item}
-                </div>
-              ))}
-            </div>
-          </ResultAccordion>
-        ) : null}
-
+        <QuickScanReadout quick={quick} reviewedAs={reviewedAs} sourceWarnings={sourceWarnings} />
         <section className="rounded-2xl border border-stone-200 bg-white/70 px-3 py-3 text-[11px] text-stone-600">
           {DISCLAIMER_LINE}
         </section>
@@ -338,6 +365,15 @@ const ResultsView = ({ record }: { record: ResultsViewRecord }) => {
 
   return (
     <div className="space-y-3">
+      {includeQuickReadout ? (
+        <>
+          <QuickScanReadout quick={quick} reviewedAs={reviewedAs} sourceWarnings={sourceWarnings} />
+          <section className="rounded-2xl border border-stone-200 bg-white/70 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+            Detailed analysis
+          </section>
+        </>
+      ) : null}
+
       {/* Verdict banner — always visible */}
       <section className="popup-card !border-stone-950 !bg-stone-950 !text-stone-50">
         <div className="space-y-2">
