@@ -179,6 +179,7 @@ const formatReportDate = (iso: string) =>
 const storageStateCopy = {
   'local-only': 'Local only',
   'drive-backup-requested': 'Drive backup requested',
+  'drive-backed-up': 'Drive backed up',
   'restored-from-drive': 'Restored from Drive',
 } satisfies Record<HistoryRecord['storageState'], string>;
 
@@ -681,10 +682,14 @@ const Popup = () => {
     if (!currentAnalysis?.quickScan) return;
 
     await analysisHistoryStorage.push(createHistoryRecord(currentAnalysis, { storageState: 'drive-backup-requested' }));
-    void syncQuickScanToDrive(currentAnalysis);
-    if (currentAnalysis.deepAnalysis) {
-      void syncDeepAnalysisToDrive(currentAnalysis);
-    }
+    void (async () => {
+      const quickSynced = await syncQuickScanToDrive(currentAnalysis);
+      const deepSynced = currentAnalysis.deepAnalysis ? await syncDeepAnalysisToDrive(currentAnalysis) : true;
+
+      if (quickSynced && deepSynced) {
+        await analysisHistoryStorage.push(createHistoryRecord(currentAnalysis, { storageState: 'drive-backed-up' }));
+      }
+    })();
 
     setPendingDriveBackupId(null);
     setSyncNotice('Current analysis backup requested.');

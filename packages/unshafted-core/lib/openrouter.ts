@@ -98,7 +98,7 @@ const buildResponseFormat = <T>(
 
   // OpenAI: use json_schema with strict: true for constrained decoding
   if (provider === 'openai' && schema) {
-    const converted = zodToJsonSchema(schema, { target: 'openAi' });
+    const converted = zodToJsonSchema(schema, { target: 'openAi', $refStrategy: 'none' });
     return {
       type: 'json_schema' as const,
       json_schema: {
