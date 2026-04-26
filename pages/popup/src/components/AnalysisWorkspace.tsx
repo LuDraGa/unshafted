@@ -197,6 +197,71 @@ export const AnalysisWorkspace = ({
     const order = { low: 0, medium: 1, high: 2 } as const;
     return order[f.severity] > order[max] ? f.severity : max;
   }, 'low');
+  const documentDetails = (
+    <AccordionSection title="Document details">
+      <div className="space-y-2.5">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="rounded-full bg-stone-900 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-50">
+            {currentAnalysis.source.kind}
+          </span>
+          <span className="rounded-full bg-stone-100 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-700">
+            {currentAnalysis.source.quality}
+          </span>
+        </div>
+
+        <p className="line-clamp-2 text-sm font-semibold text-stone-900">{currentAnalysis.source.name}</p>
+
+        <div className="grid grid-cols-2 gap-2 text-xs text-stone-600">
+          <div className="rounded-xl bg-stone-100/80 px-3 py-2">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">Characters</p>
+            <p className="mt-1 text-sm font-semibold text-stone-950">
+              {currentAnalysis.source.charCount.toLocaleString()}
+            </p>
+          </div>
+          <div className="rounded-xl bg-stone-100/80 px-3 py-2">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">Tokens (est.)</p>
+            <p className="mt-1 text-sm font-semibold text-stone-950">
+              {currentAnalysis.source.estimatedTokens.toLocaleString()}
+            </p>
+          </div>
+          {currentAnalysis.source.fileSize ? (
+            <div className="rounded-xl bg-stone-100/80 px-3 py-2">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">File size</p>
+              <p className="mt-1 text-sm font-semibold text-stone-950">
+                {formatBytes(currentAnalysis.source.fileSize)}
+              </p>
+            </div>
+          ) : null}
+          <div className="rounded-xl bg-stone-100/80 px-3 py-2">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">Captured</p>
+            <p className="mt-1 text-sm font-semibold text-stone-950">
+              {formatTimestamp(currentAnalysis.source.capturedAt)}
+            </p>
+          </div>
+        </div>
+
+        {currentAnalysis.source.warnings.length > 0 ? (
+          <div className="space-y-1 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-900">
+            <p className="font-semibold">Extraction warnings</p>
+            <ul className="list-disc space-y-0.5 pl-4">
+              {currentAnalysis.source.warnings.map(warning => (
+                <li key={warning}>{warning}</li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+
+        <details className="rounded-xl border border-stone-200 bg-white/80 p-3">
+          <summary className="cursor-pointer list-none text-xs font-semibold text-stone-950">
+            Preview extracted text
+          </summary>
+          <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap font-mono text-[11px] leading-5 text-stone-700">
+            {currentAnalysis.source.preview}
+          </pre>
+        </details>
+      </div>
+    </AccordionSection>
+  );
 
   return (
     <div className="space-y-3">
@@ -220,70 +285,7 @@ export const AnalysisWorkspace = ({
         </section>
       ) : null}
 
-      {/* Document info — always visible once uploaded */}
-      <AccordionSection title="Document info">
-        <div className="space-y-2.5">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full bg-stone-900 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-50">
-              {currentAnalysis.source.kind}
-            </span>
-            <span className="rounded-full bg-stone-100 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-700">
-              {currentAnalysis.source.quality}
-            </span>
-          </div>
-
-          <p className="line-clamp-2 text-sm font-semibold text-stone-900">{currentAnalysis.source.name}</p>
-
-          <div className="grid grid-cols-2 gap-2 text-xs text-stone-600">
-            <div className="rounded-xl bg-stone-100/80 px-3 py-2">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">Characters</p>
-              <p className="mt-1 text-sm font-semibold text-stone-950">
-                {currentAnalysis.source.charCount.toLocaleString()}
-              </p>
-            </div>
-            <div className="rounded-xl bg-stone-100/80 px-3 py-2">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">Tokens (est.)</p>
-              <p className="mt-1 text-sm font-semibold text-stone-950">
-                {currentAnalysis.source.estimatedTokens.toLocaleString()}
-              </p>
-            </div>
-            {currentAnalysis.source.fileSize ? (
-              <div className="rounded-xl bg-stone-100/80 px-3 py-2">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">File size</p>
-                <p className="mt-1 text-sm font-semibold text-stone-950">
-                  {formatBytes(currentAnalysis.source.fileSize)}
-                </p>
-              </div>
-            ) : null}
-            <div className="rounded-xl bg-stone-100/80 px-3 py-2">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">Captured</p>
-              <p className="mt-1 text-sm font-semibold text-stone-950">
-                {formatTimestamp(currentAnalysis.source.capturedAt)}
-              </p>
-            </div>
-          </div>
-
-          {currentAnalysis.source.warnings.length > 0 ? (
-            <div className="space-y-1 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-900">
-              <p className="font-semibold">Extraction warnings</p>
-              <ul className="list-disc space-y-0.5 pl-4">
-                {currentAnalysis.source.warnings.map(warning => (
-                  <li key={warning}>{warning}</li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-
-          <details className="rounded-xl border border-stone-200 bg-white/80 p-3">
-            <summary className="cursor-pointer list-none text-xs font-semibold text-stone-950">
-              Preview extracted text
-            </summary>
-            <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap font-mono text-[11px] leading-5 text-stone-700">
-              {currentAnalysis.source.preview}
-            </pre>
-          </details>
-        </div>
-      </AccordionSection>
+      {!quickScan ? documentDetails : null}
 
       {/* Quick scan running */}
       {currentAnalysis.status === 'quick-running' ? (
@@ -322,20 +324,6 @@ export const AnalysisWorkspace = ({
       {/* ── Quick scan accordion sections ── */}
       {quickScan ? (
         <div>
-          {/* Summary — open by default */}
-          <AccordionSection
-            title="Summary"
-            defaultOpen
-            onboardingTarget="summary"
-            forceOpen={focusedOnboardingTarget === 'summary'}>
-            <div className="space-y-2">
-              <span className="inline-block rounded-full bg-stone-100 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-700">
-                {quickScan.documentType}
-              </span>
-              <p className="text-xs leading-5 text-stone-700">{quickScan.summary}</p>
-            </div>
-          </AccordionSection>
-
           {/* Parties — closed, with count */}
           {quickScan.parties.length > 0 ? (
             <AccordionSection title="Parties" count={quickScan.parties.length}>
@@ -482,6 +470,7 @@ export const AnalysisWorkspace = ({
               </button>
             )
           ) : null}
+          {documentDetails}
         </div>
       ) : null}
 
