@@ -92,7 +92,15 @@ const handleQuickScan = async (req: RunQuickScanRequest): Promise<AnalysisMessag
         storageState: session && settings.driveBackupEnabled ? 'drive-backup-requested' : 'local-only',
       }),
     );
-    if (session && settings.driveBackupEnabled) void syncQuickScanToDrive(result);
+    if (session && settings.driveBackupEnabled) {
+      void syncQuickScanToDrive(result)
+        .then(async synced => {
+          if (synced) {
+            await analysisHistoryStorage.push(createHistoryRecord(result, { storageState: 'drive-backed-up' }));
+          }
+        })
+        .catch(error => console.warn('[Drive sync] unable to mark quick scan as backed up:', error));
+    }
   }
 
   return { ok: true };
@@ -123,7 +131,15 @@ const handleDeepAnalysis = async (): Promise<AnalysisMessageResponse> => {
         storageState: settings.driveBackupEnabled ? 'drive-backup-requested' : 'local-only',
       }),
     );
-    if (settings.driveBackupEnabled) void syncDeepAnalysisToDrive(result);
+    if (settings.driveBackupEnabled) {
+      void Promise.all([syncQuickScanToDrive(result), syncDeepAnalysisToDrive(result)])
+        .then(async ([quickSynced, deepSynced]) => {
+          if (quickSynced && deepSynced) {
+            await analysisHistoryStorage.push(createHistoryRecord(result, { storageState: 'drive-backed-up' }));
+          }
+        })
+        .catch(error => console.warn('[Drive sync] unable to mark detailed analysis as backed up:', error));
+    }
   }
 
   return { ok: true };

@@ -12,13 +12,13 @@ import type { CurrentAnalysis } from '@extension/unshafted-core';
 const buildFilename = (slug: string, analysisType: string, contentHash: string): string =>
   `${slug}_${analysisType}_${contentHash.slice(0, 8)}.json`;
 
-/** Save quick scan to Drive (fire-and-forget). Never throws. */
-export const syncQuickScanToDrive = async (analysis: CurrentAnalysis): Promise<void> => {
+/** Save quick scan to Drive. Returns false on any failure and never throws. */
+export const syncQuickScanToDrive = async (analysis: CurrentAnalysis): Promise<boolean> => {
   try {
-    if (!analysis.quickScan || !analysis.source.contentHash) return;
+    if (!analysis.quickScan || !analysis.source.contentHash) return false;
 
     const token = await getDriveToken();
-    if (!token) return;
+    if (!token) return false;
 
     const folderId = await getOrCreateFolder(token);
     const { slug, contentHash, name, charCount, estimatedTokens } = analysis.source;
@@ -38,18 +38,20 @@ export const syncQuickScanToDrive = async (analysis: CurrentAnalysis): Promise<v
 
     const filename = buildFilename(slug, 'quick-scan', contentHash);
     await upsertAnalysisFile(token, folderId, filename, file, contentHash, 'quick-scan');
+    return true;
   } catch (e) {
     console.warn('[Drive sync] quickScan failed:', e);
+    return false;
   }
 };
 
-/** Save deep analysis to Drive (fire-and-forget). Never throws. */
-export const syncDeepAnalysisToDrive = async (analysis: CurrentAnalysis): Promise<void> => {
+/** Save deep analysis to Drive. Returns false on any failure and never throws. */
+export const syncDeepAnalysisToDrive = async (analysis: CurrentAnalysis): Promise<boolean> => {
   try {
-    if (!analysis.deepAnalysis || !analysis.source.contentHash) return;
+    if (!analysis.deepAnalysis || !analysis.source.contentHash) return false;
 
     const token = await getDriveToken();
-    if (!token) return;
+    if (!token) return false;
 
     const folderId = await getOrCreateFolder(token);
     const { slug, contentHash, name, charCount, estimatedTokens } = analysis.source;
@@ -70,8 +72,10 @@ export const syncDeepAnalysisToDrive = async (analysis: CurrentAnalysis): Promis
 
     const filename = buildFilename(slug, 'deep-analysis', contentHash);
     await upsertAnalysisFile(token, folderId, filename, file, contentHash, 'deep-analysis');
+    return true;
   } catch (e) {
     console.warn('[Drive sync] deepAnalysis failed:', e);
+    return false;
   }
 };
 

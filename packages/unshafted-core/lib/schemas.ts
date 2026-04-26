@@ -167,7 +167,12 @@ export const IngestedDocumentSchema = z.object({
 export const HistorySourceSchema = IngestedDocumentSchema.omit({ text: true, originalFileBase64: true });
 
 export const ProviderSchema = z.enum(['openrouter', 'openai']);
-export const HistoryStorageStateSchema = z.enum(['local-only', 'drive-backup-requested', 'restored-from-drive']);
+export const HistoryStorageStateSchema = z.enum([
+  'local-only',
+  'drive-backup-requested',
+  'drive-backed-up',
+  'restored-from-drive',
+]);
 
 export const AppSettingsSchema = z.object({
   provider: ProviderSchema.default(DEFAULT_PROVIDER),
