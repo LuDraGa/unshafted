@@ -892,7 +892,7 @@ const Popup = () => {
                 </section>
               ) : null}
               {openedHistoryReport && hasReportDetails(openedHistoryReport) ? (
-                <ResultsView record={openedHistoryReport} />
+                <ResultsView record={openedHistoryReport} includeQuickReadout />
               ) : (
                 <section className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
                   <p className="font-semibold">Report details are missing</p>
