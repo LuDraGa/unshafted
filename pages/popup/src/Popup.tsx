@@ -763,6 +763,9 @@ const Popup = () => {
     setSelectedHistory(record);
     setHistoryOpen(false);
   }, []);
+  const shouldOpenLibraryPanel = Boolean(
+    historyOpen || syncNotice || (pendingDriveBackupId && currentAnalysis?.id === pendingDriveBackupId),
+  );
 
   return (
     <div className="popup-shell">
@@ -789,10 +792,7 @@ const Popup = () => {
               </p>
             </div>
             <div className="flex flex-shrink-0 items-center gap-2">
-              <div
-                className={`rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${
-                  hasActiveApiKey ? 'bg-emerald-100 text-emerald-800' : 'bg-stone-200 text-stone-700'
-                }`}>
+              <div className={`popup-status-pill ${hasActiveApiKey ? 'popup-status-pill-ready' : ''}`}>
                 {hasActiveApiKey ? 'Ready' : 'Setup'}
               </div>
               {hasActiveApiKey ? (
@@ -986,177 +986,193 @@ const Popup = () => {
             </section>
           ) : null}
 
-          <section className="mt-4 rounded-2xl border border-stone-200 bg-white/70 px-4 py-3 text-xs text-stone-700">
-            <div className="flex items-start justify-between gap-3">
+          <details className="popup-management-panel" open={shouldOpenLibraryPanel || undefined}>
+            <summary>
               <div>
-                <p className="font-semibold text-stone-950">Privacy and sync</p>
-                <p className="mt-1 leading-5">
-                  Reports save locally. Contract text goes only to your selected AI provider when you scan.{' '}
-                  {!session
-                    ? 'Sign in first if you want optional Drive backup.'
-                    : settings.driveBackupEnabled
-                      ? 'Drive backup is enabled for signed-in scans.'
-                      : 'Drive backup is currently off.'}
+                <p className="text-sm font-semibold">Library and sync</p>
+                <p className="mt-1 text-xs leading-5 text-stone-600">
+                  {history.length} saved {history.length === 1 ? 'report' : 'reports'} ·{' '}
+                  {session ? (settings.driveBackupEnabled ? 'Drive on' : 'Drive off') : 'Local only unless you sign in'}
                 </p>
               </div>
-              {session ? (
-                <button className="popup-link-button" onClick={() => void toggleDriveBackup()} type="button">
-                  {settings.driveBackupEnabled ? 'Turn off Drive' : 'Enable Drive'}
-                </button>
-              ) : (
-                <button
-                  className="popup-link-button"
-                  onClick={() => void handleSignIn()}
-                  disabled={signingIn}
-                  type="button">
-                  {signingIn ? 'Signing in...' : 'Sign in'}
-                </button>
-              )}
-            </div>
-            <div className="mt-2 flex flex-wrap gap-3">
-              <button className="popup-link-button" onClick={() => void clearLocalReports()} type="button">
-                Clear local reports
-              </button>
-              <button className="popup-link-button" onClick={() => void clearAllLocalData()} type="button">
-                Clear all local data
-              </button>
-            </div>
-            {pendingDriveBackupId && currentAnalysis?.id === pendingDriveBackupId ? (
-              <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-3 text-xs text-amber-900">
-                <p className="font-semibold">Back up the current visible analysis?</p>
-                <p className="mt-1 leading-5">
-                  This requests Drive sync for the current report. Original source files are not backfilled unless they
-                  are still available in memory.
-                </p>
-                <div className="mt-2 flex flex-wrap gap-3">
-                  <button
-                    className="popup-link-button"
-                    onClick={() => void backUpCurrentAnalysisToDrive()}
-                    type="button">
-                    Back up current report
-                  </button>
-                  <button className="popup-link-button" onClick={dismissCurrentBackupPrompt} type="button">
-                    Not now
-                  </button>
-                </div>
-              </div>
-            ) : null}
-            {syncNotice ? <p className="mt-2 text-xs leading-5 text-stone-600">{syncNotice}</p> : null}
-          </section>
-
-          {history.length > 0 || session ? (
-            <section className="popup-card mt-4 space-y-3">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-semibold text-stone-950">Recent analyses</p>
-                  <p className="text-xs text-stone-600">
-                    {settings.driveBackupEnabled
-                      ? 'Local and Drive-backed reports appear here.'
-                      : 'Local reports appear here.'}
-                  </p>
-                </div>
-                <button
-                  className="popup-link-button"
-                  onClick={() => {
-                    const willOpen = !historyOpen;
-                    setHistoryOpen(willOpen);
-                    if (willOpen && session) void hydrateHistoryFromDrive();
-                  }}
-                  type="button">
-                  {historyOpen ? 'Hide' : 'Show'}
-                </button>
-              </div>
-              {historyOpen ? (
-                <div className="space-y-2">
+            </summary>
+            <div className="popup-management-body space-y-4 text-xs text-stone-700">
+              <section className="space-y-2">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-semibold text-stone-950">Privacy</p>
+                    <p className="mt-1 leading-5">
+                      Reports save locally. Contract text goes only to your selected AI provider when you scan.{' '}
+                      {!session
+                        ? 'Sign in first if you want optional Drive backup.'
+                        : settings.driveBackupEnabled
+                          ? 'Drive backup is enabled for signed-in scans.'
+                          : 'Drive backup is currently off.'}
+                    </p>
+                  </div>
                   {session ? (
-                    <div className="flex items-center justify-between gap-3 rounded-2xl border border-stone-200 bg-white/60 px-3 py-2 text-xs text-stone-600">
-                      <span>{historySyncing ? 'Checking Drive...' : 'Need older synced reports?'}</span>
+                    <button className="popup-link-button" onClick={() => void toggleDriveBackup()} type="button">
+                      {settings.driveBackupEnabled ? 'Turn off Drive' : 'Enable Drive'}
+                    </button>
+                  ) : (
+                    <button
+                      className="popup-link-button"
+                      onClick={() => void handleSignIn()}
+                      disabled={signingIn}
+                      type="button">
+                      {signingIn ? 'Signing in...' : 'Sign in'}
+                    </button>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  <button className="popup-link-button" onClick={() => void clearLocalReports()} type="button">
+                    Clear local reports
+                  </button>
+                  <button className="popup-link-button" onClick={() => void clearAllLocalData()} type="button">
+                    Clear all local data
+                  </button>
+                </div>
+                {pendingDriveBackupId && currentAnalysis?.id === pendingDriveBackupId ? (
+                  <div className="popup-alert popup-alert-guidance">
+                    <p className="font-semibold">Back up the current visible analysis?</p>
+                    <p className="mt-1">
+                      This requests Drive sync for the current report. Original source files are not backfilled unless
+                      they are still available in memory.
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-3">
                       <button
                         className="popup-link-button"
-                        onClick={() => void hydrateHistoryFromDrive()}
-                        disabled={historySyncing}
+                        onClick={() => void backUpCurrentAnalysisToDrive()}
                         type="button">
-                        Refresh Drive
+                        Back up current report
+                      </button>
+                      <button className="popup-link-button" onClick={dismissCurrentBackupPrompt} type="button">
+                        Not now
                       </button>
                     </div>
-                  ) : null}
-                  {history.length === 0 ? (
-                    <div className="rounded-2xl border border-stone-200 bg-white/70 px-3 py-3 text-xs leading-5 text-stone-600">
-                      No reports saved yet. Run a quick scan or refresh Drive if you already backed up analyses.
-                    </div>
-                  ) : null}
-                  {history.map(record => {
-                    const isPendingDelete = pendingDeleteReportId === record.id;
+                  </div>
+                ) : null}
+                {syncNotice ? <p className="text-xs leading-5 text-stone-600">{syncNotice}</p> : null}
+              </section>
 
-                    return (
-                      <div key={record.id} className="popup-history-row">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0 flex-1">
-                            <p className="line-clamp-1 font-semibold text-stone-950">{record.source.name}</p>
-                            <p className="mt-1 text-stone-500">
-                              {formatReportDate(record.createdAt)} ·{' '}
-                              {record.deepAnalysis ? 'Detailed report' : 'Quick scan only'}
-                            </p>
-                          </div>
-                          <span
-                            className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
-                              riskToneClasses[record.deepAnalysis?.overallRiskLevel ?? record.quickScan.roughRiskLevel]
-                            }`}>
-                            {record.deepAnalysis?.overallRiskLevel ?? record.quickScan.roughRiskLevel}
-                          </span>
-                        </div>
-                        <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">
-                          {storageStateCopy[record.storageState]}
-                        </p>
-                        <div className="mt-2 flex flex-wrap gap-3">
-                          <button className="popup-link-button" onClick={() => openHistoryRecord(record)} type="button">
-                            Open
-                          </button>
-                          <button
-                            className="popup-link-button"
-                            onClick={() => void copyHistoryRecord(record)}
-                            type="button">
-                            Copy report
-                          </button>
-                          <button
-                            className="popup-link-button"
-                            onClick={() => exportHistoryRecord(record)}
-                            type="button">
-                            Export .md
-                          </button>
-                          <button
-                            className="popup-link-button"
-                            onClick={() => requestDeleteHistoryRecord(record)}
-                            type="button">
-                            Delete
-                          </button>
-                        </div>
-                        {isPendingDelete ? (
-                          <div className="mt-3 rounded-2xl border border-rose-200 bg-rose-50 px-3 py-3 text-rose-900">
-                            <p className="font-semibold">Delete this report?</p>
-                            <p className="mt-1 text-xs leading-5">
-                              This cannot be undone locally. Matching Drive files will be removed when possible.
-                            </p>
-                            <div className="mt-3 flex flex-wrap gap-3">
-                              <button
-                                className="popup-link-button text-rose-800"
-                                onClick={() => void confirmDeleteHistoryRecord(record)}
-                                type="button">
-                                Delete permanently
-                              </button>
-                              <button className="popup-link-button" onClick={cancelDeleteHistoryRecord} type="button">
-                                Cancel
-                              </button>
-                            </div>
-                          </div>
-                        ) : null}
-                      </div>
-                    );
-                  })}
+              <section className="space-y-3 border-t border-stone-200 pt-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="font-semibold text-stone-950">Recent analyses</p>
+                    <p className="text-stone-600">
+                      {settings.driveBackupEnabled
+                        ? 'Local and Drive-backed reports appear here.'
+                        : 'Local reports appear here.'}
+                    </p>
+                  </div>
+                  <button
+                    className="popup-link-button"
+                    onClick={() => {
+                      const willOpen = !historyOpen;
+                      setHistoryOpen(willOpen);
+                      if (willOpen && session) void hydrateHistoryFromDrive();
+                    }}
+                    type="button">
+                    {historyOpen ? 'Hide reports' : 'Show reports'}
+                  </button>
                 </div>
-              ) : null}
-            </section>
-          ) : null}
+                {historyOpen ? (
+                  <div className="space-y-2">
+                    {session ? (
+                      <div className="flex items-center justify-between gap-3 rounded-2xl border border-stone-200 bg-white/60 px-3 py-2 text-xs text-stone-600">
+                        <span>{historySyncing ? 'Checking Drive...' : 'Need older synced reports?'}</span>
+                        <button
+                          className="popup-link-button"
+                          onClick={() => void hydrateHistoryFromDrive()}
+                          disabled={historySyncing}
+                          type="button">
+                          Refresh Drive
+                        </button>
+                      </div>
+                    ) : null}
+                    {history.length === 0 ? (
+                      <div className="rounded-2xl border border-stone-200 bg-white/70 px-3 py-3 text-xs leading-5 text-stone-600">
+                        No reports saved yet. Run a quick scan or refresh Drive if you already backed up analyses.
+                      </div>
+                    ) : null}
+                    {history.map(record => {
+                      const isPendingDelete = pendingDeleteReportId === record.id;
+
+                      return (
+                        <div key={record.id} className="popup-history-row">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <p className="line-clamp-1 font-semibold text-stone-950">{record.source.name}</p>
+                              <p className="mt-1 text-stone-500">
+                                {formatReportDate(record.createdAt)} ·{' '}
+                                {record.deepAnalysis ? 'Detailed report' : 'Quick scan only'}
+                              </p>
+                            </div>
+                            <span
+                              className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
+                                riskToneClasses[
+                                  record.deepAnalysis?.overallRiskLevel ?? record.quickScan.roughRiskLevel
+                                ]
+                              }`}>
+                              {record.deepAnalysis?.overallRiskLevel ?? record.quickScan.roughRiskLevel}
+                            </span>
+                          </div>
+                          <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+                            {storageStateCopy[record.storageState]}
+                          </p>
+                          <div className="mt-2 flex flex-wrap gap-3">
+                            <button
+                              className="popup-link-button"
+                              onClick={() => openHistoryRecord(record)}
+                              type="button">
+                              Open
+                            </button>
+                            <button
+                              className="popup-link-button"
+                              onClick={() => void copyHistoryRecord(record)}
+                              type="button">
+                              Copy report
+                            </button>
+                            <button
+                              className="popup-link-button"
+                              onClick={() => exportHistoryRecord(record)}
+                              type="button">
+                              Export .md
+                            </button>
+                            <button
+                              className="popup-link-button"
+                              onClick={() => requestDeleteHistoryRecord(record)}
+                              type="button">
+                              Delete
+                            </button>
+                          </div>
+                          {isPendingDelete ? (
+                            <div className="popup-alert popup-alert-danger mt-3">
+                              <p className="font-semibold">Delete this report?</p>
+                              <p className="mt-1">
+                                This cannot be undone locally. Matching Drive files will be removed when possible.
+                              </p>
+                              <div className="mt-3 flex flex-wrap gap-3">
+                                <button
+                                  className="popup-link-button text-rose-800"
+                                  onClick={() => void confirmDeleteHistoryRecord(record)}
+                                  type="button">
+                                  Delete permanently
+                                </button>
+                                <button className="popup-link-button" onClick={cancelDeleteHistoryRecord} type="button">
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                          ) : null}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : null}
+              </section>
+            </div>
+          </details>
 
           {launchError ? (
             <section className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">

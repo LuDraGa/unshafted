@@ -2,6 +2,42 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --unshafted-bg: #f8f4ee;
+  --unshafted-bg-warm: #efe5d6;
+  --unshafted-surface: rgba(255, 252, 247, 0.82);
+  --unshafted-surface-strong: rgba(255, 252, 247, 0.96);
+  --unshafted-border: rgba(120, 113, 108, 0.18);
+  --unshafted-border-strong: rgba(120, 113, 108, 0.28);
+  --unshafted-text: #1c1917;
+  --unshafted-text-muted: #57534e;
+  --unshafted-text-faint: #78716c;
+  --unshafted-brand: #92400e;
+  --unshafted-brand-soft: rgba(255, 251, 235, 0.62);
+  --unshafted-action: #1f2937;
+  --unshafted-action-text: #fafaf9;
+  --unshafted-selection: #292524;
+  --unshafted-selection-soft: #e7e5e4;
+  --unshafted-focus: rgba(251, 191, 36, 0.18);
+  --unshafted-guidance-border: #fde68a;
+  --unshafted-guidance-bg: #fffbeb;
+  --unshafted-guidance-text: #92400e;
+  --unshafted-risk-low-border: #a7f3d0;
+  --unshafted-risk-low-bg: #ecfdf5;
+  --unshafted-risk-low-text: #065f46;
+  --unshafted-risk-medium-border: #fed7aa;
+  --unshafted-risk-medium-bg: #fff7ed;
+  --unshafted-risk-medium-text: #9a3412;
+  --unshafted-risk-high-border: #fecaca;
+  --unshafted-risk-high-bg: #fef2f2;
+  --unshafted-risk-high-text: #991b1b;
+  --unshafted-danger-border: #fecdd3;
+  --unshafted-danger-bg: #fff1f2;
+  --unshafted-danger-text: #9f1239;
+  --unshafted-radius-card: 20px;
+  --unshafted-shadow-card: 0 16px 40px rgba(28, 25, 23, 0.06);
+}
+
 *,
 *::before,
 *::after {

@@ -483,6 +483,24 @@ const ResultsView = ({
     title: item.title,
     detail: item.detail,
   }));
+  const riskEvidence = [
+    ...deep.immediateWorries,
+    ...deep.oneSidedClauses,
+    ...deep.timingAndLockIn,
+    ...deep.couldShaftYouLater,
+  ];
+  const riskEvidenceCount = riskEvidence.length + deep.topicConcerns.length;
+  const negotiationCount =
+    deep.missingProtections.length +
+    deep.negotiationIdeas.length +
+    deep.suggestedEdits.length +
+    deep.questionsToAsk.length +
+    deep.protectionChecklist.reduce((sum, group) => sum + group.items.length, 0);
+  const caveatCount =
+    deep.clauseReferenceNotes.length +
+    deep.assumptionsAndUnknowns.length +
+    quick.extractionConcerns.length +
+    sourceWarnings.length;
 
   return (
     <div className="space-y-3">
@@ -523,132 +541,120 @@ const ResultsView = ({
         </section>
       ) : null}
 
-      {/* Accordion sections — empty sections are omitted */}
+      {/* Detail groups — kept secondary to the decision and action summary */}
 
-      {deep.immediateWorries.length > 0 ? (
+      {riskEvidenceCount > 0 ? (
         <ResultAccordion
-          title="Top risks: immediate issues"
-          count={deep.immediateWorries.length}
-          severity={maxSeverity(deep.immediateWorries)}>
-          <div className="space-y-2">
-            {deep.immediateWorries.map(item => (
-              <FindingDetails key={item.title} item={item} />
-            ))}
-          </div>
-        </ResultAccordion>
-      ) : null}
-
-      {deep.oneSidedClauses.length > 0 ? (
-        <ResultAccordion
-          title="Top risks: one-sided terms"
-          count={deep.oneSidedClauses.length}
-          severity={maxSeverity(deep.oneSidedClauses)}>
-          <div className="space-y-2">
-            {deep.oneSidedClauses.map(item => (
-              <FindingDetails key={item.title} item={item} />
-            ))}
-          </div>
-        </ResultAccordion>
-      ) : null}
-
-      {deep.missingProtections.length > 0 ? (
-        <ResultAccordion title="Missing protections" count={deep.missingProtections.length}>
-          <div className="space-y-2">
-            {deep.missingProtections.map(item => (
-              <MissingProtectionCard key={item.title} item={item} />
-            ))}
-          </div>
-        </ResultAccordion>
-      ) : null}
-
-      {deep.timingAndLockIn.length > 0 ? (
-        <ResultAccordion
-          title="Deadlines, renewals, lock-ins"
-          count={deep.timingAndLockIn.length}
-          severity={maxSeverity(deep.timingAndLockIn)}>
-          <div className="space-y-2">
-            {deep.timingAndLockIn.map(item => (
-              <FindingDetails key={item.title} item={item} />
-            ))}
-          </div>
-        </ResultAccordion>
-      ) : null}
-
-      {deep.topicConcerns.length > 0 ? (
-        <ResultAccordion
-          title="Core concerns"
-          count={deep.topicConcerns.length}
-          severity={maxSeverity(deep.topicConcerns)}>
-          <div className="space-y-2">
-            {deep.topicConcerns.map(item => (
-              <TopicConcernCard key={`${item.category}-${item.title}`} item={item} />
-            ))}
-          </div>
-        </ResultAccordion>
-      ) : null}
-
-      {deep.negotiationIdeas.length > 0 ? (
-        <ResultAccordion title="What to negotiate" count={deep.negotiationIdeas.length}>
-          <div className="space-y-2">
-            {deep.negotiationIdeas.map(item => (
-              <div key={item.ask} className="rounded-2xl border border-stone-200 bg-white/80 p-3">
-                <p className="text-sm font-semibold text-stone-950">{item.ask}</p>
-                <p className="mt-1.5 text-xs leading-5 text-stone-700">{item.why}</p>
-                {item.fallback ? (
-                  <p className="mt-2 text-xs text-stone-600">
-                    <span className="font-semibold text-stone-900">Fallback:</span> {item.fallback}
-                  </p>
-                ) : null}
-                {item.targetClause ? (
-                  <p className="mt-2 text-[11px] text-stone-500">Target clause: {item.targetClause}</p>
-                ) : null}
+          title="Evidence: risk findings"
+          count={riskEvidenceCount}
+          severity={riskEvidence.length > 0 ? maxSeverity(riskEvidence) : undefined}
+          defaultOpen>
+          <div className="space-y-3">
+            {riskEvidence.length > 0 ? (
+              <div className="space-y-2">
+                {riskEvidence.map(item => (
+                  <FindingDetails key={`${item.title}-${item.reference?.label ?? ''}`} item={item} />
+                ))}
               </div>
-            ))}
-          </div>
-        </ResultAccordion>
-      ) : null}
-
-      {deep.suggestedEdits.length > 0 ? (
-        <ResultAccordion title="Suggested edits" count={deep.suggestedEdits.length}>
-          <div className="space-y-2">
-            {deep.suggestedEdits.map(item => (
-              <div key={item.title} className="rounded-2xl border border-stone-200 bg-white/80 p-3">
-                <p className="text-sm font-semibold text-stone-950">{item.title}</p>
-                <p className="mt-1.5 text-xs leading-5 text-stone-700">{item.plainEnglishEdit}</p>
-                <p className="mt-2 text-xs text-stone-600">{item.why}</p>
+            ) : null}
+            {deep.topicConcerns.length > 0 ? (
+              <div className="space-y-2">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+                  Role and topic concerns
+                </p>
+                {deep.topicConcerns.map(item => (
+                  <TopicConcernCard key={`${item.category}-${item.title}`} item={item} />
+                ))}
               </div>
-            ))}
+            ) : null}
           </div>
         </ResultAccordion>
       ) : null}
 
-      {deep.questionsToAsk.length > 0 ? (
-        <ResultAccordion title="Questions to ask before signing" count={deep.questionsToAsk.length}>
-          <ul className="space-y-2 text-xs leading-5 text-stone-700">
-            {deep.questionsToAsk.map(question => (
-              <li key={question} className="rounded-2xl border border-stone-200 bg-white/80 px-3 py-2">
-                {question}
-              </li>
-            ))}
-          </ul>
-        </ResultAccordion>
-      ) : null}
-
-      {deep.couldShaftYouLater.length > 0 ? (
-        <ResultAccordion
-          title="Later risks"
-          count={deep.couldShaftYouLater.length}
-          severity={maxSeverity(deep.couldShaftYouLater)}>
-          <div className="space-y-2">
-            {deep.couldShaftYouLater.map(item => (
-              <FindingDetails key={item.title} item={item} />
-            ))}
+      {negotiationCount > 0 ? (
+        <ResultAccordion title="Negotiation and protections" count={negotiationCount}>
+          <div className="space-y-3">
+            {deep.negotiationIdeas.length > 0 ? (
+              <div className="space-y-2">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">What to ask for</p>
+                {deep.negotiationIdeas.map(item => (
+                  <div key={item.ask} className="rounded-2xl border border-stone-200 bg-white/80 p-3">
+                    <p className="text-sm font-semibold text-stone-950">{item.ask}</p>
+                    <p className="mt-1.5 text-xs leading-5 text-stone-700">{item.why}</p>
+                    {item.fallback ? (
+                      <p className="mt-2 text-xs text-stone-600">
+                        <span className="font-semibold text-stone-900">Fallback:</span> {item.fallback}
+                      </p>
+                    ) : null}
+                    {item.targetClause ? (
+                      <p className="mt-2 text-[11px] text-stone-500">Target clause: {item.targetClause}</p>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            ) : null}
+            {deep.suggestedEdits.length > 0 ? (
+              <div className="space-y-2">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">Suggested edits</p>
+                {deep.suggestedEdits.map(item => (
+                  <div key={item.title} className="rounded-2xl border border-stone-200 bg-white/80 p-3">
+                    <p className="text-sm font-semibold text-stone-950">{item.title}</p>
+                    <p className="mt-1.5 text-xs leading-5 text-stone-700">{item.plainEnglishEdit}</p>
+                    <p className="mt-2 text-xs text-stone-600">{item.why}</p>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+            {deep.missingProtections.length > 0 ? (
+              <div className="space-y-2">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+                  Missing protections
+                </p>
+                {deep.missingProtections.map(item => (
+                  <MissingProtectionCard key={item.title} item={item} />
+                ))}
+              </div>
+            ) : null}
+            {deep.questionsToAsk.length > 0 ? (
+              <div className="space-y-2">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+                  Questions before signing
+                </p>
+                <ul className="space-y-2 text-xs leading-5 text-stone-700">
+                  {deep.questionsToAsk.map(question => (
+                    <li key={question} className="rounded-2xl border border-stone-200 bg-white/80 px-3 py-2">
+                      {question}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+            {deep.protectionChecklist.length > 0 ? (
+              <div className="space-y-2">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+                  Protection checklist
+                </p>
+                {deep.protectionChecklist.map(group => (
+                  <div key={group.label} className="rounded-2xl border border-stone-200 bg-white/80 p-3">
+                    <p className="text-sm font-semibold text-stone-950">{group.label}</p>
+                    <ul className="mt-2 space-y-1.5 text-xs leading-5 text-stone-700">
+                      {group.items.map(item => (
+                        <li key={item} className="flex gap-2">
+                          <span className="mt-1.5 inline-block h-2 w-2 shrink-0 rounded-full bg-stone-950" />
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            ) : null}
           </div>
         </ResultAccordion>
       ) : null}
 
       {deep.potentialAdvantages.length > 0 ? (
-        <ResultAccordion title="Advantages for you" count={deep.potentialAdvantages.length}>
+        <ResultAccordion title="Other useful details" count={deep.potentialAdvantages.length}>
           <div className="space-y-2">
             {deep.potentialAdvantages.map(item => (
               <AdvantageCard key={item.title} item={item} />
@@ -657,34 +663,14 @@ const ResultsView = ({
         </ResultAccordion>
       ) : null}
 
-      {deep.protectionChecklist.length > 0 ? (
-        <ResultAccordion
-          title="Protection checklist"
-          count={deep.protectionChecklist.reduce((sum, g) => sum + g.items.length, 0)}>
-          <div className="space-y-2">
-            {deep.protectionChecklist.map(group => (
-              <div key={group.label} className="rounded-2xl border border-stone-200 bg-white/80 p-3">
-                <p className="text-sm font-semibold text-stone-950">{group.label}</p>
-                <ul className="mt-2 space-y-1.5 text-xs leading-5 text-stone-700">
-                  {group.items.map(item => (
-                    <li key={item} className="flex gap-2">
-                      <span className="mt-1.5 inline-block h-2 w-2 shrink-0 rounded-full bg-stone-950" />
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
+      {caveatCount > 0 ? (
+        <ResultAccordion title="Coverage, references, and caveats" count={caveatCount}>
+          <div className="space-y-2 text-xs leading-5 text-stone-700">
+            {[...quick.extractionConcerns, ...sourceWarnings].map(note => (
+              <div key={note} className="rounded-2xl border border-amber-200 bg-amber-50/85 px-3 py-2 text-amber-900">
+                {note}
               </div>
             ))}
-          </div>
-        </ResultAccordion>
-      ) : null}
-
-      {/* Clause references — only if content exists */}
-      {deep.clauseReferenceNotes.length > 0 || deep.assumptionsAndUnknowns.length > 0 ? (
-        <ResultAccordion
-          title="References and caveats"
-          count={deep.clauseReferenceNotes.length + deep.assumptionsAndUnknowns.length}>
-          <div className="space-y-2 text-xs leading-5 text-stone-700">
             {deep.clauseReferenceNotes.map(note => (
               <div key={note} className="rounded-2xl border border-stone-200 bg-white/80 px-3 py-2">
                 {note}

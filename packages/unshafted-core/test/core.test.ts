@@ -42,7 +42,10 @@ test('report markdown includes user-facing report sections', async () => {
   const analysis = await createSampleAnalysis();
   const report = createReportMarkdown(createHistoryRecord(analysis, { storageState: 'drive-backup-requested' }));
   assert.match(report, /^# Unshafted Report:/);
+  assert.match(report, /## Decision/);
   assert.match(report, /## Bottom Line/);
+  assert.match(report, /## Top Risks/);
   assert.match(report, /## What To Ask For/);
+  assert.match(report, /## Evidence/);
   assert.match(report, /## Disclaimer/);
 });

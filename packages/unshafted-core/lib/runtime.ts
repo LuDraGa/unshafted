@@ -106,22 +106,60 @@ const createHistoryRecord = (
 const reportList = (items: string[], emptyText: string): string =>
   items.length > 0 ? items.map(item => `- ${item}`).join('\n') : `- ${emptyText}`;
 
+const reportDecision = (riskLevel: 'Low' | 'Medium' | 'High' | 'Very High'): string => {
+  switch (riskLevel) {
+    case 'Low':
+      return 'Likely okay to proceed after confirming the facts.';
+    case 'Medium':
+      return 'Review and clarify before signing.';
+    case 'High':
+      return 'Negotiate the highlighted terms before signing.';
+    case 'Very High':
+      return 'Pause and get qualified help before signing.';
+    default:
+      return 'Review the highlighted risks before signing.';
+  }
+};
+
 const createReportMarkdown = (record: HistoryRecord): string => {
   const risk = record.deepAnalysis?.overallRiskLevel ?? record.quickScan.roughRiskLevel;
   const bottomLine = record.deepAnalysis?.bottomLine ?? record.quickScan.cautionLine;
   const summary = record.deepAnalysis?.plainEnglishSummary ?? record.quickScan.summary;
   const createdAt = new Date(record.createdAt).toLocaleString();
-  const topFlags = record.quickScan.redFlags
+  const topRisks = record.deepAnalysis
+    ? [
+        ...record.deepAnalysis.immediateWorries,
+        ...record.deepAnalysis.oneSidedClauses,
+        ...record.deepAnalysis.timingAndLockIn,
+        ...record.deepAnalysis.couldShaftYouLater,
+      ]
+        .slice(0, 6)
+        .map(item => `${item.title} (${item.severity}): ${item.whyItMatters}`)
+    : record.quickScan.redFlags.slice(0, 5).map(flag => `${flag.title} (${flag.severity}): ${flag.reason}`);
+  const quickFlags = record.quickScan.redFlags
     .slice(0, 5)
     .map(flag => `${flag.title} (${flag.severity}): ${flag.reason}`);
-  const asks = record.deepAnalysis?.negotiationIdeas.slice(0, 5).map(item => `${item.ask}: ${item.why}`) ?? [];
+  const asks = record.deepAnalysis
+    ? [
+        ...record.deepAnalysis.negotiationIdeas.map(item => `${item.ask}: ${item.why}`),
+        ...record.deepAnalysis.suggestedEdits.map(item => `${item.title}: ${item.plainEnglishEdit}`),
+        ...record.deepAnalysis.missingProtections.map(item => `${item.title}: ${item.commonFix}`),
+        ...record.deepAnalysis.questionsToAsk.map(item => `Ask: ${item}`),
+      ].slice(0, 8)
+    : record.quickScan.redFlags
+        .slice(0, 3)
+        .map(flag => `Clarify ${flag.title}: ask whether this can be narrowed or explained in writing.`);
   const edits =
     record.deepAnalysis?.suggestedEdits.slice(0, 5).map(item => `${item.title}: ${item.plainEnglishEdit}`) ?? [];
-  const questions = record.deepAnalysis?.questionsToAsk.slice(0, 8) ?? [];
+  const evidence = [
+    ...record.quickScan.redFlags
+      .filter(flag => flag.reference?.label)
+      .map(flag => `${flag.title}: ${flag.reference?.label}`),
+    ...(record.deepAnalysis?.clauseReferenceNotes ?? []),
+  ];
   const caveats = [
     ...(record.quickScan.extractionConcerns ?? []),
     ...(record.deepAnalysis?.assumptionsAndUnknowns ?? []),
-    ...(record.deepAnalysis?.clauseReferenceNotes ?? []),
   ];
 
   return [
@@ -132,29 +170,37 @@ const createReportMarkdown = (record: HistoryRecord): string => {
     `Reviewed as: ${record.selectedRole}`,
     `Risk posture: ${risk}`,
     '',
+    '## Decision',
+    '',
+    reportDecision(risk),
+    '',
     '## Bottom Line',
     '',
     bottomLine,
     '',
-    '## Summary',
+    '## Top Risks',
     '',
-    summary,
-    '',
-    '## Top Quick-Scan Flags',
-    '',
-    reportList(topFlags, 'No major quick-scan flags found.'),
+    reportList(topRisks, 'No major blockers were found.'),
     '',
     '## What To Ask For',
     '',
     reportList(asks, 'No specific negotiation asks were generated.'),
     '',
+    '## Evidence',
+    '',
+    reportList(evidence, 'No clause references were recorded.'),
+    '',
+    '## Summary',
+    '',
+    summary,
+    '',
+    '## Quick-Scan Flags',
+    '',
+    reportList(quickFlags, 'No major quick-scan flags found.'),
+    '',
     '## Suggested Edits',
     '',
     reportList(edits, 'No specific edits were generated.'),
-    '',
-    '## Questions To Ask',
-    '',
-    reportList(questions, 'No specific questions were generated.'),
     '',
     '## Caveats',
     '',
