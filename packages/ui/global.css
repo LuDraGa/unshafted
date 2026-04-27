@@ -140,6 +140,12 @@ code {
   margin-top: 8px;
 }
 
+.spotlight-tour-secondary-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .spotlight-tour-skip {
   border: 0;
   background: transparent;

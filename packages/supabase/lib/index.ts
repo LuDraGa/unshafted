@@ -1,5 +1,13 @@
 export { supabase } from './client.js';
-export { signInWithGoogle, signOut, getSession, getUser, onAuthStateChange, getProfile } from './auth.js';
+export {
+  signInWithGoogle,
+  signOut,
+  getSession,
+  getUser,
+  onAuthStateChange,
+  getProfile,
+  updateProfilePreferences,
+} from './auth.js';
 export type { Profile } from './types.js';
 export type { Session } from '@supabase/supabase-js';
 export { getDriveToken, clearDriveToken } from './drive-token.js';

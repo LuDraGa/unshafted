@@ -126,3 +126,32 @@ export const getProfile = async (): Promise<Profile | null> => {
 
   return data as Profile | null;
 };
+
+export const updateProfilePreferences = async ({
+  driveBackupEnabled,
+}: {
+  driveBackupEnabled: boolean;
+}): Promise<{ ok: true } | { ok: false; error: string }> => {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, error: 'Not signed in.' };
+  }
+
+  const { error } = await supabase
+    .schema('unshafted')
+    .from('profiles')
+    .update({
+      drive_backup_enabled: driveBackupEnabled,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', user.id);
+
+  if (error) {
+    console.warn('[Unshafted] profile preference update failed:', error.message);
+    return { ok: false, error: error.message };
+  }
+
+  return { ok: true };
+};
