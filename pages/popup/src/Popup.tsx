@@ -260,17 +260,17 @@ const Popup = () => {
             summary: {
               id: 'summary',
               target: 'summary',
-              text: 'Start here for the quick read.',
+              text: 'Start here: this is the practical signing posture and next action.',
             },
             flags: {
               id: 'flags',
               target: 'flags',
-              text: 'Flags are the fastest risk triage.',
+              text: 'Check these flags before reading details. They are the fastest risk triage.',
             },
             customize: {
               id: 'customize',
               target: 'customize',
-              text: 'Set your role before deeper review.',
+              text: 'Set your role only if you want the deeper review tailored to your side.',
             },
             cta: {
               id: 'cta',
@@ -287,25 +287,25 @@ const Popup = () => {
             provider: {
               id: 'provider',
               target: 'api-key',
-              text: 'Start by choosing your AI provider.',
+              text: 'Setup has four steps. Start by choosing the AI provider that will analyze your contract text.',
               nextLabel: 'Open',
             },
             'api-key': {
               id: 'api-key',
               target: 'api-key',
-              text: 'Paste your API key in Options.',
+              text: 'Paste your provider key in Options. It stays local in extension storage.',
               nextLabel: 'Open',
             },
             'save-settings': {
               id: 'save-settings',
               target: 'api-key',
-              text: 'Save the key before testing it.',
+              text: 'Save the key locally before testing it.',
               nextLabel: 'Open',
             },
             'test-connection': {
               id: 'test-connection',
               target: 'api-key',
-              text: 'Test the key before your first scan.',
+              text: 'Test once before scanning your own contracts.',
               nextLabel: 'Open',
             },
             'sign-in': {
@@ -991,7 +991,7 @@ const Popup = () => {
               <div>
                 <p className="font-semibold text-stone-950">Privacy and sync</p>
                 <p className="mt-1 leading-5">
-                  Reports save locally.{' '}
+                  Reports save locally. Contract text goes only to your selected AI provider when you scan.{' '}
                   {!session
                     ? 'Sign in first if you want optional Drive backup.'
                     : settings.driveBackupEnabled

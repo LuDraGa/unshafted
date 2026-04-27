@@ -302,22 +302,22 @@ const Options = () => {
           provider: {
             id: 'provider',
             target: 'provider',
-            text: 'Choose OpenRouter or OpenAI.',
+            text: 'Step 1 of 4: choose where contract text will be analyzed.',
           },
           'api-key': {
             id: 'api-key',
             target: 'api-key',
-            text: 'Paste the key for this provider.',
+            text: 'Step 2 of 4: paste the key for that provider. It stays in local extension storage.',
           },
           'save-settings': {
             id: 'save-settings',
             target: 'save-settings',
-            text: 'Save the key locally.',
+            text: 'Step 3 of 4: save locally before testing so the popup can use this provider.',
           },
           'test-connection': {
             id: 'test-connection',
             target: 'test-connection',
-            text: 'Test the key before scanning.',
+            text: 'Step 4 of 4: test the key once, then return to the popup to scan.',
           },
         } satisfies Record<OptionsSetupStep, SpotlightTourStep & { id: OptionsSetupStep }>
       )[activeOptionsStep]
@@ -380,7 +380,8 @@ const Options = () => {
             <p className="options-eyebrow">Unshafted</p>
             <h1 className="text-2xl font-semibold tracking-[-0.04em] text-stone-950">Bring your own key</h1>
             <p className="text-sm leading-6 text-stone-600">
-              Choose your provider, paste a key, test it, and head back to the popup to run your first contract.
+              Choose your provider, paste a key, test it, and head back to the popup to run your first contract. The
+              sample analysis works without setup; this page only unlocks scans for your own files.
             </p>
             <hr className="border-stone-200" />
           </div>
@@ -454,6 +455,16 @@ const Options = () => {
               {onboardingMode ? <p className="text-xs leading-5 text-stone-600">{setupHelp.inputHelp}</p> : null}
             </label>
           </div>
+
+          <section className="options-help-card mt-6">
+            <div>
+              <p className="options-help-eyebrow">Data flow</p>
+              <p className="mt-1 text-sm leading-5 text-stone-700">
+                Your API key is stored locally and sent only to the provider you choose. Contract text is sent to that
+                provider when you scan. Google Drive backup is separate and only runs after you enable it in the popup.
+              </p>
+            </div>
+          </section>
 
           <div className="mt-8 flex flex-wrap gap-3">
             <button
