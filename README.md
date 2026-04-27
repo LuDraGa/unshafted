@@ -43,7 +43,7 @@ Unshafted/
   chrome-extension/     # MV3 manifest, service worker, public assets
   pages/
     popup/              # Main UI — upload, scan results, deep analysis
-    content/            # Content script (page text extraction)
+    content/            # Dormant content-script bundle; upload-first v1 does not expose page analysis
     options/            # Settings page (API keys, model selection)
   packages/
     unshafted-core/     # Analysis engine — schemas, prompts, PDF parsing, document processing
@@ -112,6 +112,14 @@ See [Database](#database) for more detail.
 
 ### Install & Run
 
+Use the pinned Node version:
+
+```bash
+nvm use
+corepack enable
+corepack prepare pnpm@10.11.0 --activate
+```
+
 ```bash
 pnpm install
 pnpm dev          # builds + watches all packages, outputs to dist/
@@ -124,6 +132,22 @@ Load the unpacked extension from `dist/` in `chrome://extensions` (Developer mod
 ```bash
 pnpm build        # clean build → dist/ → zipped to unshafted-extension.zip
 ```
+
+### Standard Verification
+
+Run these before release or meaningful commits:
+
+```bash
+pnpm lint
+pnpm type-check
+pnpm build
+pnpm --filter @extension/unshafted-core test
+git diff --check
+rg -n "CEB_OPENROUTER_API_KEY|CEB_OPENAI_API_KEY|OPENROUTER_API_KEY|OPENAI_API_KEY" dist -g '!**/*.map'
+rg -n "sk-proj-[A-Za-z0-9_-]{20,}|sk-or-v1-[A-Za-z0-9_-]{20,}" dist -g '!**/*.map'
+```
+
+The two `rg` bundle scans should return no matches.
 
 ## Database
 
@@ -148,7 +172,7 @@ RLS policies: users can only read and update their own profile.
 
 SQL migration files live in `supabase/migrations/` and are the source of truth for the database schema. During early development, these were run manually via the Supabase SQL editor as we scoped the schema iteratively. The migration files are now maintained in the repo for reproducibility and onboarding.
 
-**Current approach:** Manual execution against Supabase SQL editor, ordered by filename prefix. No migration runner or Supabase CLI is used yet — this is a recognized gap that will be addressed as the schema grows with credits and billing tables.
+**Current approach:** Manual execution against Supabase SQL editor, ordered by filename prefix. No migration runner or Supabase CLI is used yet. Introduce one before adding schema-heavy features such as credits, billing, teams, or shared reports.
 
 ## Design Decisions
 
@@ -165,7 +189,7 @@ Supabase expects `localStorage`, which doesn't exist in Chrome extension service
 Drive operations are best-effort. The extension always works locally and local storage remains the working copy. Reports show `Drive backup requested` while sync is pending and `Drive backed up` only after a successful report write. Failures do not block analysis. Content-hash deduplication prevents file accumulation on reruns.
 
 ### No Migration Runner (Yet)
-During early development, we ran SQL directly in the Supabase SQL editor while iterating on the schema. Migration files are now tracked in `supabase/migrations/` as the source of truth, but are still applied manually. A proper migration tool will be introduced alongside the credits/billing schema in Phase 3.
+During early development, we ran SQL directly in the Supabase SQL editor while iterating on the schema. Migration files are now tracked in `supabase/migrations/` as the source of truth, but are still applied manually. A proper migration tool should be introduced before the schema expands beyond auth/profile support.
 
 ### OAuth: Web Application Client Type
 Chrome extensions using `chrome.identity.launchWebAuthFlow` need a **Web Application** OAuth client (not "Chrome App"). The redirect URI is `https://<extension-id>.chromiumapp.org`. A pinned `key` in the manifest keeps the extension ID stable across dev reinstalls.
@@ -183,7 +207,7 @@ See [`execution-docs/v0.6.7-to-v0.8.0-roadmap.md`](execution-docs/v0.6.7-to-v0.8
 ### Next — v0.8 System and Design Maturity
 - Consolidate semantic design tokens and shared component variants.
 - Simplify the popup information architecture after the v0.7 core loop is settled.
-- Resolve upload-only vs current-page analysis positioning.
+- Keep v1 positioned as upload-first; current-page analysis remains dormant unless restored as a first-class flow.
 - Improve local dev/CI onboarding and migration workflow clarity as the system grows.
 
 ### Future
@@ -196,6 +220,7 @@ See [`execution-docs/v0.6.7-to-v0.8.0-roadmap.md`](execution-docs/v0.6.7-to-v0.8
 - **Jurisdiction-aware analysis** — Flag clauses that behave differently across states/countries
 - **Batch analysis** — Upload and analyze multiple contracts at once
 - **Multi-document comparison** — Side-by-side version diffs with risk context
+- **Current-page analysis** — Possible future feature, but intentionally not positioned as part of upload-first v1.
 
 ### Areas of Growth
 - **DOCX support** — Currently unsupported; planned for a future release
