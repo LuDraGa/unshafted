@@ -42,6 +42,7 @@ const providerParam = searchParams.get('provider');
 const preferredProvider: Provider | null =
   providerParam === 'openrouter' || providerParam === 'openai' ? providerParam : null;
 const optionsSetupSteps = new Set<OnboardingStep>(['provider', 'api-key', 'save-settings', 'test-connection']);
+const optionsStepOrder: OptionsSetupStep[] = ['provider', 'api-key', 'save-settings', 'test-connection'];
 const isOptionsSetupStep = (step: OnboardingStep): step is OptionsSetupStep => optionsSetupSteps.has(step);
 
 const Options = () => {
@@ -351,6 +352,16 @@ const Options = () => {
     }));
   };
 
+  const previousSpotlight = async () => {
+    if (!spotlightStep) return;
+
+    const index = optionsStepOrder.indexOf(spotlightStep.id);
+    const previous = optionsStepOrder[index - 1];
+    if (!previous) return;
+
+    await setOnboardingStep(previous);
+  };
+
   const setupHelp = isOpenAI
     ? {
         eyebrow: 'OpenAI setup',
@@ -560,6 +571,7 @@ const Options = () => {
         {spotlightStep ? (
           <SpotlightTour
             step={spotlightStep}
+            onPrevious={optionsStepOrder.indexOf(spotlightStep.id) > 0 ? () => void previousSpotlight() : undefined}
             onNext={() => void advanceSpotlight()}
             onSkip={() => void dismissOnboarding()}
           />

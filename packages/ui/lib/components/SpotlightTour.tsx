@@ -4,15 +4,18 @@ export type SpotlightTourStep = {
   target: string;
   text: string;
   final?: boolean;
+  previousLabel?: string;
   skipLabel?: string;
   nextLabel?: string;
 };
 
 export const SpotlightTour = ({
+  onPrevious,
   onNext,
   onSkip,
   step,
 }: {
+  onPrevious?: () => void;
   onNext: () => void;
   onSkip: () => void;
   step: SpotlightTourStep;
@@ -26,7 +29,7 @@ export const SpotlightTour = ({
       return;
     }
 
-    target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    target.scrollIntoView({ block: 'center', inline: 'nearest' });
     window.requestAnimationFrame(() => {
       setRect(target.getBoundingClientRect());
     });
@@ -82,9 +85,16 @@ export const SpotlightTour = ({
       <div className="spotlight-tour-tip" style={{ top: tooltipTop, left: tooltipLeft }}>
         <p>{step.text}</p>
         <div className="spotlight-tour-actions">
-          <button className="spotlight-tour-skip" onClick={onSkip} type="button">
-            {step.skipLabel ?? 'Skip tour'}
-          </button>
+          <div className="spotlight-tour-secondary-actions">
+            {onPrevious ? (
+              <button className="spotlight-tour-skip" onClick={onPrevious} type="button">
+                {step.previousLabel ?? 'Previous'}
+              </button>
+            ) : null}
+            <button className="spotlight-tour-skip" onClick={onSkip} type="button">
+              {step.skipLabel ?? 'Skip tour'}
+            </button>
+          </div>
           <button className="spotlight-tour-next" onClick={onNext} type="button">
             {step.nextLabel ?? (step.final ? 'Done' : 'Next')}
           </button>
