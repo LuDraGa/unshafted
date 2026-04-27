@@ -20,11 +20,11 @@ Your chosen AI provider, model selection, temperature setting, and API keys (Ope
 
 ### 3. Contract and agreement text
 
-When you upload a `.pdf` or `.txt` file for analysis, the document text is extracted and held in local extension storage for the duration of the analysis session. If you are signed in and explicitly enable Drive backup, the original source file is uploaded to your Google Drive alongside the analysis results.
+When you upload a `.pdf` or `.txt` file for analysis, the document text is extracted and held in local extension storage for the duration of the analysis session. If you are signed in and explicitly enable Drive backup before a new scan, the original source file is uploaded to your Google Drive alongside the analysis results.
 
 ### 4. Analysis results
 
-AI-generated risk analysis results (quick scans and deep analyses) are stored locally. The analysis results contain the AI-generated risk summary, which includes referenced excerpts from the contract. If you are signed in and enable Drive backup, the analysis results and the original source file are synced to an "Unshafted" folder in **your own Google Drive** account so you can access them across devices.
+AI-generated risk analysis results (quick scans and deep analyses) are stored locally. The analysis results contain the AI-generated risk summary, which includes referenced excerpts from the contract. If you are signed in and enable Drive backup, new analysis results and source files are synced to an "Unshafted" folder in **your own Google Drive** account so you can access them across devices. If you enable Drive backup after a local report already exists, the extension asks before backing up the visible report; old source files may not be backfilled unless they are still available in memory.
 
 ### 5. Usage counters
 
@@ -54,7 +54,7 @@ Unshafted works without an account. Signing in with Google unlocks additional fe
 | | Anonymous | Signed in (Google) |
 |---|---|---|
 | Quick scans | 3 per day | Unlimited |
-| Deep analysis | Available | Available |
+| Deep analysis | Requires sign-in | Available |
 | Data stored locally | Yes | Yes |
 | Data synced to Google Drive | No | Only if Drive backup is enabled |
 | Account info collected | None | Email, display name, profile picture |
@@ -67,7 +67,7 @@ How we store your data
 
 - **On your device:** API keys, preferences, a short analysis history, and usage counters are stored in `chrome.storage.local`. The active contract text for the current scan is stored in `chrome.storage.session`, so it is cleared when the browser session ends. This data never leaves your device except as described below.
 - **Supabase (authentication):** Your Google user ID and email are stored in our Supabase project's auth database for session management. No contract text or analysis results are stored in Supabase.
-- **Your Google Drive (optional for signed-in users):** Signing in with Google grants the extension the `drive.file` scope, but analysis results and original source files are saved to Drive only after you enable Drive backup. The `drive.file` scope limits access to only files created by the extension — it cannot read or modify any other files in your Drive. These files count against your own Drive storage quota and are visible to you in Drive. Anonymous users' data never leaves the device except for AI-provider analysis requests.
+- **Your Google Drive (optional for signed-in users):** Signing in with Google grants the extension the `drive.file` scope, but analysis results and original source files are saved to Drive only after you enable Drive backup. New scans with Drive backup enabled include the source file. Backing up an already-visible local report requires confirmation and may only back up report JSON if the original source file is no longer available in memory. The `drive.file` scope limits access to only files created by the extension — it cannot read or modify any other files in your Drive. These files count against your own Drive storage quota and are visible to you in Drive. Anonymous users' data never leaves the device except for AI-provider analysis requests.
 
 ---
 

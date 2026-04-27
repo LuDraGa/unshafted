@@ -64,8 +64,8 @@ Unshafted/
 
 1. **Upload** — User picks a PDF or TXT file. Text is extracted client-side and normalized.
 2. **Quick scan** — Text excerpt (up to ~5k tokens) is sent to the LLM with a structured prompt. Response is Zod-validated into typed results (risk level, flags, parties, obligations).
-3. **Deep analysis** — User selects their role and priority topics. A larger excerpt (up to ~10k tokens) goes through a multi-pass prompt covering 10 concern categories. Results are validated and rendered as expandable accordion sections.
-4. **Optional Drive backup** — If the signed-in user enables Drive backup, source files and results are saved to the user's Google Drive. Content hash prevents duplicates.
+3. **Deep analysis** — Signed-in users select their role and priority topics. A larger excerpt (up to ~10k tokens) goes through a structured prompt focused on top risks, negotiation asks, evidence, and secondary details.
+4. **Optional Drive backup** — If the signed-in user enables Drive backup, new scans save report JSON and source files to the user's Google Drive. Content hash prevents duplicates. Backing up an already-visible local report requires an explicit confirmation and may not backfill the original source file unless it is still available in memory.
 
 LLM calls happen from the **service worker**, not the popup — so closing the popup doesn't kill in-flight analysis.
 
@@ -161,8 +161,8 @@ No backend exists yet. `pdfjs-dist` handles the vast majority of text-based cont
 ### Chrome Storage Adapter for Supabase
 Supabase expects `localStorage`, which doesn't exist in Chrome extension service workers. A custom adapter wraps `chrome.storage.local` with the same `getItem`/`setItem`/`removeItem` interface, enabling persistent auth sessions that survive popup close and extension restart.
 
-### Fire-and-Forget Drive Sync
-Drive operations are best-effort. The extension always works locally. Drive failures are caught silently — no error toasts, no retries blocking the UI. Local storage is the working copy; Drive is the durable backup. Content-hash deduplication prevents file accumulation on reruns.
+### Best-Effort Drive Sync
+Drive operations are best-effort. The extension always works locally and local storage remains the working copy. Reports show `Drive backup requested` while sync is pending and `Drive backed up` only after a successful report write. Failures do not block analysis. Content-hash deduplication prevents file accumulation on reruns.
 
 ### No Migration Runner (Yet)
 During early development, we ran SQL directly in the Supabase SQL editor while iterating on the schema. Migration files are now tracked in `supabase/migrations/` as the source of truth, but are still applied manually. A proper migration tool will be introduced alongside the credits/billing schema in Phase 3.
@@ -172,18 +172,19 @@ Chrome extensions using `chrome.identity.launchWebAuthFlow` need a **Web Applica
 
 ## Roadmap
 
-### In Progress — Phase 2: Google Drive Storage
-- Document name sanitization and content hashing at upload
-- Quick scan and deep analysis results saved to Drive as JSON
-- Content-hash dedup (same document = same file, updated in place)
-- Cross-device history hydration from Drive on new installs
-- Silent token refresh for uninterrupted Drive access
+See [`execution-docs/v0.6.7-to-v0.8.0-roadmap.md`](execution-docs/v0.6.7-to-v0.8.0-roadmap.md) for the current execution plan.
 
-### Next — Phase 3: Billing & Credits
-- Credit system for deep analysis usage
-- Daily free credit allotment
-- Server-side LLM calls (move API keys off-client)
-- Credit purchase flow
+### Current Focus — v0.7 Product Clarity
+- Keep the no-key sample path and guided setup simple.
+- Make results decision-first: signing posture, top risks, top asks, then evidence/details.
+- Make recent reports useful with reopen, copy/export, delete, local/Drive state, and manual Drive refresh.
+- Keep sign-in and Drive backup separate in copy and controls.
+
+### Next — v0.8 System and Design Maturity
+- Consolidate semantic design tokens and shared component variants.
+- Simplify the popup information architecture after the v0.7 core loop is settled.
+- Resolve upload-only vs current-page analysis positioning.
+- Improve local dev/CI onboarding and migration workflow clarity as the system grows.
 
 ### Future
 - **Tiered subscriptions** — Free, Pro, and team tiers with differentiated analysis depth and volume
