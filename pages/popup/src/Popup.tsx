@@ -502,8 +502,9 @@ const Popup = () => {
     void (async () => {
       const profile = await getProfile();
       if (cancelled) return;
+      if (profile === null) return;
 
-      const driveBackupEnabled = profile?.drive_backup_enabled ?? true;
+      const driveBackupEnabled = profile.drive_backup_enabled;
       const wasDisabledLocally = !settings.driveBackupEnabled;
 
       await unshaftedSettingsStorage.set(current => ({
