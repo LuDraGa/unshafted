@@ -10,8 +10,8 @@ A Chrome extension that uses AI to analyze contracts, surface risks, and help yo
 - **Quick scan** — instant risk flags, party identification, key obligations, and a rough risk level in seconds
 - **Deep analysis** — role-aware review with a decision summary, top risks, negotiation asks, evidence, and secondary details
 - **Google Sign-In** via Supabase auth with persistent sessions across popup opens
-- **Optional Google Drive backup** — signed-in users can explicitly enable report/source-file backup to a dedicated "Unshafted" folder in their Drive
-- **BYOK LLM** — works with OpenRouter (default) or OpenAI. You provide the API key; no data touches our servers
+- **Optional Google Drive backup** — signed-in users can back up report JSON and original uploaded source files to a dedicated "Unshafted" folder in their Drive
+- **BYOK LLM** — works with OpenRouter (default) or OpenAI. You provide the API key; contract text is sent directly to the provider you choose
 - **Anonymous access** — 3 free quick scans per day without signing in. Sign in for unlimited quick scans and deep analysis
 - **Decision-first UI** — signing posture, top risks, top asks, risk badges, coverage indicators, and secondary detail sections
 
@@ -65,9 +65,16 @@ Unshafted/
 1. **Upload** — User picks a PDF or TXT file. Text is extracted client-side and normalized.
 2. **Quick scan** — Text excerpt (up to ~5k tokens) is sent to the LLM with a structured prompt. Response is Zod-validated into typed results (risk level, flags, parties, obligations).
 3. **Deep analysis** — Signed-in users select their role and priority topics. A larger excerpt (up to ~10k tokens) goes through a structured prompt focused on top risks, negotiation asks, evidence, and secondary details.
-4. **Optional Drive backup** — If the signed-in user enables Drive backup, new scans save report JSON and source files to the user's Google Drive. Content hash prevents duplicates. Backing up an already-visible local report requires an explicit confirmation and may not backfill the original source file unless it is still available in memory.
+4. **Optional Drive backup** — If the signed-in user enables Drive backup, new scans save the original uploaded PDF/TXT source file plus quick-scan and deep-analysis JSON reports to the user's Google Drive. Content hash prevents duplicates. Backing up an already-visible local report requires confirmation and may only sync report JSON if the source file was not uploaded during the original scan.
 
 LLM calls happen from the **service worker**, not the popup — so closing the popup doesn't kill in-flight analysis.
+
+### Storage Model
+
+- **`chrome.storage.session`:** Current analysis document text and in-progress scan state. This is cleared with the browser session and is not persisted as long-term local history.
+- **`chrome.storage.local`:** Provider settings, API keys, local report history, usage counters, Supabase auth session data, Google Drive access token/cache, onboarding state, and the cached Drive backup preference.
+- **Supabase:** Google auth profile only: email, display name, avatar URL, and the profile-backed Drive backup preference. Contract text and analysis results are not stored in Supabase.
+- **Google Drive:** Only for signed-in users with Drive backup enabled. New backed-up scans store source files plus report JSON in the user's own Drive; Drive history refresh restores local history from report JSON.
 
 ## Tech Stack
 
@@ -79,7 +86,7 @@ LLM calls happen from the **service worker**, not the popup — so closing the p
 | Schemas | Zod (runtime validation of LLM output) |
 | PDF | pdfjs-dist (client-side, no worker) |
 | Auth | Supabase (Google OAuth via `chrome.identity.launchWebAuthFlow`) |
-| Storage | Google Drive API (REST, no SDK), chrome.storage.local |
+| Storage | Google Drive API (REST, no SDK), chrome.storage.local, chrome.storage.session |
 | LLM | OpenRouter or OpenAI (BYOK) |
 | Extension | Chrome Manifest V3 |
 
@@ -107,6 +114,7 @@ CEB_GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
 Run the SQL files in `supabase/migrations/` against your Supabase SQL editor, in order:
 
 1. `001_schema_and_profiles.sql` — Creates the `unshafted` schema, profiles table, RLS policies, and auto-profile trigger
+2. `002_profile_drive_backup_preference.sql` — Adds `drive_backup_enabled` to profiles and grants authenticated users access to their own preference
 
 See [Database](#database) for more detail.
 
@@ -163,10 +171,11 @@ Supabase with a custom `unshafted` schema. Row-Level Security is enabled on all 
 | email | text | From Google profile |
 | display_name | text | From Google profile |
 | avatar_url | text | Google avatar URL |
+| drive_backup_enabled | boolean | Profile-backed preference for Drive backup; defaults to `true` for signed-in users |
 | created_at | timestamptz | Auto-set |
 | updated_at | timestamptz | Auto-set |
 
-RLS policies: users can only read and update their own profile.
+RLS policies: users can only read and update their own profile and Drive backup preference.
 
 ### Migration Management
 
@@ -186,7 +195,7 @@ No backend exists yet. `pdfjs-dist` handles the vast majority of text-based cont
 Supabase expects `localStorage`, which doesn't exist in Chrome extension service workers. A custom adapter wraps `chrome.storage.local` with the same `getItem`/`setItem`/`removeItem` interface, enabling persistent auth sessions that survive popup close and extension restart.
 
 ### Best-Effort Drive Sync
-Drive operations are best-effort. The extension always works locally and local storage remains the working copy. Reports show `Drive backup requested` while sync is pending and `Drive backed up` only after a successful report write. Failures do not block analysis. Content-hash deduplication prevents file accumulation on reruns.
+Drive operations are best-effort. The extension always works locally and local storage remains the working copy. Reports show `Drive backup requested` while sync is pending and `Drive backed up` only after successful report JSON writes. New backed-up scans also upload the original source file before analysis. Failures do not block analysis. Content-hash deduplication prevents file accumulation on reruns.
 
 ### No Migration Runner (Yet)
 During early development, we ran SQL directly in the Supabase SQL editor while iterating on the schema. Migration files are now tracked in `supabase/migrations/` as the source of truth, but are still applied manually. A proper migration tool should be introduced before the schema expands beyond auth/profile support.
@@ -196,19 +205,12 @@ Chrome extensions using `chrome.identity.launchWebAuthFlow` need a **Web Applica
 
 ## Roadmap
 
-See [`execution-docs/v0.6.7-to-v0.8.0-roadmap.md`](execution-docs/v0.6.7-to-v0.8.0-roadmap.md) for the current execution plan.
+Historical implementation plans live in [`execution-docs/`](execution-docs/). The current extension is upload-first, with guided BYOK setup, decision-first results, recent reports, and optional Drive backup already implemented.
 
-### Current Focus — v0.7 Product Clarity
-- Keep the no-key sample path and guided setup simple.
-- Make results decision-first: signing posture, top risks, top asks, then evidence/details.
-- Make recent reports useful with reopen, copy/export, delete, local/Drive state, and manual Drive refresh.
-- Keep sign-in and Drive backup separate in copy and controls.
-
-### Next — v0.8 System and Design Maturity
-- Consolidate semantic design tokens and shared component variants.
-- Simplify the popup information architecture after the v0.7 core loop is settled.
-- Keep v1 positioned as upload-first; current-page analysis remains dormant unless restored as a first-class flow.
+### Near-Term Cleanup
+- Keep public docs, privacy-policy text, and Chrome Web Store metadata aligned with the current Drive/auth data flow.
 - Improve local dev/CI onboarding and migration workflow clarity as the system grows.
+- Keep current-page analysis dormant unless it returns as a first-class feature with matching permissions and CWS disclosures.
 
 ### Future
 - **Tiered subscriptions** — Free, Pro, and team tiers with differentiated analysis depth and volume
