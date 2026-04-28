@@ -132,9 +132,9 @@ const handleDeepAnalysis = async (): Promise<AnalysisMessageResponse> => {
       }),
     );
     if (settings.driveBackupEnabled) {
-      void Promise.all([syncQuickScanToDrive(result), syncDeepAnalysisToDrive(result)])
-        .then(async ([quickSynced, deepSynced]) => {
-          if (quickSynced && deepSynced) {
+      void syncDeepAnalysisToDrive(result)
+        .then(async synced => {
+          if (synced) {
             await analysisHistoryStorage.push(createHistoryRecord(result, { storageState: 'drive-backed-up' }));
           }
         })
