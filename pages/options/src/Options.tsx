@@ -387,33 +387,12 @@ const Options = () => {
     <div className="options-shell">
       <div className="mx-auto max-w-lg px-6 py-12">
         <section className="options-panel">
-          <div className="space-y-4">
+          <div className="space-y-3">
             <p className="options-eyebrow">Unshafted</p>
-            <h1 className="text-2xl font-semibold tracking-[-0.04em] text-stone-950">Bring your own key</h1>
-            <p className="text-sm leading-6 text-stone-600">
-              Choose your provider, paste a key, test it, and head back to the popup to run your first contract. The
-              sample analysis works without setup; this page only unlocks scans for your own files.
-            </p>
-            <hr className="border-stone-200" />
+            <h1 className="text-xl font-semibold tracking-[-0.02em] text-stone-950">Bring your own key</h1>
           </div>
 
-          {onboardingMode ? (
-            <section className="options-help-card mt-6">
-              <div>
-                <p className="options-help-eyebrow">{setupHelp.eyebrow}</p>
-                <p className="mt-1 text-sm leading-5 text-stone-700">{setupHelp.copy}</p>
-              </div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {setupHelp.links.map(link => (
-                  <a className="options-help-link" href={link.href} target="_blank" rel="noreferrer" key={link.href}>
-                    {link.label}
-                  </a>
-                ))}
-              </div>
-            </section>
-          ) : null}
-
-          <div className="mt-8 grid gap-5">
+          <div className="mt-7 grid gap-5">
             {/* Provider toggle */}
             <div className="grid gap-2" data-onboarding-target="provider">
               <span className="options-label">Provider</span>
@@ -447,7 +426,10 @@ const Options = () => {
                 onboardingMode && onboarding.currentStep === 'api-key' && 'options-key-field-active',
               )}
               data-onboarding-target="api-key">
-              <span className="options-label">{isOpenAI ? 'OpenAI' : 'OpenRouter'} API key</span>
+              <div className="flex items-center gap-2">
+                <span className="options-label">{isOpenAI ? 'OpenAI' : 'OpenRouter'} API key</span>
+                <span className="options-inline-tag">Locally stored</span>
+              </div>
               <div className="flex gap-3">
                 <input
                   ref={apiKeyInputRef}
@@ -463,21 +445,30 @@ const Options = () => {
                   {showApiKey ? 'Hide' : 'Show'}
                 </button>
               </div>
-              {onboardingMode ? <p className="text-xs leading-5 text-stone-600">{setupHelp.inputHelp}</p> : null}
+              <p className="text-[11px] leading-5 text-stone-500">
+                {isOpenAI ? 'Starts with sk-proj-' : 'Starts with sk-or-'} · stays in chrome.storage.local
+              </p>
             </label>
+
+            <details className="options-disclosure">
+              <summary>
+                <span>How to get a key</span>
+                <span className="options-chevron text-stone-400">&#9662;</span>
+              </summary>
+              <div className="mt-3 space-y-3">
+                <p className="text-sm leading-5 text-stone-700">{setupHelp.copy}</p>
+                <div className="flex flex-wrap gap-2">
+                  {setupHelp.links.map(link => (
+                    <a className="options-help-link" href={link.href} target="_blank" rel="noreferrer" key={link.href}>
+                      {link.label}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            </details>
           </div>
 
-          <section className="options-help-card mt-6">
-            <div>
-              <p className="options-help-eyebrow">Data flow</p>
-              <p className="mt-1 text-sm leading-5 text-stone-700">
-                Your API key is stored locally and sent only to the provider you choose. Contract text is sent to that
-                provider when you scan. Google Drive backup is separate and only runs after you enable it in the popup.
-              </p>
-            </div>
-          </section>
-
-          <div className="mt-8 flex flex-wrap gap-3">
+          <div className="mt-7 flex flex-wrap gap-3">
             <button
               className="options-primary-button"
               onClick={() => void save()}

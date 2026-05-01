@@ -1,29 +1,30 @@
 import { cn } from '@extension/ui';
-import { DISCLAIMER_LINE, toVerdictTone } from '@extension/unshafted-core';
+import { useMemo, useState } from 'react';
 import type {
   CurrentAnalysis,
+  DeepAnalysisResult,
   DetailedFinding,
   HistoryRecord,
-  MissingProtection,
-  PotentialAdvantage,
   QuickScanResult,
-  TopicConcern,
 } from '@extension/unshafted-core';
 
-const verdictToneClasses: Record<'LOW' | 'CAUTION' | 'HIGH' | 'DANGER', string> = {
+type Severity = 'low' | 'medium' | 'high';
+type VerdictTone = 'LOW' | 'CAUTION' | 'HIGH' | 'DANGER';
+
+const verdictToneClasses: Record<VerdictTone, string> = {
   LOW: 'border-emerald-300 bg-emerald-50 text-emerald-900',
   CAUTION: 'border-amber-300 bg-amber-50 text-amber-900',
   HIGH: 'border-orange-300 bg-orange-50 text-orange-900',
   DANGER: 'border-rose-300 bg-rose-50 text-rose-900',
 };
 
-const severityClasses: Record<'low' | 'medium' | 'high', string> = {
+const severityClasses: Record<Severity, string> = {
   low: 'bg-stone-200 text-stone-700',
   medium: 'bg-amber-100 text-amber-900',
   high: 'bg-rose-100 text-rose-900',
 };
 
-const RiskBadge = ({ label }: { label: 'LOW' | 'CAUTION' | 'HIGH' | 'DANGER' }) => (
+const RiskBadge = ({ label }: { label: VerdictTone }) => (
   <span
     className={cn(
       'rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]',
@@ -33,7 +34,7 @@ const RiskBadge = ({ label }: { label: 'LOW' | 'CAUTION' | 'HIGH' | 'DANGER' }) 
   </span>
 );
 
-const SeverityBadge = ({ severity }: { severity: 'low' | 'medium' | 'high' }) => (
+const SeverityBadge = ({ severity }: { severity: Severity }) => (
   <span
     className={cn(
       'rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]',
@@ -50,646 +51,565 @@ const SectionHeader = ({ title, subtitle }: { title: string; subtitle?: string }
   </div>
 );
 
-/** Reusable accordion for deep analysis sections */
-const ResultAccordion = ({
+const severityRank: Record<Severity, number> = { low: 0, medium: 1, high: 2 };
+
+const maxSeverity = (items: { severity: Severity }[]): Severity =>
+  items.reduce<Severity>(
+    (max, item) => (severityRank[item.severity] > severityRank[max] ? item.severity : max),
+    'low',
+  );
+
+const getDecisionAction = (riskLevel: 'Low' | 'Medium' | 'High' | 'Very High') => {
+  switch (riskLevel) {
+    case 'Low':
+      return 'Likely okay to proceed';
+    case 'Medium':
+      return 'Review before signing';
+    case 'High':
+      return 'Negotiate first';
+    case 'Very High':
+      return 'Pause and get help';
+    default:
+      return 'Review before signing';
+  }
+};
+
+// ── v0.10 primitives ─────────────────────────────────────────────────────
+
+const DocStrip = ({
+  name,
+  type,
+  partyCount,
+}: {
+  name: string;
+  type?: string;
+  partyCount?: number | null;
+}) => (
+  <div className="popup-doc-strip">
+    <p className="popup-doc-strip-name" title={name}>
+      {name}
+    </p>
+    <p className="popup-doc-strip-meta">
+      <span>{type ?? 'Document'}</span>
+      <span> · </span>
+      {partyCount === null || partyCount === undefined ? (
+        <span className="popup-doc-strip-skeleton">— parties</span>
+      ) : (
+        <span>{partyCount === 1 ? '1 party' : `${partyCount} parties`}</span>
+      )}
+    </p>
+  </div>
+);
+
+const CompactVerdict = ({
+  tone,
+  action,
+  preview,
+}: {
+  tone: VerdictTone;
+  action: string;
+  preview?: string;
+}) => (
+  <section className="popup-verdict" data-onboarding-target="summary">
+    <div className="popup-verdict-headline">
+      <RiskBadge label={tone} />
+      <h2 className="popup-verdict-action">{action}</h2>
+    </div>
+    {preview ? <p className="popup-verdict-preview">{preview}</p> : null}
+  </section>
+);
+
+const VerdictSkeleton = ({ ariaLabel = 'Loading analysis' }: { ariaLabel?: string }) => (
+  <div className="popup-verdict-skeleton" aria-busy="true" aria-label={ariaLabel} />
+);
+
+const CollapsibleItem = ({
   title,
-  count,
   severity,
   defaultOpen = false,
   children,
 }: {
   title: string;
-  count?: number;
-  severity?: 'low' | 'medium' | 'high';
+  severity?: Severity;
   defaultOpen?: boolean;
   children: React.ReactNode;
 }) => (
-  <details className="popup-accordion" open={defaultOpen || undefined}>
+  <details className="popup-item" open={defaultOpen || undefined}>
     <summary>
-      <span>{title}</span>
-      {count !== undefined ? (
-        <span
-          className={cn(
-            'popup-accordion-count',
-            severity === 'high' && 'severity-high',
-            severity === 'medium' && 'severity-medium',
-          )}>
-          {count}
-        </span>
-      ) : null}
+      <span className="popup-item-chevron" aria-hidden="true">
+        ▸
+      </span>
+      <span className="popup-item-title">{title}</span>
+      {severity ? <SeverityBadge severity={severity} /> : null}
     </summary>
-    <div className="popup-accordion-body">{children}</div>
+    <div className="popup-item-body">{children}</div>
   </details>
 );
 
-const FindingDetails = ({ item }: { item: DetailedFinding }) => (
-  <details className="group rounded-2xl border border-stone-200 bg-white/80 p-3">
-    <summary className="flex cursor-pointer list-none items-start justify-between gap-2">
-      <div className="space-y-1">
-        <p className="text-sm font-semibold text-stone-950">{item.title}</p>
-        {item.reference?.label ? <p className="text-[11px] text-stone-500">{item.reference.label}</p> : null}
-      </div>
-      <SeverityBadge severity={item.severity} />
-    </summary>
-    <div className="mt-3 space-y-2 border-t border-dashed border-stone-200 pt-3 text-xs text-stone-700">
-      {item.reference?.quote ? (
-        <div className="rounded-xl bg-stone-100 px-3 py-2 text-stone-700">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">From the contract</p>
-          <p className="mt-1 leading-5">"{item.reference.quote}"</p>
-        </div>
-      ) : null}
-      <div>
-        <p className="font-semibold text-stone-900">What this means</p>
-        <p className="mt-1 leading-5">{item.whatItMeans}</p>
-      </div>
-      <div>
-        <p className="font-semibold text-stone-900">Why it matters</p>
-        <p className="mt-1 leading-5">{item.whyItMatters}</p>
-      </div>
-    </div>
-  </details>
+// ── Lens definitions + builders ──────────────────────────────────────────
+
+type LensId = 'blockers' | 'asks' | 'obligations' | 'evidence' | 'wins' | 'doc' | 'caveats';
+
+type LensDef = {
+  id: LensId;
+  label: string;
+  count?: number;
+  severity?: Severity;
+  onboardingTarget?: string;
+  content: React.ReactNode;
+};
+
+const LensStrip = ({
+  lenses,
+  openId,
+  onChange,
+}: {
+  lenses: LensDef[];
+  openId: LensId;
+  onChange: (id: LensId) => void;
+}) => (
+  <div className="popup-lens-strip" role="tablist" aria-label="Analysis lens">
+    {lenses.map(lens => {
+      const active = lens.id === openId;
+      return (
+        <button
+          key={lens.id}
+          type="button"
+          role="tab"
+          id={`lens-tab-${lens.id}`}
+          aria-selected={active}
+          aria-controls={`lens-panel-${lens.id}`}
+          data-onboarding-target={lens.onboardingTarget}
+          data-severity={!active && lens.severity ? lens.severity : undefined}
+          className="popup-lens-tab"
+          onClick={() => onChange(lens.id)}>
+          <span>{lens.label}</span>
+          {lens.count !== undefined && lens.count > 0 ? (
+            <span className="popup-lens-count">{lens.count}</span>
+          ) : null}
+        </button>
+      );
+    })}
+  </div>
 );
 
-const MissingProtectionCard = ({ item }: { item: MissingProtection }) => (
-  <div className="rounded-2xl border border-amber-200 bg-amber-50/85 p-3">
-    <p className="text-sm font-semibold text-amber-950">{item.title}</p>
-    <p className="mt-1.5 text-xs leading-5 text-amber-900">{item.whyMissingMatters}</p>
-    <p className="mt-2 text-xs text-amber-800">
-      <span className="font-semibold">Common fix:</span> {item.commonFix}
+const LensPanel = ({ lens }: { lens: LensDef }) => (
+  <div
+    className="popup-lens-panel"
+    role="tabpanel"
+    id={`lens-panel-${lens.id}`}
+    aria-labelledby={`lens-tab-${lens.id}`}>
+    {lens.content}
+  </div>
+);
+
+const EmptyState = ({ message }: { message: string }) => <p className="popup-lens-panel-empty">{message}</p>;
+
+const QuoteBlock = ({ text }: { text: string }) => <p className="popup-item-quote">"{text}"</p>;
+
+const FindingBody = ({ item }: { item: DetailedFinding }) => (
+  <>
+    {item.reference?.quote ? <QuoteBlock text={item.reference.quote} /> : null}
+    <p>
+      <strong className="text-stone-900">What this means.</strong> {item.whatItMeans}
     </p>
-  </div>
+    <p>
+      <strong className="text-stone-900">Why it matters.</strong> {item.whyItMatters}
+    </p>
+    {item.reference?.label ? <p className="text-[11px] text-stone-500">Reference: {item.reference.label}</p> : null}
+  </>
 );
 
-const TopicConcernCard = ({ item }: { item: TopicConcern }) => (
-  <div className="rounded-2xl border border-stone-200 bg-white/80 p-3">
-    <div className="flex items-start justify-between gap-2">
-      <div>
-        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">{item.category}</p>
-        <p className="mt-1 text-sm font-semibold text-stone-950">{item.title}</p>
-      </div>
-      <SeverityBadge severity={item.severity} />
-    </div>
-    <p className="mt-2 text-xs leading-5 text-stone-700">{item.whyItMatters}</p>
-    {item.reference?.label ? (
-      <p className="mt-2 text-[11px] text-stone-500">Reference: {item.reference.label}</p>
-    ) : null}
-  </div>
+const QuickFlagBody = ({ item }: { item: QuickScanResult['redFlags'][number] }) => (
+  <>
+    <p>{item.reason}</p>
+    {item.reference?.quote ? <QuoteBlock text={item.reference.quote} /> : null}
+    {item.reference?.label ? <p className="text-[11px] text-stone-500">Reference: {item.reference.label}</p> : null}
+  </>
 );
 
-const AdvantageCard = ({ item }: { item: PotentialAdvantage }) => (
-  <div className="rounded-2xl border border-emerald-200 bg-emerald-50/90 p-3">
-    <p className="text-sm font-semibold text-emerald-950">{item.title}</p>
-    <p className="mt-1.5 text-xs leading-5 text-emerald-900">{item.whyItHelps}</p>
-    {item.reference?.label ? (
-      <p className="mt-2 text-[11px] text-emerald-800">Reference: {item.reference.label}</p>
-    ) : null}
-  </div>
-);
+const buildBlockerLens = (quick: QuickScanResult, deep: DeepAnalysisResult | null | undefined): LensDef => {
+  if (deep) {
+    const items = [
+      ...deep.immediateWorries,
+      ...deep.oneSidedClauses,
+      ...deep.timingAndLockIn,
+      ...deep.couldShaftYouLater,
+    ].sort((a, b) => severityRank[b.severity] - severityRank[a.severity]);
 
-type QuickFlag = QuickScanResult['redFlags'][number];
-
-const QuickFlagCard = ({ item }: { item: QuickFlag }) => (
-  <div className="rounded-lg bg-stone-100/80 px-2.5 py-2 text-xs text-stone-700">
-    <div className="flex items-center justify-between gap-2">
-      <p className="font-semibold text-stone-950">{item.title}</p>
-      <SeverityBadge severity={item.severity} />
-    </div>
-    <p className="mt-1 leading-5">{item.reason}</p>
-    {item.reference?.label ? <p className="mt-1 text-[11px] text-stone-500">{item.reference.label}</p> : null}
-    {item.reference?.quote ? (
-      <div className="mt-2 rounded-xl bg-stone-100 px-3 py-2 text-xs leading-5 text-stone-700">
-        "{item.reference.quote}"
-      </div>
-    ) : null}
-  </div>
-);
-
-/** Helper: highest severity in a list of findings */
-const maxSeverity = (items: { severity: 'low' | 'medium' | 'high' }[]): 'low' | 'medium' | 'high' => {
-  const order = { low: 0, medium: 1, high: 2 } as const;
-  return items.reduce<'low' | 'medium' | 'high'>(
-    (max, item) => (order[item.severity] > order[max] ? item.severity : max),
-    'low',
-  );
-};
-
-const severityRank = { low: 0, medium: 1, high: 2 } as const;
-
-const maxQuickFlagSeverity = (items: QuickFlag[]): 'low' | 'medium' | 'high' | undefined =>
-  items.length > 0 ? maxSeverity(items) : undefined;
-
-const getDecisionCopy = (riskLevel: 'Low' | 'Medium' | 'High' | 'Very High') => {
-  switch (riskLevel) {
-    case 'Low':
-      return {
-        action: 'Likely okay to proceed',
-        rationale: 'No major blockers surfaced, but confirm the facts and any missing context.',
-      };
-    case 'Medium':
-      return {
-        action: 'Review before signing',
-        rationale: 'There are issues worth clarifying or tightening before you commit.',
-      };
-    case 'High':
-      return {
-        action: 'Negotiate first',
-        rationale: 'Several terms could materially affect cost, control, liability, or exit options.',
-      };
-    case 'Very High':
-      return {
-        action: 'Pause and get help',
-        rationale: 'The agreement appears risky enough that you should not treat this as routine.',
-      };
-    default:
-      return {
-        action: 'Review before signing',
-        rationale: 'Check the highlighted risks before you commit.',
-      };
+    return {
+      id: 'blockers',
+      label: 'Blockers',
+      count: items.length,
+      severity: items.length > 0 ? maxSeverity(items) : undefined,
+      onboardingTarget: 'flags',
+      content:
+        items.length > 0 ? (
+          <>
+            {items.map((item, i) => (
+              <CollapsibleItem
+                key={`${item.title}-${item.reference?.label ?? i}`}
+                title={item.title}
+                severity={item.severity}
+                defaultOpen={i === 0}>
+                <FindingBody item={item} />
+              </CollapsibleItem>
+            ))}
+          </>
+        ) : (
+          <EmptyState message="No major blockers in detailed analysis. Confirm facts and missing context before signing." />
+        ),
+    };
   }
+
+  const flags = quick.redFlags.slice().sort((a, b) => severityRank[b.severity] - severityRank[a.severity]);
+  return {
+    id: 'blockers',
+    label: 'Blockers',
+    count: flags.length,
+    severity: flags.length > 0 ? maxSeverity(flags) : undefined,
+    onboardingTarget: 'flags',
+    content:
+      flags.length > 0 ? (
+        <>
+          {flags.map((flag, i) => (
+            <CollapsibleItem
+              key={`${flag.title}-${i}`}
+              title={flag.title}
+              severity={flag.severity}
+              defaultOpen={i === 0}>
+              <QuickFlagBody item={flag} />
+            </CollapsibleItem>
+          ))}
+        </>
+      ) : (
+        <EmptyState message="No major blockers in the quick scan. Run detailed analysis for a deeper look." />
+      ),
+  };
 };
 
-type ActionSummaryItem = {
-  title: string;
-  detail: string;
-  severity?: 'low' | 'medium' | 'high';
-};
+const buildAsksLens = (quick: QuickScanResult, deep: DeepAnalysisResult | null | undefined): LensDef => {
+  if (deep) {
+    const total =
+      deep.negotiationIdeas.length +
+      deep.suggestedEdits.length +
+      deep.missingProtections.length +
+      deep.questionsToAsk.length +
+      deep.protectionChecklist.reduce((sum, g) => sum + g.items.length, 0);
 
-const buildQuickBlockers = (quick: QuickScanResult): ActionSummaryItem[] =>
-  quick.redFlags
-    .slice()
-    .sort((a, b) => severityRank[b.severity] - severityRank[a.severity])
-    .slice(0, 3)
-    .map(flag => ({
-      title: flag.title,
-      detail: flag.reason,
-      severity: flag.severity,
-    }));
+    return {
+      id: 'asks',
+      label: 'Asks',
+      count: total,
+      content:
+        total > 0 ? (
+          <>
+            {deep.negotiationIdeas.map(item => (
+              <CollapsibleItem key={`neg-${item.ask}`} title={item.ask}>
+                <p>{item.why}</p>
+                {item.fallback ? (
+                  <p>
+                    <strong className="text-stone-900">Fallback.</strong> {item.fallback}
+                  </p>
+                ) : null}
+                {item.targetClause ? <p className="text-[11px] text-stone-500">Target: {item.targetClause}</p> : null}
+              </CollapsibleItem>
+            ))}
+            {deep.suggestedEdits.map(item => (
+              <CollapsibleItem key={`edit-${item.title}`} title={item.title}>
+                <p>
+                  <strong className="text-stone-900">Edit.</strong> {item.plainEnglishEdit}
+                </p>
+                <p>{item.why}</p>
+              </CollapsibleItem>
+            ))}
+            {deep.missingProtections.map(item => (
+              <CollapsibleItem key={`miss-${item.title}`} title={`Missing: ${item.title}`}>
+                <p>{item.whyMissingMatters}</p>
+                <p>
+                  <strong className="text-stone-900">Common fix.</strong> {item.commonFix}
+                </p>
+              </CollapsibleItem>
+            ))}
+            {deep.questionsToAsk.map(q => (
+              <CollapsibleItem key={`q-${q}`} title={q}>
+                <p>Bring this up before signing — get the answer in writing if it materially affects the deal.</p>
+              </CollapsibleItem>
+            ))}
+            {deep.protectionChecklist.map(group => (
+              <CollapsibleItem key={`chk-${group.label}`} title={group.label}>
+                <ul className="list-disc space-y-1 pl-4">
+                  {group.items.map(it => (
+                    <li key={it}>{it}</li>
+                  ))}
+                </ul>
+              </CollapsibleItem>
+            ))}
+          </>
+        ) : (
+          <EmptyState message="No specific asks generated. Confirm the summary and obligations in writing." />
+        ),
+    };
+  }
 
-const buildQuickAsks = (quick: QuickScanResult): ActionSummaryItem[] => {
-  const flagAsks = quick.redFlags.slice(0, 2).map(flag => ({
+  const flagAsks = quick.redFlags.slice(0, 3).map(flag => ({
     title: `Clarify ${flag.title}`,
     detail: flag.reference?.label
       ? `Ask how ${flag.reference.label} applies to you and whether it can be narrowed.`
       : 'Ask the other side to explain this term plainly and whether it can be narrowed.',
-    severity: flag.severity,
   }));
-
-  const obligationAsks = quick.keyObligations.slice(0, 3 - flagAsks.length).map(item => ({
+  const obligationAsks = quick.keyObligations.slice(0, Math.max(0, 5 - flagAsks.length)).map(item => ({
     title: 'Confirm this obligation',
     detail: item,
   }));
+  const items = [...flagAsks, ...obligationAsks];
 
-  return [...flagAsks, ...obligationAsks].slice(0, 3);
+  return {
+    id: 'asks',
+    label: 'Asks',
+    count: items.length,
+    content:
+      items.length > 0 ? (
+        <>
+          {items.map((item, i) => (
+            <CollapsibleItem key={`${item.title}-${i}`} title={item.title}>
+              <p>{item.detail}</p>
+            </CollapsibleItem>
+          ))}
+        </>
+      ) : (
+        <EmptyState message="No specific asks. Run detailed analysis for negotiation ideas." />
+      ),
+  };
 };
 
-const ActionSummaryGrid = ({ blockers, asks }: { blockers: ActionSummaryItem[]; asks: ActionSummaryItem[] }) => (
-  <section className="grid gap-2">
-    <div className="rounded-2xl border border-rose-100 bg-rose-50/80 px-3 py-3">
-      <p className="text-sm font-semibold text-rose-950">Top blockers</p>
-      {blockers.length > 0 ? (
-        <div className="mt-2 space-y-2">
-          {blockers.map(item => (
-            <div key={item.title} className="text-xs leading-5 text-rose-900">
-              <div className="flex items-start justify-between gap-2">
-                <p className="font-semibold">{item.title}</p>
-                {item.severity ? <SeverityBadge severity={item.severity} /> : null}
-              </div>
-              <p className="mt-0.5">{item.detail}</p>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p className="mt-1 text-xs leading-5 text-rose-900">
-          No major blockers surfaced. Still confirm the facts, missing context, and any extraction warnings.
-        </p>
-      )}
-    </div>
-    <div className="rounded-2xl border border-emerald-100 bg-emerald-50/80 px-3 py-3">
-      <p className="text-sm font-semibold text-emerald-950">Ask for this</p>
-      {asks.length > 0 ? (
-        <div className="mt-2 space-y-2 text-xs leading-5 text-emerald-900">
-          {asks.map(item => (
-            <div key={`${item.title}-${item.detail}`}>
-              <p className="font-semibold">{item.title}</p>
-              <p className="mt-0.5">{item.detail}</p>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p className="mt-1 text-xs leading-5 text-emerald-900">
-          No specific asks were generated. Ask the other side to confirm the summary and any obligations in writing.
-        </p>
-      )}
-    </div>
-  </section>
-);
-
-type ResultsViewRecord =
-  | Pick<CurrentAnalysis, 'quickScan' | 'deepAnalysis' | 'selectedRole' | 'customRole' | 'source'>
-  | HistoryRecord;
-
-const QuickDecisionSummary = ({
-  quick,
-  reviewedAs,
-  coverageLine,
-  sourceWarnings = [],
-  action,
-}: {
-  quick: QuickScanResult;
-  reviewedAs: string;
-  coverageLine: string;
-  sourceWarnings?: string[];
-  action?: React.ReactNode;
-}) => {
-  const decision = getDecisionCopy(quick.roughRiskLevel);
-  const blockers = buildQuickBlockers(quick);
-  const asks = buildQuickAsks(quick);
-
-  return (
-    <div className="space-y-3">
-      <section className="popup-card !border-stone-950 !bg-stone-950 !text-stone-50" data-onboarding-target="summary">
-        <div className="flex items-start justify-between gap-3">
-          <RiskBadge label={toVerdictTone(quick.roughRiskLevel)} />
-          {action}
-        </div>
-        <div className="mt-3 space-y-2">
-          <h2 className="text-lg font-semibold tracking-[-0.04em]">{decision.action}</h2>
-          <p className="text-sm font-semibold text-stone-200">{quick.cautionLine}</p>
-          <p className="text-xs leading-5 text-stone-300">{quick.summary}</p>
-        </div>
-        <div className="mt-3 rounded-xl bg-white/10 px-3 py-2 text-xs text-stone-200">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-400">
-            Why this recommendation
-          </p>
-          <p className="mt-1 font-semibold text-stone-50">{decision.rationale}</p>
-          <p className="mt-2 text-[11px] text-stone-400">
-            {coverageLine} · Reviewed as {reviewedAs}
-          </p>
-          <p className="mt-0.5 text-[11px] text-stone-400">{quick.documentType}</p>
-        </div>
-      </section>
-
-      <ActionSummaryGrid blockers={blockers} asks={asks} />
-
-      {quick.extractionConcerns.length > 0 || sourceWarnings.length > 0 ? (
-        <section className="rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] leading-5 text-amber-900">
-          Check extraction warnings before relying on this result. Scanned PDFs, tables, and missing text can reduce
-          accuracy.
-        </section>
-      ) : null}
-    </div>
-  );
+const buildObligationsLens = (quick: QuickScanResult): LensDef | null => {
+  if (quick.keyObligations.length === 0) return null;
+  return {
+    id: 'obligations',
+    label: 'Obligations',
+    count: quick.keyObligations.length,
+    content: (
+      <ul className="list-disc space-y-1.5 px-3 py-2 pl-7 text-xs leading-5 text-stone-700">
+        {quick.keyObligations.map(item => (
+          <li key={item}>{item}</li>
+        ))}
+      </ul>
+    ),
+  };
 };
 
-const QuickScanReadout = ({
-  quick,
-  reviewedAs,
-  sourceWarnings = [],
-}: {
-  quick: QuickScanResult;
-  reviewedAs: string;
-  sourceWarnings?: string[];
-}) => (
-  <div className="space-y-3">
-    <QuickDecisionSummary
-      quick={quick}
-      reviewedAs={reviewedAs}
-      coverageLine="Saved quick scan"
-      sourceWarnings={sourceWarnings}
-    />
-
-    {quick.parties.length > 0 ? (
-      <ResultAccordion title="Parties" count={quick.parties.length}>
-        <div className="flex flex-wrap gap-1.5">
-          {quick.parties.map(party => (
-            <span
-              key={`${party.name}-${party.role}`}
-              className="rounded-full bg-stone-100/80 px-2.5 py-1.5 text-xs text-stone-700">
-              <span className="font-semibold text-stone-950">{party.name}</span>
-              <span className="text-stone-500"> · {party.role}</span>
-            </span>
-          ))}
-        </div>
-      </ResultAccordion>
-    ) : null}
-
-    {quick.redFlags.length > 0 ? (
-      <ResultAccordion title="Flags" count={quick.redFlags.length} severity={maxQuickFlagSeverity(quick.redFlags)}>
-        <div className="space-y-1.5">
-          {quick.redFlags.map(flag => (
-            <QuickFlagCard key={flag.title} item={flag} />
-          ))}
-        </div>
-      </ResultAccordion>
-    ) : (
-      <section className="mt-1 rounded-2xl border border-emerald-200 bg-emerald-50/85 px-3 py-2 text-xs leading-5 text-emerald-900">
-        <p className="font-semibold">No major quick-scan flags found</p>
-        <p>
-          Still review the summary, extraction coverage, and detailed analysis before relying on this for a high-stakes
-          contract.
-        </p>
-      </section>
-    )}
-
-    {quick.keyObligations.length > 0 ? (
-      <ResultAccordion title="Key obligations" count={quick.keyObligations.length}>
-        <ul className="space-y-2 text-xs leading-5 text-stone-700">
-          {quick.keyObligations.map(item => (
-            <li key={item} className="rounded-2xl border border-stone-200 bg-white/80 px-3 py-2">
-              {item}
-            </li>
-          ))}
-        </ul>
-      </ResultAccordion>
-    ) : null}
-
-    {quick.topics.length > 0 ? (
-      <ResultAccordion title="Topics detected" count={quick.topics.length}>
-        <div className="flex flex-wrap gap-2">
-          {quick.topics.map(topic => (
-            <span
-              key={topic}
-              className="rounded-full border border-stone-200 bg-white/80 px-3 py-1 text-xs font-semibold text-stone-700">
-              {topic}
-            </span>
-          ))}
-        </div>
-      </ResultAccordion>
-    ) : null}
-
-    {quick.extractionConcerns.length > 0 || sourceWarnings.length > 0 ? (
-      <ResultAccordion title="Coverage warnings" count={quick.extractionConcerns.length + sourceWarnings.length}>
-        <div className="space-y-2 text-xs leading-5 text-amber-900">
-          {[...quick.extractionConcerns, ...sourceWarnings].map(item => (
-            <div key={item} className="rounded-2xl border border-amber-200 bg-amber-50/85 px-3 py-2">
-              {item}
-            </div>
-          ))}
-        </div>
-      </ResultAccordion>
-    ) : null}
-  </div>
-);
-
-const ResultsView = ({
-  record,
-  includeQuickReadout = false,
-}: {
-  record: ResultsViewRecord;
-  includeQuickReadout?: boolean;
-}) => {
-  const deep = record.deepAnalysis;
-  const quick = record.quickScan;
-
-  if (!quick) {
-    return null;
-  }
-
-  const reviewedAs = 'customRole' in record && record.customRole.trim() ? record.customRole : record.selectedRole;
-  const sourceWarnings = 'source' in record ? record.source.warnings : [];
-
-  if (!deep) {
-    return (
-      <div className="space-y-3">
-        <QuickScanReadout quick={quick} reviewedAs={reviewedAs} sourceWarnings={sourceWarnings} />
-        <section className="rounded-2xl border border-stone-200 bg-white/70 px-3 py-3 text-[11px] text-stone-600">
-          {DISCLAIMER_LINE}
-        </section>
-      </div>
-    );
-  }
-
-  const tone = toVerdictTone(deep.overallRiskLevel);
-  const decision = getDecisionCopy(deep.overallRiskLevel);
-  const topRisks = [
-    ...deep.immediateWorries,
-    ...deep.oneSidedClauses,
-    ...deep.timingAndLockIn,
-    ...deep.couldShaftYouLater,
-  ]
-    .sort((a, b) => severityRank[b.severity] - severityRank[a.severity])
-    .slice(0, 3);
-  const topAsks = [
-    ...deep.negotiationIdeas.map(item => ({ title: item.ask, detail: item.why })),
-    ...deep.suggestedEdits.map(item => ({ title: item.title, detail: item.plainEnglishEdit })),
-    ...deep.missingProtections.map(item => ({ title: item.title, detail: item.commonFix })),
-  ].slice(0, 3);
-  const detailedBlockers = topRisks.map(item => ({
-    title: item.title,
-    detail: item.whyItMatters,
-    severity: item.severity,
-  }));
-  const detailedAsks = topAsks.map(item => ({
-    title: item.title,
-    detail: item.detail,
-  }));
-  const riskEvidence = [
+const buildEvidenceLens = (deep: DeepAnalysisResult | null | undefined): LensDef | null => {
+  if (!deep) return null;
+  const findings = [
     ...deep.immediateWorries,
     ...deep.oneSidedClauses,
     ...deep.timingAndLockIn,
     ...deep.couldShaftYouLater,
   ];
-  const riskEvidenceCount = riskEvidence.length + deep.topicConcerns.length;
-  const negotiationCount =
-    deep.missingProtections.length +
-    deep.negotiationIdeas.length +
-    deep.suggestedEdits.length +
-    deep.questionsToAsk.length +
-    deep.protectionChecklist.reduce((sum, group) => sum + group.items.length, 0);
-  const caveatCount =
-    deep.clauseReferenceNotes.length +
-    deep.assumptionsAndUnknowns.length +
-    quick.extractionConcerns.length +
-    sourceWarnings.length;
+  const total = findings.length + deep.topicConcerns.length;
+  if (total === 0) return null;
+
+  return {
+    id: 'evidence',
+    label: 'Evidence',
+    count: total,
+    severity: findings.length > 0 ? maxSeverity(findings) : undefined,
+    content: (
+      <>
+        {findings.map((item, i) => (
+          <CollapsibleItem
+            key={`ev-${item.title}-${i}`}
+            title={item.title}
+            severity={item.severity}>
+            <FindingBody item={item} />
+          </CollapsibleItem>
+        ))}
+        {deep.topicConcerns.map(item => (
+          <CollapsibleItem
+            key={`tc-${item.category}-${item.title}`}
+            title={`${item.category}: ${item.title}`}
+            severity={item.severity}>
+            <p>{item.whyItMatters}</p>
+            {item.reference?.label ? (
+              <p className="text-[11px] text-stone-500">Reference: {item.reference.label}</p>
+            ) : null}
+          </CollapsibleItem>
+        ))}
+      </>
+    ),
+  };
+};
+
+const buildWinsLens = (deep: DeepAnalysisResult | null | undefined): LensDef | null => {
+  if (!deep || deep.potentialAdvantages.length === 0) return null;
+  return {
+    id: 'wins',
+    label: 'Wins',
+    count: deep.potentialAdvantages.length,
+    content: (
+      <>
+        {deep.potentialAdvantages.map(item => (
+          <CollapsibleItem key={`win-${item.title}`} title={item.title}>
+            <p>{item.whyItHelps}</p>
+            {item.reference?.label ? (
+              <p className="text-[11px] text-stone-500">Reference: {item.reference.label}</p>
+            ) : null}
+          </CollapsibleItem>
+        ))}
+      </>
+    ),
+  };
+};
+
+const buildDocLens = (
+  quick: QuickScanResult,
+  deep: DeepAnalysisResult | null | undefined,
+  reviewedAs: string,
+): LensDef => ({
+  id: 'doc',
+  label: 'Doc',
+  content: (
+    <div className="space-y-3 px-3 py-2 text-xs leading-5 text-stone-700">
+      {quick.parties.length > 0 ? (
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">Parties</p>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {quick.parties.map(p => (
+              <span
+                key={`${p.name}-${p.role}`}
+                className="rounded-full bg-stone-100/80 px-2.5 py-1 text-xs text-stone-700">
+                <span className="font-semibold text-stone-950">{p.name}</span>
+                <span className="text-stone-500"> · {p.role}</span>
+              </span>
+            ))}
+          </div>
+        </div>
+      ) : null}
+      {quick.topics.length > 0 ? (
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">Topics</p>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {quick.topics.map(t => (
+              <span
+                key={t}
+                className="rounded-full border border-stone-200 bg-white/80 px-2.5 py-1 text-[11px] font-semibold text-stone-700">
+                {t}
+              </span>
+            ))}
+          </div>
+        </div>
+      ) : null}
+      <div>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">Summary</p>
+        <p className="mt-1">{deep?.plainEnglishSummary ?? quick.summary}</p>
+      </div>
+      <p className="text-[11px] text-stone-500">
+        {quick.documentType} · Reviewed as {reviewedAs}
+      </p>
+    </div>
+  ),
+});
+
+const buildCaveatsLens = (
+  quick: QuickScanResult,
+  deep: DeepAnalysisResult | null | undefined,
+  sourceWarnings: string[],
+): LensDef | null => {
+  const extraction = [...quick.extractionConcerns, ...sourceWarnings];
+  const clauseRefs = deep?.clauseReferenceNotes ?? [];
+  const assumptions = deep?.assumptionsAndUnknowns ?? [];
+  const total = extraction.length + clauseRefs.length + assumptions.length;
+  if (total === 0) return null;
+
+  return {
+    id: 'caveats',
+    label: 'Caveats',
+    count: total,
+    content: (
+      <div className="space-y-2 px-2 py-2 text-xs leading-5 text-stone-700">
+        {extraction.map(note => (
+          <div key={`ex-${note}`} className="rounded-xl border border-amber-200 bg-amber-50/85 px-3 py-2 text-amber-900">
+            {note}
+          </div>
+        ))}
+        {clauseRefs.map(note => (
+          <div key={`cr-${note}`} className="rounded-xl border border-stone-200 bg-white/80 px-3 py-2">
+            {note}
+          </div>
+        ))}
+        {assumptions.map(note => (
+          <div key={`as-${note}`} className="rounded-xl border border-stone-200 bg-stone-100/80 px-3 py-2 text-stone-600">
+            {note}
+          </div>
+        ))}
+      </div>
+    ),
+  };
+};
+
+const pickInitialLens = (lenses: LensDef[]): LensId => {
+  const blockers = lenses.find(l => l.id === 'blockers');
+  if (blockers && (blockers.count ?? 0) > 0) return 'blockers';
+  const asks = lenses.find(l => l.id === 'asks');
+  if (asks && (asks.count ?? 0) > 0) return 'asks';
+  return lenses[0]?.id ?? 'doc';
+};
+
+// ── ResultsView ─────────────────────────────────────────────────────────
+
+type ResultsViewRecord =
+  | Pick<CurrentAnalysis, 'quickScan' | 'deepAnalysis' | 'selectedRole' | 'customRole' | 'source'>
+  | HistoryRecord;
+
+const ResultsView = ({ record }: { record: ResultsViewRecord }) => {
+  const quick = record.quickScan;
+  const deep = record.deepAnalysis;
+  const sourceWarnings = 'source' in record ? record.source.warnings : [];
+  const reviewedAs =
+    'customRole' in record && record.customRole.trim() ? record.customRole : record.selectedRole;
+
+  const lenses = useMemo<LensDef[]>(() => {
+    if (!quick) return [];
+    return [
+      buildBlockerLens(quick, deep),
+      buildAsksLens(quick, deep),
+      buildObligationsLens(quick),
+      buildEvidenceLens(deep),
+      buildWinsLens(deep),
+      buildDocLens(quick, deep, reviewedAs),
+      buildCaveatsLens(quick, deep, sourceWarnings),
+    ].filter((l): l is LensDef => l !== null);
+  }, [quick, deep, reviewedAs, sourceWarnings]);
+
+  const [openId, setOpenId] = useState<LensId>(() => pickInitialLens(lenses));
+
+  if (!quick) return null;
+
+  const activeLens = lenses.find(l => l.id === openId) ?? lenses[0];
+  if (!activeLens) return null;
 
   return (
-    <div className="space-y-3">
-      {includeQuickReadout ? (
-        <>
-          <QuickScanReadout quick={quick} reviewedAs={reviewedAs} sourceWarnings={sourceWarnings} />
-          <section className="rounded-2xl border border-stone-200 bg-white/70 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">
-            Detailed analysis
-          </section>
-        </>
-      ) : null}
-
-      {/* Verdict banner — always visible */}
-      <section className="popup-card !border-stone-950 !bg-stone-950 !text-stone-50">
-        <div className="space-y-2">
-          <RiskBadge label={tone} />
-          <h2 className="text-lg font-semibold tracking-[-0.04em]">{decision.action}</h2>
-          <p className="text-sm font-semibold text-stone-200">{deep.bottomLine}</p>
-          <p className="text-xs leading-5 text-stone-300">{deep.plainEnglishSummary}</p>
-        </div>
-        <div className="mt-3 rounded-xl bg-white/10 px-3 py-2 text-xs text-stone-200">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-400">Next best action</p>
-          <p className="mt-1 font-semibold text-stone-50">{decision.rationale}</p>
-          <p className="mt-2 text-[11px] text-stone-400">Reviewed as {reviewedAs}</p>
-          {quick?.documentType ? <p className="mt-0.5 text-[11px] text-stone-400">{quick.documentType}</p> : null}
-        </div>
-      </section>
-
-      <ActionSummaryGrid blockers={detailedBlockers} asks={detailedAsks} />
-
-      {deep.overallRiskLevel === 'Very High' ? (
-        <section className="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-3 text-xs text-rose-900">
-          <p className="font-semibold">High-stakes warning</p>
-          <p className="mt-1 leading-5">
-            This agreement has significant risk areas. For anything material, consider a contracts or commercial lawyer
-            before signing.
-          </p>
-        </section>
-      ) : null}
-
-      {/* Detail groups — kept secondary to the decision and action summary */}
-
-      {riskEvidenceCount > 0 ? (
-        <ResultAccordion
-          title="Evidence: risk findings"
-          count={riskEvidenceCount}
-          severity={riskEvidence.length > 0 ? maxSeverity(riskEvidence) : undefined}
-          defaultOpen>
-          <div className="space-y-3">
-            {riskEvidence.length > 0 ? (
-              <div className="space-y-2">
-                {riskEvidence.map(item => (
-                  <FindingDetails key={`${item.title}-${item.reference?.label ?? ''}`} item={item} />
-                ))}
-              </div>
-            ) : null}
-            {deep.topicConcerns.length > 0 ? (
-              <div className="space-y-2">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">
-                  Role and topic concerns
-                </p>
-                {deep.topicConcerns.map(item => (
-                  <TopicConcernCard key={`${item.category}-${item.title}`} item={item} />
-                ))}
-              </div>
-            ) : null}
-          </div>
-        </ResultAccordion>
-      ) : null}
-
-      {negotiationCount > 0 ? (
-        <ResultAccordion title="Negotiation and protections" count={negotiationCount}>
-          <div className="space-y-3">
-            {deep.negotiationIdeas.length > 0 ? (
-              <div className="space-y-2">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">What to ask for</p>
-                {deep.negotiationIdeas.map(item => (
-                  <div key={item.ask} className="rounded-2xl border border-stone-200 bg-white/80 p-3">
-                    <p className="text-sm font-semibold text-stone-950">{item.ask}</p>
-                    <p className="mt-1.5 text-xs leading-5 text-stone-700">{item.why}</p>
-                    {item.fallback ? (
-                      <p className="mt-2 text-xs text-stone-600">
-                        <span className="font-semibold text-stone-900">Fallback:</span> {item.fallback}
-                      </p>
-                    ) : null}
-                    {item.targetClause ? (
-                      <p className="mt-2 text-[11px] text-stone-500">Target clause: {item.targetClause}</p>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-            ) : null}
-            {deep.suggestedEdits.length > 0 ? (
-              <div className="space-y-2">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">Suggested edits</p>
-                {deep.suggestedEdits.map(item => (
-                  <div key={item.title} className="rounded-2xl border border-stone-200 bg-white/80 p-3">
-                    <p className="text-sm font-semibold text-stone-950">{item.title}</p>
-                    <p className="mt-1.5 text-xs leading-5 text-stone-700">{item.plainEnglishEdit}</p>
-                    <p className="mt-2 text-xs text-stone-600">{item.why}</p>
-                  </div>
-                ))}
-              </div>
-            ) : null}
-            {deep.missingProtections.length > 0 ? (
-              <div className="space-y-2">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">
-                  Missing protections
-                </p>
-                {deep.missingProtections.map(item => (
-                  <MissingProtectionCard key={item.title} item={item} />
-                ))}
-              </div>
-            ) : null}
-            {deep.questionsToAsk.length > 0 ? (
-              <div className="space-y-2">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">
-                  Questions before signing
-                </p>
-                <ul className="space-y-2 text-xs leading-5 text-stone-700">
-                  {deep.questionsToAsk.map(question => (
-                    <li key={question} className="rounded-2xl border border-stone-200 bg-white/80 px-3 py-2">
-                      {question}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
-            {deep.protectionChecklist.length > 0 ? (
-              <div className="space-y-2">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">
-                  Protection checklist
-                </p>
-                {deep.protectionChecklist.map(group => (
-                  <div key={group.label} className="rounded-2xl border border-stone-200 bg-white/80 p-3">
-                    <p className="text-sm font-semibold text-stone-950">{group.label}</p>
-                    <ul className="mt-2 space-y-1.5 text-xs leading-5 text-stone-700">
-                      {group.items.map(item => (
-                        <li key={item} className="flex gap-2">
-                          <span className="mt-1.5 inline-block h-2 w-2 shrink-0 rounded-full bg-stone-950" />
-                          <span>{item}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
-            ) : null}
-          </div>
-        </ResultAccordion>
-      ) : null}
-
-      {deep.potentialAdvantages.length > 0 ? (
-        <ResultAccordion title="Other useful details" count={deep.potentialAdvantages.length}>
-          <div className="space-y-2">
-            {deep.potentialAdvantages.map(item => (
-              <AdvantageCard key={item.title} item={item} />
-            ))}
-          </div>
-        </ResultAccordion>
-      ) : null}
-
-      {caveatCount > 0 ? (
-        <ResultAccordion title="Coverage, references, and caveats" count={caveatCount}>
-          <div className="space-y-2 text-xs leading-5 text-stone-700">
-            {[...quick.extractionConcerns, ...sourceWarnings].map(note => (
-              <div key={note} className="rounded-2xl border border-amber-200 bg-amber-50/85 px-3 py-2 text-amber-900">
-                {note}
-              </div>
-            ))}
-            {deep.clauseReferenceNotes.map(note => (
-              <div key={note} className="rounded-2xl border border-stone-200 bg-white/80 px-3 py-2">
-                {note}
-              </div>
-            ))}
-            {deep.assumptionsAndUnknowns.map(note => (
-              <div key={note} className="rounded-2xl border border-stone-200 bg-stone-100/80 px-3 py-2 text-stone-600">
-                {note}
-              </div>
-            ))}
-          </div>
-        </ResultAccordion>
-      ) : null}
-
-      <section className="rounded-2xl border border-stone-200 bg-white/70 px-3 py-3 text-[11px] text-stone-600">
-        {deep.disclaimer || DISCLAIMER_LINE}
-      </section>
+    <div className="space-y-2.5">
+      <LensStrip lenses={lenses} openId={activeLens.id} onChange={setOpenId} />
+      <LensPanel lens={activeLens} />
     </div>
   );
 };
 
-export { ResultsView, RiskBadge, SectionHeader, SeverityBadge, QuickDecisionSummary };
+const buildVerdictPreview = (
+  quick: QuickScanResult,
+  deep: DeepAnalysisResult | null | undefined,
+): string => (deep ? deep.bottomLine : quick.cautionLine);
+
+export {
+  ResultsView,
+  RiskBadge,
+  SectionHeader,
+  SeverityBadge,
+  DocStrip,
+  CompactVerdict,
+  VerdictSkeleton,
+  buildVerdictPreview,
+  getDecisionAction,
+};

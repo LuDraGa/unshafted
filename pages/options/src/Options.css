@@ -57,6 +57,45 @@
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 
+.options-inline-tag {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: var(--unshafted-selection-soft);
+  color: var(--unshafted-text-muted);
+  padding: 2px 8px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.options-disclosure {
+  border: 1px solid var(--unshafted-border);
+  background: rgba(255, 252, 247, 0.6);
+  border-radius: 16px;
+  padding: 12px 14px;
+}
+
+.options-disclosure > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  list-style: none;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--unshafted-text);
+}
+
+.options-disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
+.options-disclosure[open] > summary .options-chevron {
+  transform: rotate(180deg);
+}
+
 .options-help-eyebrow {
   margin: 0;
   color: var(--unshafted-brand);

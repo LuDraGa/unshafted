@@ -1,15 +1,19 @@
-import { QuickDecisionSummary, RiskBadge, SectionHeader, SeverityBadge, ResultsView } from './ResultCards';
+import {
+  CompactVerdict,
+  DocStrip,
+  ResultsView,
+  RiskBadge,
+  VerdictSkeleton,
+  buildVerdictPreview,
+  getDecisionAction,
+} from './ResultCards';
 import { useStorage } from '@extension/shared';
 import { currentAnalysisStorage, unshaftedSettingsStorage } from '@extension/storage';
-import { cn } from '@extension/ui';
 import {
   LOADING_STEPS,
   PRIORITY_OPTIONS,
   buildRoleOptions,
   buildSuggestedPriorities,
-  formatBytes,
-  QUICK_SCAN_CHAR_LIMIT,
-  DEEP_ANALYSIS_CHAR_LIMIT,
   toVerdictTone,
   RUN_QUICK_SCAN_MESSAGE,
   RUN_DEEP_ANALYSIS_MESSAGE,
@@ -18,58 +22,83 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Session } from '@extension/supabase';
 import type { CurrentAnalysis, AnalysisMessageResponse } from '@extension/unshafted-core';
 
-const formatTimestamp = (iso: string) =>
-  new Intl.DateTimeFormat(undefined, {
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(new Date(iso));
-
-/** Reusable accordion section */
-const AccordionSection = ({
-  title,
-  count,
-  severity,
-  defaultOpen = false,
-  forceOpen = false,
-  onboardingTarget,
-  children,
+const ScopeSheet = ({
+  selectedRole,
+  customRole,
+  priorities,
+  roleOptions,
+  onSelectRole,
+  onCustomRoleChange,
+  onTogglePriority,
+  onResetPriorities,
+  onClose,
 }: {
-  title: string;
-  count?: number;
-  severity?: 'low' | 'medium' | 'high';
-  defaultOpen?: boolean;
-  forceOpen?: boolean;
-  onboardingTarget?: string;
-  children: React.ReactNode;
+  selectedRole: string;
+  customRole: string;
+  priorities: string[];
+  roleOptions: string[];
+  onSelectRole: (role: string) => void;
+  onCustomRoleChange: (value: string) => void;
+  onTogglePriority: (priority: string) => void;
+  onResetPriorities: () => void;
+  onClose: () => void;
 }) => (
-  <details
-    className="popup-accordion"
-    open={defaultOpen || forceOpen || undefined}
-    data-onboarding-target={onboardingTarget}>
-    <summary>
-      <span>{title}</span>
-      {count !== undefined ? (
-        <span
-          className={cn(
-            'popup-accordion-count',
-            severity === 'high' && 'severity-high',
-            severity === 'medium' && 'severity-medium',
-          )}>
-          {count}
-        </span>
-      ) : null}
-    </summary>
-    <div className="popup-accordion-body">{children}</div>
-  </details>
+  <div className="popup-scope-sheet" role="dialog" aria-label="Customize analysis scope">
+    <div className="popup-scope-sheet-row">
+      <p className="popup-scope-sheet-label">Review as</p>
+      <div className="popup-scope-chip-row">
+        {roleOptions.map(role => (
+          <button
+            key={role}
+            type="button"
+            className="popup-scope-chip"
+            data-active={selectedRole === role && !customRole.trim()}
+            onClick={() => onSelectRole(role)}>
+            {role}
+          </button>
+        ))}
+      </div>
+      <input
+        className="popup-scope-sheet-input"
+        value={customRole}
+        onChange={e => onCustomRoleChange(e.target.value)}
+        placeholder="Custom role (e.g. Parent reviewing for renter)"
+        aria-label="Custom role"
+      />
+    </div>
+    <div className="popup-scope-sheet-row">
+      <p className="popup-scope-sheet-label">Priorities</p>
+      <div className="popup-scope-chip-row">
+        {PRIORITY_OPTIONS.map(priority => {
+          const selected = priorities.includes(priority);
+          return (
+            <button
+              key={priority}
+              type="button"
+              className="popup-scope-chip popup-scope-chip-priority"
+              data-active={selected}
+              onClick={() => onTogglePriority(priority)}>
+              {priority}
+            </button>
+          );
+        })}
+      </div>
+      <button type="button" className="popup-link-button mt-2" onClick={onResetPriorities}>
+        Reset to suggested
+      </button>
+    </div>
+    <button type="button" className="popup-scope-done" onClick={onClose}>
+      Done
+    </button>
+  </div>
 );
 
 export const AnalysisWorkspace = ({
-  focusedOnboardingTarget,
+  focusedOnboardingTarget: _focusedOnboardingTarget,
   session,
   onSignIn,
 }: {
+  // Accepted for API compatibility with the spotlight tour caller; v0.10 drives focus through aria-selected on the lens strip rather than forced-open accordions.
   focusedOnboardingTarget?: 'summary' | 'flags' | 'customize' | 'cta' | null;
   session: Session | null;
   onSignIn: () => void;
@@ -79,7 +108,9 @@ export const AnalysisWorkspace = ({
 
   const [panelError, setPanelError] = useState('');
   const [stepIndex, setStepIndex] = useState(0);
+  const [scopeOpen, setScopeOpen] = useState(false);
   const autoQuickScanRef = useRef<string | null>(null);
+  const ctaBarRef = useRef<HTMLDivElement>(null);
 
   const startQuickScan = useCallback(
     async (analysis: CurrentAnalysis) => {
@@ -130,6 +161,25 @@ export const AnalysisWorkspace = ({
     void startQuickScan(currentAnalysis);
   }, [currentAnalysis, settings.apiKey, settings.openaiApiKey, settings.provider, startQuickScan]);
 
+  // Close scope sheet when deep analysis completes
+  useEffect(() => {
+    if (currentAnalysis?.deepAnalysis && scopeOpen) {
+      setScopeOpen(false);
+    }
+  }, [currentAnalysis?.deepAnalysis, scopeOpen]);
+
+  // Click outside the CTA bar closes the ScopeSheet
+  useEffect(() => {
+    if (!scopeOpen) return;
+    const handlePointerDown = (event: MouseEvent) => {
+      if (ctaBarRef.current && !ctaBarRef.current.contains(event.target as Node)) {
+        setScopeOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handlePointerDown);
+    return () => document.removeEventListener('mousedown', handlePointerDown);
+  }, [scopeOpen]);
+
   // Animate loading steps
   useEffect(() => {
     if (currentAnalysis?.status !== 'deep-running' && currentAnalysis?.status !== 'quick-running') {
@@ -151,6 +201,7 @@ export const AnalysisWorkspace = ({
     }
     setPanelError('');
     setStepIndex(0);
+    setScopeOpen(false);
 
     let response: AnalysisMessageResponse;
     try {
@@ -183,85 +234,28 @@ export const AnalysisWorkspace = ({
   const roleOptions = buildRoleOptions(currentAnalysis.quickScan ?? null);
   const selectedRole = currentAnalysis.customRole?.trim() || currentAnalysis.selectedRole || 'Signer';
   const quickScan = currentAnalysis.quickScan;
-  const activeModel =
-    settings.provider === 'openai'
-      ? currentAnalysis.deepAnalysis
-        ? settings.openaiDeepModel
-        : settings.openaiQuickModel
-      : currentAnalysis.deepAnalysis
-        ? settings.deepModel
-        : settings.quickModel;
-  const quickUsesExcerpt = currentAnalysis.source.text.length > QUICK_SCAN_CHAR_LIMIT;
-  const deepUsesExcerpt = currentAnalysis.source.text.length > DEEP_ANALYSIS_CHAR_LIMIT;
-  const maxFlagSeverity = quickScan?.redFlags.reduce<'low' | 'medium' | 'high'>((max, f) => {
-    const order = { low: 0, medium: 1, high: 2 } as const;
-    return order[f.severity] > order[max] ? f.severity : max;
-  }, 'low');
-  const documentDetails = (
-    <AccordionSection title="Document details">
-      <div className="space-y-2.5">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-full bg-stone-900 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-50">
-            {currentAnalysis.source.kind}
-          </span>
-          <span className="rounded-full bg-stone-100 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-700">
-            {currentAnalysis.source.quality}
-          </span>
-        </div>
+  const deepAnalysis = currentAnalysis.deepAnalysis;
+  const isQuickRunning = currentAnalysis.status === 'quick-running';
+  const isDeepRunning = currentAnalysis.status === 'deep-running';
+  const showCtaBar = !!quickScan && !deepAnalysis && !isDeepRunning && !isQuickRunning;
 
-        <p className="line-clamp-2 text-sm font-semibold text-stone-900">{currentAnalysis.source.name}</p>
+  const verdictTone = deepAnalysis
+    ? toVerdictTone(deepAnalysis.overallRiskLevel)
+    : quickScan
+      ? toVerdictTone(quickScan.roughRiskLevel)
+      : 'CAUTION';
+  const verdictAction = deepAnalysis
+    ? getDecisionAction(deepAnalysis.overallRiskLevel)
+    : quickScan
+      ? getDecisionAction(quickScan.roughRiskLevel)
+      : '';
+  const verdictPreview = quickScan ? buildVerdictPreview(quickScan, deepAnalysis) : '';
 
-        <div className="grid grid-cols-2 gap-2 text-xs text-stone-600">
-          <div className="rounded-xl bg-stone-100/80 px-3 py-2">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">Characters</p>
-            <p className="mt-1 text-sm font-semibold text-stone-950">
-              {currentAnalysis.source.charCount.toLocaleString()}
-            </p>
-          </div>
-          <div className="rounded-xl bg-stone-100/80 px-3 py-2">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">Tokens (est.)</p>
-            <p className="mt-1 text-sm font-semibold text-stone-950">
-              {currentAnalysis.source.estimatedTokens.toLocaleString()}
-            </p>
-          </div>
-          {currentAnalysis.source.fileSize ? (
-            <div className="rounded-xl bg-stone-100/80 px-3 py-2">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">File size</p>
-              <p className="mt-1 text-sm font-semibold text-stone-950">
-                {formatBytes(currentAnalysis.source.fileSize)}
-              </p>
-            </div>
-          ) : null}
-          <div className="rounded-xl bg-stone-100/80 px-3 py-2">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">Captured</p>
-            <p className="mt-1 text-sm font-semibold text-stone-950">
-              {formatTimestamp(currentAnalysis.source.capturedAt)}
-            </p>
-          </div>
-        </div>
-
-        {currentAnalysis.source.warnings.length > 0 ? (
-          <div className="space-y-1 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-900">
-            <p className="font-semibold">Extraction warnings</p>
-            <ul className="list-disc space-y-0.5 pl-4">
-              {currentAnalysis.source.warnings.map(warning => (
-                <li key={warning}>{warning}</li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
-
-        <details className="rounded-xl border border-stone-200 bg-white/80 p-3">
-          <summary className="cursor-pointer list-none text-xs font-semibold text-stone-950">
-            Preview extracted text
-          </summary>
-          <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap font-mono text-[11px] leading-5 text-stone-700">
-            {currentAnalysis.source.preview}
-          </pre>
-        </details>
-      </div>
-    </AccordionSection>
-  );
+  const priorityCount = currentAnalysis.priorities.length;
+  const scopeSummary =
+    priorityCount > 0
+      ? `Reviewed as ${selectedRole} · ${priorityCount} ${priorityCount === 1 ? 'priority' : 'priorities'}`
+      : `Reviewed as ${selectedRole}`;
 
   return (
     <div className="space-y-3">
@@ -285,221 +279,110 @@ export const AnalysisWorkspace = ({
         </section>
       ) : null}
 
-      {!quickScan ? documentDetails : null}
+      {/* Doc strip — always visible once an analysis exists */}
+      <DocStrip
+        name={currentAnalysis.source.name}
+        type={quickScan?.documentType}
+        partyCount={quickScan ? quickScan.parties.length : null}
+      />
 
-      {/* Quick scan running */}
-      {currentAnalysis.status === 'quick-running' ? (
-        <section className="popup-card space-y-3">
-          <SectionHeader title="Running quick scan" subtitle="Type, parties, rough risk, role options." />
-          <div className="rounded-xl border border-stone-200 bg-white/80 px-3 py-3">
-            <p className="text-xs text-stone-600">Classifying document and spotting obvious risk...</p>
-            <p className="mt-1 text-[11px] text-stone-500">
-              Runs in the background service worker; closing the popup should not cancel the request.
-            </p>
-            <div className="mt-3 flex items-center gap-2">
-              <div className="popup-spinner" />
-              <p className="text-xs font-semibold text-stone-900">{LOADING_STEPS[stepIndex]}</p>
-            </div>
-          </div>
-        </section>
+      {/* Verdict — skeleton while quick scan runs, compact card once available */}
+      {!quickScan && isQuickRunning ? (
+        <VerdictSkeleton ariaLabel="Running quick scan" />
+      ) : quickScan ? (
+        <CompactVerdict tone={verdictTone} action={verdictAction} preview={verdictPreview} />
       ) : null}
 
-      {quickScan ? (
-        <QuickDecisionSummary
-          quick={quickScan}
-          reviewedAs={selectedRole}
-          coverageLine={`${quickUsesExcerpt ? 'Quick scan used a balanced excerpt' : 'Quick scan used the full extracted text'} · Model: ${activeModel || 'default model'}`}
-          sourceWarnings={currentAnalysis.source.warnings}
-          action={
-            <button
-              className="rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-100 transition hover:bg-white/20"
-              onClick={() => void startQuickScan({ ...currentAnalysis, quickScan: null })}
-              type="button">
-              Re-scan
-            </button>
-          }
-        />
-      ) : null}
-
-      {/* ── Quick scan accordion sections ── */}
-      {quickScan ? (
-        <div>
-          {/* Parties — closed, with count */}
-          {quickScan.parties.length > 0 ? (
-            <AccordionSection title="Parties" count={quickScan.parties.length}>
-              <div className="flex flex-wrap gap-1.5">
-                {quickScan.parties.map(party => (
-                  <span
-                    key={`${party.name}-${party.role}`}
-                    className="rounded-full bg-stone-100/80 px-2.5 py-1.5 text-xs text-stone-700">
-                    <span className="font-semibold text-stone-950">{party.name}</span>
-                    <span className="text-stone-500"> · {party.role}</span>
-                  </span>
-                ))}
-              </div>
-            </AccordionSection>
-          ) : null}
-
-          {/* Quick flags — closed, with count + severity */}
-          {quickScan.redFlags.length > 0 ? (
-            <AccordionSection
-              title="Flags"
-              count={quickScan.redFlags.length}
-              severity={maxFlagSeverity}
-              onboardingTarget="flags"
-              forceOpen={focusedOnboardingTarget === 'flags'}>
-              <div className="space-y-1.5">
-                {quickScan.redFlags.map(flag => (
-                  <div key={flag.title} className="rounded-lg bg-stone-100/80 px-2.5 py-2 text-xs text-stone-700">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="font-semibold text-stone-950">{flag.title}</p>
-                      <SeverityBadge severity={flag.severity} />
-                    </div>
-                    <p className="mt-1 leading-5">{flag.reason}</p>
-                  </div>
-                ))}
-              </div>
-            </AccordionSection>
-          ) : (
-            <section className="mt-1 rounded-2xl border border-emerald-200 bg-emerald-50/85 px-3 py-2 text-xs leading-5 text-emerald-900">
-              <p className="font-semibold">No major quick-scan flags found</p>
-              <p>
-                Still review the summary, extraction coverage, and detailed analysis before relying on this for a
-                high-stakes contract.
-              </p>
-            </section>
-          )}
-
-          {/* Customize analysis — closed, shows current role inline */}
-          <AccordionSection
-            title={`Customize analysis · ${selectedRole}`}
-            onboardingTarget="customize"
-            forceOpen={focusedOnboardingTarget === 'customize'}>
-            <div className="space-y-3">
-              <p className="rounded-xl border border-stone-200 bg-white/75 px-3 py-2 text-xs leading-5 text-stone-600">
-                Suggested role and priorities are preselected from the quick scan. Change them only if they do not match
-                your position.
-              </p>
-              {/* Role selection */}
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">Review as</p>
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {roleOptions.map(role => (
-                    <button
-                      key={role}
-                      className={cn(
-                        'rounded-full px-2.5 py-1.5 text-xs font-semibold transition',
-                        selectedRole === role
-                          ? 'bg-stone-950 text-stone-50'
-                          : 'bg-stone-100 text-stone-700 hover:bg-stone-200',
-                      )}
-                      onClick={() => void patchCurrentAnalysis({ selectedRole: role, customRole: '' })}>
-                      {role}
-                    </button>
-                  ))}
-                </div>
-                <div className="mt-2">
-                  <label
-                    className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500"
-                    htmlFor="custom-role">
-                    Custom role
-                  </label>
-                  <input
-                    id="custom-role"
-                    className="popup-input mt-1"
-                    value={currentAnalysis.customRole}
-                    onChange={event => void patchCurrentAnalysis({ customRole: event.target.value })}
-                    placeholder="e.g. Parent reviewing for renter"
-                  />
-                </div>
-              </div>
-
-              {/* Priority topics */}
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">Priority topics</p>
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {PRIORITY_OPTIONS.map(priority => {
-                    const selected = currentAnalysis.priorities.includes(priority);
-                    return (
-                      <button
-                        key={priority}
-                        className={cn(
-                          'rounded-full px-2.5 py-1.5 text-xs font-semibold transition',
-                          selected ? 'bg-amber-500 text-stone-950' : 'bg-stone-100 text-stone-700 hover:bg-stone-200',
-                        )}
-                        onClick={() =>
-                          void patchCurrentAnalysis({
-                            priorities: selected
-                              ? currentAnalysis.priorities.filter(item => item !== priority)
-                              : [...currentAnalysis.priorities, priority],
-                          })
-                        }>
-                        {priority}
-                      </button>
-                    );
-                  })}
-                </div>
-                <button
-                  className="popup-link-button mt-2"
-                  onClick={() =>
-                    void patchCurrentAnalysis({ priorities: buildSuggestedPriorities(currentAnalysis.quickScan) })
-                  }>
-                  Reset to suggested
-                </button>
-              </div>
-            </div>
-          </AccordionSection>
-
-          {/* Single CTA: Run detailed analysis */}
-          {currentAnalysis.status !== 'deep-running' && !currentAnalysis.deepAnalysis ? (
-            session ? (
-              <button
-                className="popup-primary-button mt-3"
-                onClick={() => void startDeepAnalysis()}
-                data-onboarding-target="cta"
-                type="button">
-                Run detailed analysis
-              </button>
-            ) : (
-              <button
-                className="popup-primary-button mt-3"
-                onClick={onSignIn}
-                data-onboarding-target="cta"
-                type="button">
-                Sign in to run detailed analysis
-              </button>
-            )
-          ) : null}
-          {documentDetails}
+      {/* Quick scan running indicator (small status line below skeleton) */}
+      {isQuickRunning && !quickScan ? (
+        <div className="flex items-center gap-2 px-1 text-xs text-stone-600">
+          <div className="popup-spinner" />
+          <p>{LOADING_STEPS[stepIndex]}</p>
         </div>
       ) : null}
 
-      {/* Deep analysis running */}
-      {currentAnalysis.status === 'deep-running' ? (
-        <section className="popup-card space-y-3">
-          <div className="flex items-center justify-between gap-2">
-            <SectionHeader title="Running detailed analysis" subtitle={`Reviewing as ${selectedRole}`} />
+      {/* Lens strip + lens panel */}
+      {quickScan ? <ResultsView record={currentAnalysis} /> : null}
+
+      {/* Deep analysis running indicator (replaces CTA while running) */}
+      {isDeepRunning ? (
+        <section className="rounded-xl border border-stone-200 bg-white/80 px-3 py-2.5">
+          <div className="flex items-center gap-2">
+            <div className="popup-spinner" />
+            <p className="text-xs font-semibold text-stone-900">{LOADING_STEPS[stepIndex]}</p>
             <RiskBadge label={toVerdictTone(currentAnalysis.quickScan?.roughRiskLevel ?? 'Medium')} />
           </div>
-          <div className="rounded-xl border border-stone-200 bg-white/80 px-3 py-3">
-            <p className="text-xs text-stone-600">
-              Checking obligations, asymmetry, traps, missing protections, and negotiation angles.
-            </p>
-            <p className="mt-1 text-[11px] text-stone-500">
-              {deepUsesExcerpt
-                ? 'This document is long, so detailed analysis uses a balanced excerpt.'
-                : 'Detailed analysis is using the extracted text available for this document.'}
-            </p>
-            <div className="mt-3 flex items-center gap-2">
-              <div className="popup-spinner" />
-              <p className="text-xs font-semibold text-stone-900">{LOADING_STEPS[stepIndex]}</p>
-            </div>
-          </div>
+          <p className="mt-1 text-[11px] text-stone-500">
+            Reviewing as {selectedRole}. Closing the popup is fine — this runs in the background.
+          </p>
         </section>
       ) : null}
 
-      {/* Deep analysis results */}
-      {currentAnalysis.deepAnalysis ? <ResultsView record={currentAnalysis} /> : null}
+      {/* Sticky CTA bar — only when quick is done and deep hasn't been run */}
+      {showCtaBar ? (
+        <div ref={ctaBarRef} className="popup-cta-bar" data-onboarding-target="cta">
+          {scopeOpen ? (
+            <ScopeSheet
+              selectedRole={currentAnalysis.selectedRole}
+              customRole={currentAnalysis.customRole}
+              priorities={currentAnalysis.priorities}
+              roleOptions={roleOptions}
+              onSelectRole={role => void patchCurrentAnalysis({ selectedRole: role, customRole: '' })}
+              onCustomRoleChange={value => void patchCurrentAnalysis({ customRole: value })}
+              onTogglePriority={priority =>
+                void patchCurrentAnalysis({
+                  priorities: currentAnalysis.priorities.includes(priority)
+                    ? currentAnalysis.priorities.filter(p => p !== priority)
+                    : [...currentAnalysis.priorities, priority],
+                })
+              }
+              onResetPriorities={() =>
+                void patchCurrentAnalysis({ priorities: buildSuggestedPriorities(currentAnalysis.quickScan) })
+              }
+              onClose={() => setScopeOpen(false)}
+            />
+          ) : null}
+          <p className="popup-cta-scope" title={scopeSummary}>
+            <span className="popup-cta-scope-strong">{selectedRole}</span>
+            {priorityCount > 0
+              ? ` · ${priorityCount} ${priorityCount === 1 ? 'priority' : 'priorities'}`
+              : null}
+          </p>
+          <button
+            type="button"
+            className="popup-cta-cog"
+            aria-label="Customize analysis scope"
+            aria-expanded={scopeOpen}
+            data-onboarding-target="customize"
+            onClick={() => setScopeOpen(open => !open)}>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              width="16"
+              height="16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg>
+          </button>
+          {session ? (
+            <button
+              type="button"
+              className="popup-cta-action"
+              onClick={() => void startDeepAnalysis()}>
+              Run analysis
+            </button>
+          ) : (
+            <button type="button" className="popup-cta-action" onClick={onSignIn}>
+              Sign in to run
+            </button>
+          )}
+        </div>
+      ) : null}
     </div>
   );
 };
