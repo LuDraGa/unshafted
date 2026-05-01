@@ -959,14 +959,12 @@ const Popup = () => {
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1 space-y-1">
               <p className="popup-eyebrow">Unshafted</p>
-              <h1 className="popup-title">Contract risk, without the fog.</h1>
-              <p className="popup-subtitle truncate">
-                {selectedHistory
-                  ? selectedHistory.source.name
-                  : currentAnalysis
-                    ? currentAnalysis.source.name
-                    : 'Upload a contract to review (.pdf or .txt).'}
-              </p>
+              {!currentAnalysis && !selectedHistory ? (
+                <>
+                  <h1 className="popup-title">Contract risk, without the fog.</h1>
+                  <p className="popup-subtitle truncate">Upload a contract to review (.pdf or .txt).</p>
+                </>
+              ) : null}
             </div>
             <div className="flex flex-shrink-0 items-center gap-2">
               <div className={`popup-status-pill ${hasActiveApiKey ? 'popup-status-pill-ready' : ''}`}>
@@ -1110,7 +1108,7 @@ const Popup = () => {
                 </section>
               ) : null}
               {openedHistoryReport && hasReportDetails(openedHistoryReport) ? (
-                <ResultsView record={openedHistoryReport} includeQuickReadout />
+                <ResultsView record={openedHistoryReport} />
               ) : (
                 <section className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
                   <p className="font-semibold">Report details are missing</p>
@@ -1138,42 +1136,24 @@ const Popup = () => {
               )}
             </section>
           ) : !currentAnalysis ? (
-            <section className="popup-card space-y-3">
-              <div className="space-y-1">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500">
-                  {hasActiveApiKey ? 'Ready to scan' : 'Try it before setup'}
-                </p>
-                <p className="text-sm leading-5 text-stone-700">
-                  Contract text is sent to your selected AI provider for analysis. API keys stay local. Drive backup
-                  turns on after sign-in unless you turn it off.
-                </p>
-              </div>
-              {hasActiveApiKey ? (
-                <button
-                  className="popup-primary-button"
-                  onClick={handleUploadFlow}
-                  disabled={uploading}
-                  data-onboarding-target="upload"
-                  type="button">
-                  {uploading ? 'Loading contract...' : 'Upload your contract'}
-                </button>
-              ) : (
-                <button
-                  className="popup-primary-button"
-                  onClick={() => void openOptions(true)}
-                  data-onboarding-target="api-key"
-                  type="button">
-                  Set up API key
-                </button>
-              )}
+            hasActiveApiKey ? (
               <button
-                className="popup-secondary-button"
-                onClick={() => void handleDemo()}
+                className="popup-primary-button"
+                onClick={handleUploadFlow}
                 disabled={uploading}
+                data-onboarding-target="upload"
                 type="button">
-                View sample analysis
+                {uploading ? 'Loading contract...' : 'Upload your contract'}
               </button>
-            </section>
+            ) : (
+              <button
+                className="popup-primary-button"
+                onClick={() => void openOptions(true)}
+                data-onboarding-target="api-key"
+                type="button">
+                Set up API key
+              </button>
+            )
           ) : (
             <AnalysisWorkspace
               session={session}
@@ -1181,23 +1161,6 @@ const Popup = () => {
               focusedOnboardingTarget={activeOnboardingStep === 'results' ? resultGuidanceStep : null}
             />
           )}
-
-          {!hasActiveApiKey ? (
-            <section className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-              <p className="font-semibold">API key required for your own contracts</p>
-              <p className="mt-1 text-amber-800">
-                You can inspect the sample now, then save your{' '}
-                {settings.provider === 'openai' ? 'OpenAI' : 'OpenRouter'} key when ready.
-              </p>
-              <button
-                className="popup-link-button mt-3"
-                onClick={() => void openOptions(true)}
-                data-onboarding-target="api-key"
-                type="button">
-                Open Options
-              </button>
-            </section>
-          ) : null}
 
           {launchError ? (
             <section className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
@@ -1331,7 +1294,7 @@ const Popup = () => {
         ) : null}
 
         <div className="popup-sticky-footer">
-          <p>Informational only. Not legal advice.</p>
+          <p>Informational only · Local key · BYOK</p>
           <div className="flex items-center gap-3">
             {!activeOnboardingStep ? (
               <button className="popup-link-button" onClick={() => void resumeWizard()} type="button">
