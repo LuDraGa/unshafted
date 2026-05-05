@@ -30,6 +30,19 @@ AI-generated risk analysis results (quick scans and deep analyses) are stored lo
 
 Anonymous users: a daily quick-scan counter is stored locally to enforce the free-tier limit (3 quick scans per day). Signed-in users get unlimited quick scans; a monthly full-analysis counter is stored locally.
 
+### 6. Authentication tokens (signed-in users)
+
+When you sign in or enable Drive backup, the extension receives and stores authentication tokens issued by Google and Supabase. These tokens are used only to keep your session alive and to authorize calls to the issuing service; they are not transmitted to any other party.
+
+| Token | Issued by | Where it is stored | Lifetime | Purpose |
+|-------|-----------|--------------------|----------|---------|
+| Google ID / profile payload | Google Sign-In | `chrome.storage.local` (Supabase session) | Refreshed by Supabase | Identify your account on sign-in |
+| Google OAuth access token (`drive.file`) | Google OAuth | `chrome.storage.local` (`unshafted-drive-token`) | ~1 hour, silently re-issued | Authorize Google Drive API calls when Drive backup is enabled |
+| Supabase session JWT | Supabase | `chrome.storage.local` (managed by `supabase-js`) | Short-lived, auto-refreshed | Authenticate requests to your Supabase profile row |
+| Supabase refresh token | Supabase | `chrome.storage.local` (managed by `supabase-js`) | Long-lived until sign-out | Obtain a new session JWT without re-prompting |
+
+All tokens are scoped to the extension's storage origin (no web page or other extension can read them) and are cleared on sign-out or when you clear extension data.
+
 ---
 
 How we use your data
