@@ -1,9 +1,9 @@
 Privacy Policy
 ==============
 
-**Effective date:** April 28, 2026
+**Effective date:** May 5, 2026
 
-**Unshafted** is a browser extension that analyzes contracts and agreements for risk using AI models. This policy explains what data the extension collects, how it is used, how it is stored, and when it is shared.
+**Unshafted** (Chrome Web Store item ID: `fpjjdlffjfkdiibljglmgfkbpkkibpia`) is a browser extension that analyzes contracts and agreements for risk using AI models. This policy explains what data the extension collects, how it is handled, how it is stored, and how it is shared.
 
 ---
 
@@ -16,7 +16,7 @@ When you sign in with Google, we receive your **email address**, **display name*
 
 ### 2. User preferences and settings
 
-Your chosen AI provider, model selection, temperature setting, API keys (OpenRouter or OpenAI), onboarding state, and cached Drive backup preference are stored locally on your device in `chrome.storage.local`. API keys are not sent to our servers.
+Your chosen AI provider, model selection, temperature setting, API keys (OpenRouter or OpenAI), onboarding state, and a cached copy of your Drive backup preference are stored locally on your device in `chrome.storage.local`. The Drive backup preference is also persisted to your Supabase profile row so it follows your account across devices; the local copy is a cache of that profile value. API keys are not sent to our servers.
 
 ### 3. Contract and agreement text
 
@@ -63,6 +63,20 @@ Unshafted works without an account. Signing in with Google unlocks additional fe
 
 ---
 
+How we handle and protect your data
+-----------------------------------
+
+- **In transit:** All network requests from the extension — to Supabase, Google (Sign-In and Drive API), OpenRouter, and OpenAI — are made over HTTPS/TLS. The extension does not send data over plaintext channels.
+- **At rest (Supabase):** Authentication records and profile rows (Google user ID, email, display name, avatar URL, Drive backup preference) are stored in our Supabase project, which provides managed encryption at rest. Access is restricted to the project owner; row-level security policies prevent users from reading other users' rows.
+- **At rest (your device):** API keys, OAuth/session tokens, preferences, local history, and usage counters live in `chrome.storage.local`, which Chrome scopes to the extension's origin and is not readable by web pages or other extensions. Active scan text lives in `chrome.storage.session` and is cleared when the browser session ends.
+- **At rest (your Google Drive):** Files written via the `drive.file` scope are stored in your own Google Drive under Google's infrastructure and protections. The extension cannot read or modify any other files in your Drive.
+- **API keys:** Your AI provider API key is sent only from your device directly to the provider you configured (OpenRouter or OpenAI) to authorize model requests. It is never transmitted to or stored on our servers.
+- **No server-side storage of contract content:** Contract text and analysis results are never stored on any server we operate. They live only on your device and, if you opt in, in your own Google Drive.
+- **No human access to your content:** No employee, contractor, or administrator has access to your contract text, analysis results, API keys, or OAuth tokens, because they are never stored in any system we administer.
+- **No model training:** We do not use information received from Google APIs, your contract text, or your analysis results to train, fine-tune, or improve any AI/ML model.
+
+---
+
 How we store your data
 ----------------------
 
@@ -82,6 +96,20 @@ Data sharing and third parties
 - **Google Drive API:** Used to store and retrieve Unshafted-created source files and report JSON files in your own Drive when Drive backup is enabled. See https://policies.google.com/privacy.
 
 We do **not** sell, rent, or transfer your data to any other third parties. We do **not** use your data for advertising, analytics, profiling, or creditworthiness purposes.
+
+---
+
+Google API Services User Data Policy (Limited Use)
+--------------------------------------------------
+
+Unshafted's use and transfer to any other app of information received from Google APIs will adhere to the [Google API Services User Data Policy](https://developers.google.com/terms/api-services-user-data-policy), including the Limited Use requirements.
+
+Specifically, information received from Google APIs (your Google account email, profile, and files created by Unshafted in your Google Drive via the `drive.file` scope) is used **only** to provide and improve user-facing features of the Unshafted extension. We do **not**:
+
+- Transfer this information to third parties except as necessary to provide or improve user-facing features, comply with applicable law, or as part of a merger, acquisition, or sale of assets with the user's prior consent.
+- Use this information to serve advertising, including personalized or retargeted advertising.
+- Allow humans to read this information unless we have the user's affirmative agreement for specific messages, it is necessary for security purposes (e.g., investigating abuse), to comply with applicable law, or the information has been aggregated and anonymized.
+- Use this information to develop, train, or improve generalized or non-personalized AI/ML models.
 
 ---
 

@@ -1,7 +1,7 @@
 # CWS Rejection Fix — Permissions & Privacy Policy
 
 **Date:** 2026-04-17
-**Last updated:** 2026-04-28
+**Last updated:** 2026-05-05
 **Violation IDs:** Purple Potassium (permissions), Purple Nickel (privacy policy)
 
 ## Problem
@@ -42,6 +42,18 @@ Rewrote to accurately cover:
 - Data retention and deletion procedures
 - Explicit "what we do NOT collect" section
 
+### 2a. Privacy policy — second rejection patch (2026-05-05)
+
+CWS rejected again on Purple Nickel after the first rewrite. Two gaps identified:
+
+1. **Missing Google API Services User Data Policy / Limited Use disclosure.** Required when an extension uses Google OAuth user data (we use Google Sign-In + `drive.file`). Added a dedicated "Google API Services User Data Policy (Limited Use)" section with the verbatim Google statement and the four enumerated Limited Use commitments (no third-party transfer beyond user-facing features, no ads, no human reading, no model training).
+2. **Missing data-handling / security section.** Purple Nickel rectification text names four pillars — collection, handling, storage, sharing — and the prior policy collapsed handling into purpose-of-use. Added "How we handle and protect your data" covering TLS in transit, Supabase encryption at rest, `chrome.storage.local` origin scoping, no server-side storage of contract content, no human access, and no model training.
+
+Also tightened:
+- Added Chrome Web Store item ID at the top of the policy so it unambiguously refers to this listing.
+- Reconciled Drive backup preference description (Supabase profile is source of truth; `chrome.storage.local` is a cache).
+- Bumped effective date to 2026-05-05.
+
 ### 3. GitHub Actions — auto-sync privacy policy to gist
 
 **File:** `.github/workflows/sync-privacy-policy.yml`
@@ -81,7 +93,11 @@ The Chrome Web Store privacy policy URL must be entered in the designated field 
 - [x] Remove unused permissions from manifest
 - [x] Rewrite privacy policy
 - [x] Add GitHub Actions workflow for gist sync
-- [ ] Confirm `GIST_PAT` repo secret exists and the gist sync workflow has run after the latest `privacy-policy.md` change
-- [ ] Confirm public gist content matches local `privacy-policy.md`
+- [x] Privacy policy URL set in the dashboard's Privacy tab field (confirmed by user 2026-05-05)
+- [x] Public gist content matches local `privacy-policy.md` (confirmed by user 2026-05-05)
+- [x] Add Google API Services User Data Policy / Limited Use disclosure
+- [x] Add "How we handle and protect your data" section
+- [x] Add Chrome Web Store item ID to policy header
+- [ ] Push privacy-policy.md change, verify gist sync workflow ran, verify gist matches
 - [ ] Rebuild extension and resubmit to CWS
-- [ ] Update CWS form fields, including the designated Privacy tab URL field (manual)
+- [ ] Update CWS form fields if anything new applies (no permissions changed this round)
