@@ -83,8 +83,8 @@ Disclaimer: Unshafted provides informational insights and does not constitute le
 | Official URL | None |
 | Homepage URL | (empty, 0 / 2,048) |
 | Support URL | (empty, 0 / 2,048) |
-| Mature content | Not flagged |
-| Additional metrics (GA4) | Not configured |
+| Mature content | Not flagged (toggle off) |
+| Additional metrics (GA4) | Enabled — "Opt out of Google Analytics" / "Go to Google Analytics" buttons present. This is **listing-side dashboard analytics** (installs, impressions, ratings) shared with developers who have access to the item. It does **not** track end users from inside the extension and does not affect the "no analytics or tracking" claim about the extension itself. |
 | Item support visibility | Off |
 
 ---
