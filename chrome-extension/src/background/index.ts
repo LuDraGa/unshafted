@@ -14,8 +14,8 @@ console.info('[Unshafted] background worker ready');
 
 void clearLegacyPersistentAnalysisState();
 
-supabase.auth.onAuthStateChange((event, session) => {
-  console.info('[Unshafted] auth state:', event, session?.user?.email ?? 'no user');
+supabase.auth.onAuthStateChange(event => {
+  console.info('[Unshafted] auth state:', event);
 });
 
 // ── Analysis message handler ──
