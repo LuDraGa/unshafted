@@ -1355,6 +1355,10 @@ const Popup = () => {
               </p>
               <ul className="popup-consent-list">
                 <li>Your Google email, display name, and profile picture</li>
+                <li>
+                  A Supabase profile row holding the above plus a flag for whether Drive backup is on, so the setting
+                  follows your account across devices
+                </li>
                 <li>A Supabase session token, kept locally to keep you signed in</li>
                 <li>
                   A Google Drive token (<code>drive.file</code> scope) — used only if you turn on Drive backup. We can&apos;t

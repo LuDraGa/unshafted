@@ -1,7 +1,7 @@
 Privacy Policy
 ==============
 
-**Effective date:** May 5, 2026
+**Effective date:** May 7, 2026
 
 **Unshafted** (Chrome Web Store item ID: `fpjjdlffjfkdiibljglmgfkbpkkibpia`) is a browser extension that analyzes contracts and agreements for risk using AI models. This policy explains what data the extension collects, how it is handled, how it is stored, and how it is shared.
 
@@ -16,7 +16,7 @@ When you sign in with Google, we receive your **email address**, **display name*
 
 ### 2. User preferences and settings
 
-Your chosen AI provider, model selection, temperature setting, API keys (OpenRouter or OpenAI), onboarding state, and a cached copy of your Drive backup preference are stored locally on your device in `chrome.storage.local`. The Drive backup preference is also persisted to your Supabase profile row so it follows your account across devices; the local copy is a cache of that profile value. API keys are not sent to our servers.
+Your chosen AI provider, model selection, temperature setting, API keys (OpenRouter or OpenAI), onboarding state, and a cached copy of your Drive backup preference are stored locally on your device in `chrome.storage.local`. The onboarding state additionally includes a SHA-256 hash of the API key you most recently tested (used so the popup can tell whether the saved key has been verified) and the timestamp at which you accepted this privacy disclosure in the extension. If Drive backup is enabled, the extension also caches the Drive folder ID for the "Unshafted" folder it created in your Drive, so it does not have to re-look-up the folder each session. The Drive backup preference is also persisted to your Supabase profile row so it follows your account across devices; the local copy is a cache of that profile value. API keys are not sent to our servers; the SHA-256 hash is never transmitted off the device either.
 
 ### 3. Contract and agreement text
 

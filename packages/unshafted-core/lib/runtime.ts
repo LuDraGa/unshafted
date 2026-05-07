@@ -10,22 +10,6 @@ import { sampleContractText, sampleDeepAnalysis, sampleQuickScan } from './fixtu
 import { CurrentAnalysisSchema, HistoryRecordSchema, IngestedDocumentSchema } from './schemas.js';
 import type { CurrentAnalysis, HistoryRecord, IngestedDocument } from './types.js';
 
-const EXTRACT_PAGE_MESSAGE_TYPE = 'unshafted/extract-page';
-
-type ExtractPageRequest = {
-  type: typeof EXTRACT_PAGE_MESSAGE_TYPE;
-};
-
-type ExtractPageResponse =
-  | {
-      ok: true;
-      document: IngestedDocument;
-    }
-  | {
-      ok: false;
-      error: string;
-    };
-
 const RUN_QUICK_SCAN_MESSAGE = 'unshafted/run-quick-scan';
 const RUN_DEEP_ANALYSIS_MESSAGE = 'unshafted/run-deep-analysis';
 
@@ -227,7 +211,6 @@ const toVerdictTone = (riskLevel: 'Low' | 'Medium' | 'High' | 'Very High'): 'LOW
 };
 
 export {
-  EXTRACT_PAGE_MESSAGE_TYPE,
   RUN_DEEP_ANALYSIS_MESSAGE,
   RUN_QUICK_SCAN_MESSAGE,
   createCurrentAnalysis,
@@ -237,10 +220,4 @@ export {
   toVerdictTone,
   touchCurrentAnalysis,
 };
-export type {
-  AnalysisMessageResponse,
-  ExtractPageRequest,
-  ExtractPageResponse,
-  RunDeepAnalysisRequest,
-  RunQuickScanRequest,
-};
+export type { AnalysisMessageResponse, RunDeepAnalysisRequest, RunQuickScanRequest };

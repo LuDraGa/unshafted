@@ -1,9 +1,7 @@
 packages:
   - chrome-extension
-  - pages/content
   - pages/options
   - pages/popup
-  - pages/side-panel
   - packages/env
   - packages/hmr
   - packages/shared
