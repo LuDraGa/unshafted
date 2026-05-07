@@ -35,6 +35,7 @@ import {
   getActiveProviderConfig,
   getOnboardingKeyHash,
   PRIORITY_OPTIONS,
+  PRIVACY_POLICY_URL,
 } from '@extension/unshafted-core';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Session } from '@extension/supabase';
@@ -225,6 +226,14 @@ const ProfileMenu = ({
                 <span />
               </button>
             </div>
+            <p className="mt-2 text-[11px] leading-4 text-stone-600">
+              When on, your uploaded contract file and analysis JSON go to an &ldquo;Unshafted&rdquo; folder in your own
+              Google Drive (<code className="rounded bg-stone-200/60 px-1 py-px text-[10px]">drive.file</code> scope —
+              we cannot read other Drive files).{' '}
+              <a className="font-semibold text-amber-700 underline" href={PRIVACY_POLICY_URL} target="_blank" rel="noreferrer">
+                Privacy policy
+              </a>
+            </p>
             {syncNotice ? <p className="mt-2 text-[11px] leading-4 text-stone-600">{syncNotice}</p> : null}
             {pendingCurrentBackup ? (
               <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-2 text-[11px] text-amber-900">
@@ -301,6 +310,7 @@ const Popup = () => {
   const [uploading, setUploading] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [consentPromptOpen, setConsentPromptOpen] = useState(false);
   const [selectedHistory, setSelectedHistory] = useState<HistoryRecord | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -678,7 +688,7 @@ const Popup = () => {
     [activeProviderConfig.provider, openUrlInTab],
   );
 
-  const handleSignIn = useCallback(async () => {
+  const proceedWithSignIn = useCallback(async () => {
     setSigningIn(true);
     setLaunchError('');
     const result = await signInWithGoogle();
@@ -689,6 +699,27 @@ const Popup = () => {
     }
     setSigningIn(false);
   }, [advanceOnboarding]);
+
+  const handleSignIn = useCallback(async () => {
+    if (!onboarding.privacyConsentAcceptedAt) {
+      setConsentPromptOpen(true);
+      return;
+    }
+    await proceedWithSignIn();
+  }, [onboarding.privacyConsentAcceptedAt, proceedWithSignIn]);
+
+  const acceptPrivacyConsent = useCallback(async () => {
+    await unshaftedOnboardingStorage.set(current => ({
+      ...current,
+      privacyConsentAcceptedAt: current.privacyConsentAcceptedAt ?? new Date().toISOString(),
+    }));
+    setConsentPromptOpen(false);
+    await proceedWithSignIn();
+  }, [proceedWithSignIn]);
+
+  const declinePrivacyConsent = useCallback(() => {
+    setConsentPromptOpen(false);
+  }, []);
 
   const handleSignOut = useCallback(async () => {
     await signOut();
@@ -1294,7 +1325,12 @@ const Popup = () => {
         ) : null}
 
         <div className="popup-sticky-footer">
-          <p>Informational only · Local key · BYOK</p>
+          <p>
+            Informational only · Local key · BYOK ·{' '}
+            <a className="popup-consent-link" href={PRIVACY_POLICY_URL} target="_blank" rel="noreferrer">
+              Privacy
+            </a>
+          </p>
           <div className="flex items-center gap-3">
             {!activeOnboardingStep ? (
               <button className="popup-link-button" onClick={() => void resumeWizard()} type="button">
@@ -1303,6 +1339,50 @@ const Popup = () => {
             ) : null}
           </div>
         </div>
+        {consentPromptOpen ? (
+          <div
+            className="popup-consent-overlay"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="popup-consent-title">
+            <div className="popup-consent-card">
+              <p id="popup-consent-title" className="popup-consent-title">
+                Before you sign in
+              </p>
+              <p className="popup-consent-body">
+                Signing in with Google shares the following with Unshafted so we can authenticate you and (optionally)
+                back up your reports to your own Drive:
+              </p>
+              <ul className="popup-consent-list">
+                <li>Your Google email, display name, and profile picture</li>
+                <li>A Supabase session token, kept locally to keep you signed in</li>
+                <li>
+                  A Google Drive token (<code>drive.file</code> scope) — used only if you turn on Drive backup. We can&apos;t
+                  read other Drive files
+                </li>
+              </ul>
+              <p className="popup-consent-body">
+                Contracts and analyses stay on your device unless you explicitly enable Drive backup. Your AI provider
+                API key is sent only to the provider you choose; never to us.
+              </p>
+              <p className="popup-consent-body">
+                Full details:{' '}
+                <a className="popup-consent-link" href={PRIVACY_POLICY_URL} target="_blank" rel="noreferrer">
+                  Unshafted privacy policy
+                </a>
+                .
+              </p>
+              <div className="popup-consent-actions">
+                <button className="popup-secondary-button" onClick={declinePrivacyConsent} type="button">
+                  Cancel
+                </button>
+                <button className="popup-primary-button" onClick={() => void acceptPrivacyConsent()} type="button">
+                  Agree &amp; continue
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
         {spotlightStep ? (
           <SpotlightTour
             step={spotlightStep}
