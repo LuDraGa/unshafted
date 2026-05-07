@@ -1,5 +1,6 @@
 export const APP_NAME = 'Unshafted';
 export const APP_TAGLINE = 'Reads contracts from your side of the table.';
+export const PRIVACY_POLICY_URL = 'https://gist.github.com/LuDraGa/782b874f1e7fe0076fb2bf1509937e95';
 export const OPENROUTER_KEYS_URL = 'https://openrouter.ai/settings/keys';
 export const OPENROUTER_API_KEYS_DOCS_URL = 'https://openrouter.ai/docs/api-keys';
 export const OPENAI_KEYS_URL = 'https://platform.openai.com/api-keys';

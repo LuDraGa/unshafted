@@ -1,6 +1,6 @@
 {
   "name": "@extension/supabase",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "chrome extension - supabase auth and backend",
   "type": "module",
   "private": true,

@@ -237,6 +237,7 @@ export const OnboardingStateSchema = z.object({
   testedKeyHash: z.string().nullable().default(null),
   testedModel: z.string().nullable().default(null),
   keyTestedAt: z.string().nullable().default(null),
+  privacyConsentAcceptedAt: z.string().nullable().default(null),
 });
 
 export const UsageSnapshotSchema = z.object({

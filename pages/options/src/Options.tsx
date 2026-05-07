@@ -16,6 +16,7 @@ import {
   OPENAI_KEYS_URL,
   OPENROUTER_API_KEYS_DOCS_URL,
   OPENROUTER_KEYS_URL,
+  PRIVACY_POLICY_URL,
   testOpenRouterConnection,
 } from '@extension/unshafted-core';
 import { useEffect, useRef, useState } from 'react';
@@ -447,6 +448,13 @@ const Options = () => {
               </div>
               <p className="text-[11px] leading-5 text-stone-500">
                 {isOpenAI ? 'Starts with sk-proj-' : 'Starts with sk-or-'} · stays in chrome.storage.local
+              </p>
+              <p className="text-[11px] leading-5 text-stone-500">
+                Your key never leaves your device except to authorize requests directly with the provider you chose.
+                Contract text is sent only to that provider.{' '}
+                <a className="font-semibold text-amber-700 underline" href={PRIVACY_POLICY_URL} target="_blank" rel="noreferrer">
+                  Privacy policy
+                </a>
               </p>
             </label>
 
