@@ -22,6 +22,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Session } from '@extension/supabase';
 import type { CurrentAnalysis, AnalysisMessageResponse } from '@extension/unshafted-core';
 
+type PriorityOption = (typeof PRIORITY_OPTIONS)[number];
+
 const ScopeSheet = ({
   selectedRole,
   customRole,
@@ -35,11 +37,11 @@ const ScopeSheet = ({
 }: {
   selectedRole: string;
   customRole: string;
-  priorities: string[];
+  priorities: PriorityOption[];
   roleOptions: string[];
   onSelectRole: (role: string) => void;
   onCustomRoleChange: (value: string) => void;
-  onTogglePriority: (priority: string) => void;
+  onTogglePriority: (priority: PriorityOption) => void;
   onResetPriorities: () => void;
   onClose: () => void;
 }) => (
