@@ -1,0 +1,80 @@
+name: Supabase Heartbeat
+
+# Keeps the free-tier Supabase project (ehrbvtwggrpagaaejnux) from auto-pausing
+# after 7 days of inactivity. Pings public.heartbeat() RPC every 12h.
+
+on:
+  schedule:
+    - cron: '0 */12 * * *'
+  workflow_dispatch:
+
+jobs:
+  heartbeat:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Validate secrets
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${SUPABASE_URL:-}" ]; then
+            echo "::error::SUPABASE_URL secret is required"
+            exit 1
+          fi
+
+          if [ -z "${SUPABASE_PUBLISHABLE_KEY:-}" ] && [ -z "${SUPABASE_ANON_KEY:-}" ]; then
+            echo "::error::Set either SUPABASE_PUBLISHABLE_KEY (recommended) or SUPABASE_ANON_KEY"
+            exit 1
+          fi
+
+      - name: Ping heartbeat RPC
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          set -euo pipefail
+
+          API_KEY="${SUPABASE_PUBLISHABLE_KEY:-${SUPABASE_ANON_KEY:-}}"
+
+          if [ -z "$API_KEY" ]; then
+            echo "::error::No API key provided"
+            exit 1
+          fi
+
+          # New key format (sb_publishable_*) is not a JWT — do not send as Bearer.
+          if printf '%s' "$API_KEY" | grep -q '^sb_publishable_'; then
+            response=$(curl -sS -X POST \
+              "${SUPABASE_URL}/rest/v1/rpc/heartbeat" \
+              -H "apikey: ${API_KEY}" \
+              -H "Content-Type: application/json" \
+              -d '{}' \
+              -w "\nHTTP_CODE:%{http_code}")
+          else
+            # Legacy anon JWT compatibility path.
+            response=$(curl -sS -X POST \
+              "${SUPABASE_URL}/rest/v1/rpc/heartbeat" \
+              -H "apikey: ${API_KEY}" \
+              -H "Authorization: Bearer ${API_KEY}" \
+              -H "Content-Type: application/json" \
+              -d '{}' \
+              -w "\nHTTP_CODE:%{http_code}")
+          fi
+
+          http_code=$(echo "$response" | awk -F: '/HTTP_CODE/{print $2}')
+          body=$(echo "$response" | sed '/HTTP_CODE/d')
+
+          echo "Response: $body"
+          echo "HTTP Status: $http_code"
+
+          if [ "$http_code" != "200" ]; then
+            echo "::error::Heartbeat failed with HTTP ${http_code}"
+            exit 1
+          fi
+
+          echo "::notice::Heartbeat successful"
