@@ -93,5 +93,6 @@ Disclaimer: Unshafted provides informational insights and does not constitute le
 
 ## Change log
 
+- **2026-05-11** — v0.7.1 approved and published with this description. Purple Nickel cleared; the listing copy above is what's live.
 - **2026-05-07** — Replaced description with privacy-accurate copy after Purple Nickel re-rejection on 0.7.0. Removes the v0.1 "no accounts / no cloud storage / data stays on device" claims that contradicted Phase 1 (Supabase auth) and Phase 2 (Drive backup). Paired with in-extension consent disclosure.
 - **2026-05-05** — Initial snapshot at v0.7.0 resubmission.
