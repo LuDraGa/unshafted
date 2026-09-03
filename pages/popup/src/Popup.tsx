@@ -1,6 +1,7 @@
 import '@src/Popup.css';
 import { AnalysisWorkspace } from './components/AnalysisWorkspace';
 import { ResultsView } from './components/ResultCards';
+import { SitePolicyPanel } from './components/SitePolicyPanel';
 import { useStorage, withErrorBoundary, withSuspense } from '@extension/shared';
 import {
   analysisHistoryStorage,
@@ -1192,6 +1193,12 @@ const Popup = () => {
               focusedOnboardingTarget={activeOnboardingStep === 'results' ? resultGuidanceStep : null}
             />
           )}
+
+          {!selectedHistory ? (
+            <div className="mt-4">
+              <SitePolicyPanel />
+            </div>
+          ) : null}
 
           {launchError ? (
             <section className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">

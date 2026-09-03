@@ -9,10 +9,13 @@ import {
 import { supabase, syncQuickScanToDrive, syncDeepAnalysisToDrive } from '@extension/supabase';
 import { createHistoryRecord, RUN_QUICK_SCAN_MESSAGE, RUN_DEEP_ANALYSIS_MESSAGE } from '@extension/unshafted-core';
 import type { RunQuickScanRequest, AnalysisMessageResponse } from '@extension/unshafted-core';
+import { registerSitePolicyBadge } from './site-policy.js';
 
 console.info('[Unshafted] background worker ready');
 
 void clearLegacyPersistentAnalysisState();
+
+registerSitePolicyBadge();
 
 supabase.auth.onAuthStateChange(event => {
   console.info('[Unshafted] auth state:', event);
