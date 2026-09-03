@@ -1,0 +1,24 @@
+{
+  "comment": [
+    "Build input for the bundled domain-coverage index (policy-index.bin).",
+    "",
+    "PLACEHOLDER DATA. Every domain here is an RFC 2606 / RFC 6761 reserved name that resolves",
+    "to nobody. Risk levels are illustrative so the badge path can be exercised end to end.",
+    "",
+    "Real domains belong here ONLY once an actual analysis backs them, published through the",
+    "M1 corpus pipeline. Shipping an invented risk level for a real company would be a false",
+    "claim about that company, visible to every user who installs the extension.",
+    "",
+    "The bundle is a day-one offline SEED, not the source of truth (AD-6). promptVersion lives",
+    "in the CDN index so re-analysis can be invalidated without an extension release."
+  ],
+  "formatVersion": 1,
+  "domains": [
+    { "domain": "example.com", "riskLevel": "High", "hasTimeSensitiveAction": true },
+    { "domain": "example.org", "riskLevel": "Medium", "hasTimeSensitiveAction": false },
+    { "domain": "example.net", "riskLevel": "Low", "hasTimeSensitiveAction": false },
+    { "domain": "shop.example.com", "riskLevel": "Very High", "hasTimeSensitiveAction": true },
+    { "domain": "example.co.uk", "riskLevel": "Medium", "hasTimeSensitiveAction": true },
+    { "domain": "test.example", "riskLevel": "Low", "hasTimeSensitiveAction": false }
+  ]
+}

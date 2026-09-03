@@ -32,7 +32,11 @@ const manifest = {
   name: '__MSG_extensionName__',
   version: packageJson.version,
   description: '__MSG_extensionDescription__',
-  permissions: ['storage', 'identity'],
+  // `tabs` reads tab URLs for the ambient badge (bundled index, zero network).
+  // `activeTab` + `scripting` capture the current page's policy, and only on a user gesture.
+  // Still no host permissions and no registered content scripts — page access was excised in
+  // 3657ca0 to clear review, and this does not reopen it.
+  permissions: ['storage', 'identity', 'tabs', 'activeTab', 'scripting'],
   options_ui: {
     page: 'options/index.html',
     open_in_tab: true,

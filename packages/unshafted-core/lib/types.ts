@@ -15,12 +15,16 @@ import type {
   PendingActionSchema,
   PotentialAdvantageSchema,
   QuickScanResultSchema,
+  RiskLevelSchema,
+  SeveritySchema,
   TopicConcernSchema,
   UsageSnapshotSchema,
 } from './schemas.js';
 import type { z } from 'zod';
 
 export type ClauseReference = z.infer<typeof ClauseReferenceSchema>;
+export type RiskLevel = z.infer<typeof RiskLevelSchema>;
+export type Severity = z.infer<typeof SeveritySchema>;
 export type QuickScanResult = z.infer<typeof QuickScanResultSchema>;
 export type DetailedFinding = z.infer<typeof DetailedFindingSchema>;
 export type MissingProtection = z.infer<typeof MissingProtectionSchema>;
