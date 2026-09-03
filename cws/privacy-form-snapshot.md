@@ -2,8 +2,9 @@
 
 **Item:** Unshafted: AI Contract Risk Analyzer
 **Item ID:** `fpjjdlffjfkdiibljglmgfkbpkkibpia`
-**Version submitted:** 0.7.0
-**Snapshot date:** 2026-05-05
+**Version live:** 0.7.1 — approved and published 2026-05-11
+**Snapshot date:** 2026-05-05 (form values unchanged by the 0.7.1 resubmission;
+no permissions or data-usage categories changed between 0.7.0 and 0.7.1)
 **Source:** Chrome Web Store Developer Dashboard → Privacy tab
 
 This file mirrors the live values entered in the CWS dashboard's Privacy tab so the source of truth lives in git alongside `privacy-policy.md`. Update this file whenever the dashboard form is changed.

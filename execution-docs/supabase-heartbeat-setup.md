@@ -1,7 +1,8 @@
 # Supabase Free-Tier Heartbeat Setup
 
-**Status:** Code merged · Manual steps pending
+**Status:** Live · migration applied, workflow running
 **Date:** 2026-05-19
+**Last verified:** 2026-09-03
 **Project:** `my-chrome-extensions` (ref `ehrbvtwggrpagaaejnux`)
 
 ## Why
@@ -64,11 +65,34 @@ disables scheduled workflows on repos with no activity for 60 days — the
 
 - [x] Migration file written
 - [x] Workflow file written
-- [ ] Migration applied in Supabase dashboard
-- [ ] cURL smoke test from local machine succeeds
-- [ ] GitHub secrets configured
-- [ ] Manual `workflow_dispatch` run is green
-- [ ] First scheduled run observed
+- [x] Migration applied in Supabase dashboard
+- [x] cURL smoke test from local machine succeeds
+- [x] GitHub secrets configured
+- [x] Manual `workflow_dispatch` run is green
+- [x] First scheduled run observed (2026-05-19 → 2026-07-18)
+
+## Operational history
+
+- **2026-05-19 → 2026-07-18** — Scheduled runs green on the 12h cadence.
+- **2026-07-18** — Last scheduled run. GitHub disabled the workflow
+  (`disabled_inactivity`) exactly 60 days after the last commit to `main`.
+  CodeQL Advanced was disabled the same way and is still off.
+- **2026-09-03** — Noticed during a status review. The project had *not*
+  paused despite ~47 days without a ping (`rpc/heartbeat` returned
+  `2026-09-03T15:36:57Z`, `auth/v1/health` 200), but the guard rail was off.
+  Re-enabled via `gh workflow enable supabase-heartbeat.yml`; manual
+  `workflow_dispatch` run green in 10s.
+
+### The gap this exposes
+
+The 60-day inactivity disable is a real failure mode the original design
+missed: the workflow's own scheduled runs do **not** count as repo activity,
+so on a dormant repo the heartbeat reliably kills itself after 60 days and
+does so silently. Options if this recurs:
+
+- Re-enable manually (what was done — costs nothing until the next 60-day lapse)
+- Move the cron off GitHub Actions (Supabase pg_cron, or any external pinger)
+- Have the workflow commit a timestamp file, so it counts as its own activity
 
 ## Notes / decisions
 

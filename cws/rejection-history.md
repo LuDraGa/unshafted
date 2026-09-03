@@ -98,6 +98,37 @@ The Chrome Web Store privacy policy URL must be entered in the designated field 
 - [x] Add Google API Services User Data Policy / Limited Use disclosure
 - [x] Add "How we handle and protect your data" section
 - [x] Add Chrome Web Store item ID to policy header
-- [ ] Push privacy-policy.md change, verify gist sync workflow ran, verify gist matches
-- [ ] Rebuild extension and resubmit to CWS
-- [ ] Update CWS form fields if anything new applies (no permissions changed this round)
+- [x] Push privacy-policy.md change, verify gist sync workflow ran, verify gist matches
+- [x] Rebuild extension and resubmit to CWS
+- [x] Update CWS form fields if anything new applies (no permissions changed this round)
+
+---
+
+## Resolution — v0.7.1 approved (2026-05-11)
+
+**Purple Nickel is cleared.** v0.7.1 passed review and is live on the Chrome
+Web Store, published 2026-05-11.
+
+The fix that landed it was not more privacy-policy text — the policy had been
+comprehensive since 2026-05-05. It was bringing the other two review surfaces
+into line with it:
+
+1. **In-product disclosure before collection** (commit `347205a`) — a consent
+   modal gating Google sign-in, plus disclosures under the Drive backup toggle
+   and the API key field. Chrome's troubleshooting doc asks for a screen
+   presented *before* any data is collected; there wasn't one.
+2. **Truthful listing copy** (commit `347205a`) — the description still claimed
+   "no accounts, no cloud storage, data stays on your device," which
+   contradicted the policy's Supabase + Drive description. A reviewer reading
+   both saw a policy that looked partial against the listing's broader claim.
+3. **Removed the orphan content script** (commit `3657ca0`) — `pages/content/`
+   was unwired in the manifest but still built into the ZIP, shipping a
+   60KB page-scraping script alongside a `storage`+`identity`-only manifest.
+   The cleanest available "single-purpose drift" citation, now gone.
+
+**Takeaway for future rejections:** Purple Nickel names the privacy policy,
+but the review surface is the *union* of policy + in-product disclosure +
+listing copy + what's actually in the ZIP. Audit all four before assuming the
+policy text is the gap.
+
+Full detail: [`execution-docs/v0.7.1-purple-nickel-disclosure-pass.md`](../execution-docs/v0.7.1-purple-nickel-disclosure-pass.md).
