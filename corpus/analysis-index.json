@@ -51,7 +51,7 @@
       "actionCount": 5,
       "absentDisclosures": [
         "Retention period",
-        "Generative AI training opt-out",
+        "AI training opt-out",
         "Do Not Sell or Share My Personal Information"
       ],
       "promptVersion": "adhesion-rubric-v1",
@@ -105,7 +105,7 @@
       "actionCount": 4,
       "absentDisclosures": [
         "Retention period",
-        "Rights regarding automated decision-making"
+        "Automated decision-making rights"
       ],
       "promptVersion": "adhesion-rubric-v1",
       "normalizerVersion": "normalizer-v1",
@@ -130,7 +130,7 @@
       "actionCount": 3,
       "absentDisclosures": [
         "Notice of changes to terms",
-        "Grievance officer contact"
+        "Named Grievance Officer"
       ],
       "promptVersion": "adhesion-rubric-v1",
       "normalizerVersion": "normalizer-v1",
@@ -326,7 +326,7 @@
       "actionCount": 5,
       "absentDisclosures": [
         "Retention period",
-        "Grievance Officer",
+        "Named Grievance Officer",
         "Consent withdrawal mechanism"
       ],
       "promptVersion": "adhesion-rubric-v1",
@@ -350,8 +350,8 @@
       "highSeverityCount": 2,
       "actionCount": 3,
       "absentDisclosures": [
-        "Grievance Officer",
-        "Cookie consent mechanism"
+        "Named Grievance Officer",
+        "Consent mechanism for non-essential cookies"
       ],
       "promptVersion": "adhesion-rubric-v1",
       "normalizerVersion": "normalizer-v1",
@@ -544,7 +544,7 @@
       "highSeverityCount": 4,
       "actionCount": 5,
       "absentDisclosures": [
-        "Advance notice of policy changes"
+        "Notice of changes to terms"
       ],
       "promptVersion": "adhesion-rubric-v1",
       "normalizerVersion": "normalizer-v1",
@@ -592,7 +592,7 @@
       "absentDisclosures": [
         "Right to limit use of sensitive personal information",
         "AI training opt-out",
-        "Automated decision-making opt-out",
+        "Automated decision-making rights",
         "Named Grievance Officer"
       ],
       "promptVersion": "adhesion-rubric-v1",
@@ -759,7 +759,7 @@
       "highSeverityCount": 2,
       "actionCount": 3,
       "absentDisclosures": [
-        "Consent before non-essential cookies are set"
+        "Consent mechanism for non-essential cookies"
       ],
       "promptVersion": "adhesion-rubric-v1",
       "normalizerVersion": "normalizer-v1",
@@ -859,7 +859,7 @@
       "highSeverityCount": 5,
       "actionCount": 5,
       "absentDisclosures": [
-        "Grievance Officer",
+        "Named Grievance Officer",
         "Notice of changes to terms",
         "Refund and cancellation policy"
       ],
@@ -886,7 +886,7 @@
       "actionCount": 5,
       "absentDisclosures": [
         "Named Grievance Officer",
-        "Notice of changes",
+        "Notice of changes to terms",
         "Consent withdrawal mechanism",
         "Retention period"
       ],
