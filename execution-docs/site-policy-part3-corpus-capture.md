@@ -403,6 +403,69 @@ The case is real but rarer than assumed, which lowers the urgency of schema cons
 `www.americanexpress.com`. Both are consumer finance, which is exactly where this was predicted.
 Not captured — see Scope.
 
+### 11. Curated set — 85 documents, 36 domains
+
+`choosePolicyUrl` being unreliable means the raw capture cannot be analysed as-is: it would
+grade Cloudflare's privacy policy and attribute the result to DoorDash. So every captured
+document was read against its URL, length and anchor text, and the real ones kept.
+
+`tools/corpus/curated.ts` holds the selection **by content hash** (the hash is the identity, and
+a URL can carry tracking parameters that differ between captures). `build-curated.ts` resolves
+it against the manifest, failing loudly on any hash that does not resolve or is ambiguous, and
+writes `corpus/curated.json`.
+
+**85 documents · 36 domains · 4,371,569 normalized characters** — 38 privacy, 30 terms,
+13 cookie, 4 acceptable-use.
+
+Two entries carry a hand-assigned `docType` that overrides the shipped classifier, because the
+classifier was wrong: `dropbox.com/terms` was typed `privacy`, and `hdfcbank.com/privacy-policy`
+was typed `cookie`.
+
+Domains deliberately absent, each for a stated reason: `capitalone.com` (only a hub page
+reachable), `airbnb.com`, `cash.app`, `shein.com`, `spotify.com`, `temu.com` (zero policy links
+found), `adobe.com`, `icicibank.com`, `myntra.com`, `swiggy.com`, `whatsapp.com` (JS-rendered,
+unreachable), `youtube.com` (never captured).
+
+### 12. AD-4 fails four different ways, not one
+
+Finding 8 counted cross-origin documents. Curating them showed the 46 unreachable occurrences
+split into four distinct mechanisms, and only one is the one AD-4 anticipated:
+
+| Mechanism | Count | Example |
+|---|---|---|
+| **Policy subdomain** | 17 | `help.netflix.com`, `corporate.walmart.com`, `values.snap.com` |
+| **Genuinely another site** | 11 | `policies.google.com` from `google.com`; `snap.com` from `snapchat.com` |
+| **Redirector link** | 14 | `microsoft.com` links `go.microsoft.com`, which redirects to `www.microsoft.com` |
+| **www / apex mismatch** | 4 | `www.zerodha.com` links bare `zerodha.com`; `www.walmart.com` links `walmart.com` |
+
+The last two are the interesting ones and neither appears in Part 1's framing.
+
+A **redirector link** breaks the in-page fetch even though the destination is same-origin — the
+browser blocks the request before the redirect is ever followed. Microsoft's privacy statement
+is on `www.microsoft.com`, the page is on `www.microsoft.com`, and the extension still cannot
+read it, because the only link to it goes via `go.microsoft.com`.
+
+A **www / apex mismatch** is cross-origin to `fetch()` even though it is plainly the same site.
+Zerodha's own footer, served from `www.zerodha.com`, links to `zerodha.com`.
+
+Both are fixable at the client without host permissions — resolve the redirect before fetching,
+and treat `www.x` / `x` as one origin — where a genuine policy subdomain is not. Splitting the
+15% into "hard" and "fixable" changes what AD-4's gap actually costs.
+
+### 13. What is testable end-to-end today
+
+A domain only works in the product if the client can *reach* its document from the page. Of the
+36 curated domains:
+
+- **24 fully testable:** amazon.com, americanexpress.com, apple.com, booking.com, chase.com,
+  coinbase.com, doordash.com, facebook.com, flipkart.com, hdfcbank.com, hotstar.com,
+  instagram.com, linkedin.com, makemytrip.com, openai.com, paypal.com, paytm.com, phonepe.com,
+  reddit.com, robinhood.com, stripe.com, tiktok.com, uber.com, zomato.com
+- **5 partial:** bankofamerica.com (1/2), dropbox.com (1/2), ebay.com (2/4), x.com (2/3),
+  zoom.us (2/3)
+- **7 unreachable in-page:** canva.com, google.com, microsoft.com, netflix.com, snapchat.com,
+  walmart.com, zerodha.com
+
 ### Outstanding
 
 | Site | State |
@@ -462,6 +525,8 @@ Two that are worth settling regardless of cost:
 - [x] v1 capture run — 48/49 sites, 147 documents, 7.1M characters
 - [x] Findings report generator — `tools/corpus/report.ts`
 - [x] Findings written up from the run
+- [x] Hand-verified every captured document; curated set is 85 documents across 36 domains
+- [x] Curation is content-hash addressed and validated — `tools/corpus/curated.ts`, `build-curated.ts`
 - [ ] Retry the 6 zero-link sites and youtube.com
-- [ ] Hand-verify all 78 chooser picks (analysis session's first task)
+- [ ] Analysis — see `site-policy-part4-analysis.md`
 - [ ] v2 re-capture in two weeks against `captureId` `v1-2026-09-04` (D9)

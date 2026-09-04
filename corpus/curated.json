@@ -1,0 +1,1050 @@
+{
+  "captureId": "v1-2026-09-04",
+  "normalizerVersion": "normalizer-v1",
+  "egress": {
+    "country": "IN",
+    "region": "Karnataka",
+    "city": "Bengaluru"
+  },
+  "entries": [
+    {
+      "domain": "amazon.com",
+      "tags": [
+        "ecommerce",
+        "subscription_autorenewal",
+        "ott_streaming",
+        "identity_provider",
+        "payments_fintech"
+      ],
+      "docType": "cookie",
+      "contentHash": "f44a02e59126044aca9f5b9194ec1b7f77a0dd6b8cc849d37a897e0f8fb22e7a",
+      "sourceUrl": "https://www.amazon.com/gp/help/customer/display.html/?nodeId=GVASXV5UZ64R4Y25",
+      "normalizedLength": 5363,
+      "textPath": "corpus/text/f44a02e59126044aca9f5b9194ec1b7f77a0dd6b8cc849d37a897e0f8fb22e7a.txt"
+    },
+    {
+      "domain": "amazon.com",
+      "tags": [
+        "ecommerce",
+        "subscription_autorenewal",
+        "ott_streaming",
+        "identity_provider",
+        "payments_fintech"
+      ],
+      "docType": "privacy",
+      "contentHash": "993ed5120c75318d98473698e001dc29c41935af329de73ab6165f36b146b08c",
+      "sourceUrl": "https://www.amazon.com/gp/help/customer/display.html?nodeId=GX7NJQ4ZB8MHFRNJ&ref_=footer_privacy",
+      "normalizedLength": 24639,
+      "textPath": "corpus/text/993ed5120c75318d98473698e001dc29c41935af329de73ab6165f36b146b08c.txt"
+    },
+    {
+      "domain": "amazon.com",
+      "tags": [
+        "ecommerce",
+        "subscription_autorenewal",
+        "ott_streaming",
+        "identity_provider",
+        "payments_fintech"
+      ],
+      "docType": "terms",
+      "contentHash": "2d74ae327a24212d776172673d7bd4e98a511761089dea0ecbcf5569ffdd16a5",
+      "sourceUrl": "https://www.amazon.com/gp/help/customer/display.html?nodeId=GLSBYFE9MGKKQXXM&ref_=footer_cou",
+      "normalizedLength": 28337,
+      "textPath": "corpus/text/2d74ae327a24212d776172673d7bd4e98a511761089dea0ecbcf5569ffdd16a5.txt"
+    },
+    {
+      "domain": "americanexpress.com",
+      "tags": [
+        "finance_banking",
+        "payments_fintech"
+      ],
+      "docType": "privacy",
+      "contentHash": "1a6484c77e319a382eecd3d55dfdf99bbfecee0f6aa3fa1406c1f87f2ae145fc",
+      "sourceUrl": "https://www.americanexpress.com/en-in/company/legal/privacy-center/online-privacy-statement/?inav=en_in_legalfooter_privacy_centre",
+      "normalizedLength": 12891,
+      "textPath": "corpus/text/1a6484c77e319a382eecd3d55dfdf99bbfecee0f6aa3fa1406c1f87f2ae145fc.txt"
+    },
+    {
+      "domain": "americanexpress.com",
+      "tags": [
+        "finance_banking",
+        "payments_fintech"
+      ],
+      "docType": "terms",
+      "contentHash": "886227777c620182982d29337012afd7ade8e3cc921e2f24808b628e0d4ed663",
+      "sourceUrl": "https://www.americanexpress.com/en-in/company/legal/rules-and-regulations/?inav=en_in_legalfooter_website_rules_and_regulations",
+      "normalizedLength": 8921,
+      "textPath": "corpus/text/886227777c620182982d29337012afd7ade8e3cc921e2f24808b628e0d4ed663.txt",
+      "note": "Website Rules and Regulations — the closest thing Amex India publishes to site terms."
+    },
+    {
+      "domain": "americanexpress.com",
+      "tags": [
+        "finance_banking",
+        "payments_fintech"
+      ],
+      "docType": "terms",
+      "contentHash": "a75dfac11e72032e04e87c80c0de3cba7980f8a82f3a37807c90048293563263",
+      "sourceUrl": "https://www.americanexpress.com/in/company/legal-disclosures/know-your-customer.html?inav=en_in_legalfooter_kyc",
+      "normalizedLength": 16345,
+      "textPath": "corpus/text/a75dfac11e72032e04e87c80c0de3cba7980f8a82f3a37807c90048293563263.txt",
+      "note": "Know Your Customer disclosure. A regulated finance document with no matching docType in the shipped enum."
+    },
+    {
+      "domain": "americanexpress.com",
+      "tags": [
+        "finance_banking",
+        "payments_fintech"
+      ],
+      "docType": "terms",
+      "contentHash": "887b98bf17edad2a6f6ce1ead226365d43ea8176773490d2331154da8f6f58f5",
+      "sourceUrl": "https://www.americanexpress.com/in/legal/customer-complaint-grievance-redressal-policy.html?inav=en_in_legalfooter_complaints",
+      "normalizedLength": 9192,
+      "textPath": "corpus/text/887b98bf17edad2a6f6ce1ead226365d43ea8176773490d2331154da8f6f58f5.txt",
+      "note": "Customer Complaint / Grievance Redressal Policy. Statutory in India; no matching docType."
+    },
+    {
+      "domain": "apple.com",
+      "tags": [
+        "identity_provider",
+        "ott_streaming",
+        "ecommerce",
+        "payments_fintech"
+      ],
+      "docType": "privacy",
+      "contentHash": "0002e2ff51c401dadd4fbb77efc4d581350390d896257924ff273705d8610a4a",
+      "sourceUrl": "https://www.apple.com/privacy/",
+      "normalizedLength": 12429,
+      "textPath": "corpus/text/0002e2ff51c401dadd4fbb77efc4d581350390d896257924ff273705d8610a4a.txt"
+    },
+    {
+      "domain": "apple.com",
+      "tags": [
+        "identity_provider",
+        "ott_streaming",
+        "ecommerce",
+        "payments_fintech"
+      ],
+      "docType": "terms",
+      "contentHash": "1cd58c4549802d6c736d6f93f91b5baebb7b33e4835ad173bd946b1d25b2f627",
+      "sourceUrl": "https://www.apple.com/legal/internet-services/terms/site.html",
+      "normalizedLength": 20495,
+      "textPath": "corpus/text/1cd58c4549802d6c736d6f93f91b5baebb7b33e4835ad173bd946b1d25b2f627.txt"
+    },
+    {
+      "domain": "bankofamerica.com",
+      "tags": [
+        "finance_banking"
+      ],
+      "docType": "privacy",
+      "contentHash": "8d8c35085d680153a86622a6ab37ee67ba0a3af8fdd9a66e8db60528194e4c0e",
+      "sourceUrl": "https://web.bankofamerica.com/en/privacy/online-privacy-notice",
+      "normalizedLength": 21148,
+      "textPath": "corpus/text/8d8c35085d680153a86622a6ab37ee67ba0a3af8fdd9a66e8db60528194e4c0e.txt",
+      "note": "The main Online Privacy Notice. The chooser picked the CHILDREN’S notice instead."
+    },
+    {
+      "domain": "bankofamerica.com",
+      "tags": [
+        "finance_banking"
+      ],
+      "docType": "privacy",
+      "contentHash": "20993aec8fb256583401054597672dff8e665264c0a03a43fb24b84cc53d999a",
+      "sourceUrl": "https://web.bankofamerica.com/en/privacy/ccpa-disclosure",
+      "normalizedLength": 22481,
+      "textPath": "corpus/text/20993aec8fb256583401054597672dff8e665264c0a03a43fb24b84cc53d999a.txt",
+      "note": "CCPA disclosure — a separate statutory notice."
+    },
+    {
+      "domain": "booking.com",
+      "tags": [
+        "ecommerce"
+      ],
+      "docType": "privacy",
+      "contentHash": "8e40cf40bedfb1796ccce30c6812e214834822cff1fdc9d8938117d4f028fd19",
+      "sourceUrl": "https://www.booking.com/content/privacy.html?aid=304142&label=gen173nr-10CAEoggI46AdIM1gEaGyIAQGYATO4AQfIAQzYAQPoAQH4AQGIAgGoAgG4AtON6tQGwAIB0gIkZTU1YjYyN2MtZjI0OS00NmQzLWE4MjQtYzllYzFkOGE3N2Rh2AIB4AIB&sid=93e52071d2cfa650e15800cc067e71a0",
+      "normalizedLength": 74379,
+      "textPath": "corpus/text/8e40cf40bedfb1796ccce30c6812e214834822cff1fdc9d8938117d4f028fd19.txt"
+    },
+    {
+      "domain": "booking.com",
+      "tags": [
+        "ecommerce"
+      ],
+      "docType": "terms",
+      "contentHash": "fc60f01573a54050c444d719cfeb5c64114e43f663f70a4c5c5556c8d8acd8b5",
+      "sourceUrl": "https://www.booking.com/content/terms.html?aid=304142&label=gen173nr-10CAEoggI46AdIM1gEaGyIAQGYATO4AQfIAQzYAQPoAQH4AQGIAgGoAgG4AtON6tQGwAIB0gIkZTU1YjYyN2MtZjI0OS00NmQzLWE4MjQtYzllYzFkOGE3N2Rh2AIB4AIB&sid=93e52071d2cfa650e15800cc067e71a0",
+      "normalizedLength": 170114,
+      "textPath": "corpus/text/fc60f01573a54050c444d719cfeb5c64114e43f663f70a4c5c5556c8d8acd8b5.txt"
+    },
+    {
+      "domain": "canva.com",
+      "tags": [
+        "saas",
+        "subscription_autorenewal"
+      ],
+      "docType": "privacy",
+      "contentHash": "15da0f5ab9385fddc85dca68637b3d4c047a74ef5f94c2980cf3db0a634eba7f",
+      "sourceUrl": "https://www.canva.com/en_in/policies/privacy-policy/",
+      "normalizedLength": 63333,
+      "textPath": "corpus/text/15da0f5ab9385fddc85dca68637b3d4c047a74ef5f94c2980cf3db0a634eba7f.txt"
+    },
+    {
+      "domain": "canva.com",
+      "tags": [
+        "saas",
+        "subscription_autorenewal"
+      ],
+      "docType": "terms",
+      "contentHash": "c1c703a5d75e9f0131efb8c41869f79e9e1fa292dc8a5a3089109377602080f9",
+      "sourceUrl": "https://www.canva.com/en_in/policies/terms-of-use/",
+      "normalizedLength": 46127,
+      "textPath": "corpus/text/c1c703a5d75e9f0131efb8c41869f79e9e1fa292dc8a5a3089109377602080f9.txt"
+    },
+    {
+      "domain": "chase.com",
+      "tags": [
+        "finance_banking"
+      ],
+      "docType": "privacy",
+      "contentHash": "7d63704bf5f53856aa9a8961ee84968ebb5240e0c8f4e9d7ba52a92aa9dc673d",
+      "sourceUrl": "https://www.chase.com/digital/resources/privacy-security/privacy/online-privacy-policy",
+      "normalizedLength": 14743,
+      "textPath": "corpus/text/7d63704bf5f53856aa9a8961ee84968ebb5240e0c8f4e9d7ba52a92aa9dc673d.txt"
+    },
+    {
+      "domain": "chase.com",
+      "tags": [
+        "finance_banking"
+      ],
+      "docType": "terms",
+      "contentHash": "7a521f89501c61d208192be506c16f64e807921639244bf18677184d8fc88660",
+      "sourceUrl": "https://www.chase.com/digital/resources/terms-of-use",
+      "normalizedLength": 16621,
+      "textPath": "corpus/text/7a521f89501c61d208192be506c16f64e807921639244bf18677184d8fc88660.txt"
+    },
+    {
+      "domain": "coinbase.com",
+      "tags": [
+        "finance_banking",
+        "payments_fintech"
+      ],
+      "docType": "cookie",
+      "contentHash": "71f60eed1645a3397c07a222564efa59e67d923d86fc4d4318028e58376bc964",
+      "sourceUrl": "https://www.coinbase.com/en-in/legal/cookie",
+      "normalizedLength": 7565,
+      "textPath": "corpus/text/71f60eed1645a3397c07a222564efa59e67d923d86fc4d4318028e58376bc964.txt"
+    },
+    {
+      "domain": "coinbase.com",
+      "tags": [
+        "finance_banking",
+        "payments_fintech"
+      ],
+      "docType": "privacy",
+      "contentHash": "60c77d35911b2aea8a319c34813df081f79d4fccf8e2367d4bfd3ce381eed77c",
+      "sourceUrl": "https://www.coinbase.com/en-in/legal/privacy",
+      "normalizedLength": 59008,
+      "textPath": "corpus/text/60c77d35911b2aea8a319c34813df081f79d4fccf8e2367d4bfd3ce381eed77c.txt",
+      "note": "The real privacy policy. The chooser picked a legal index page."
+    },
+    {
+      "domain": "coinbase.com",
+      "tags": [
+        "finance_banking",
+        "payments_fintech"
+      ],
+      "docType": "terms",
+      "contentHash": "dee826819eb118a80732017b02d2c5367586122ff1fbc1179a73462fa6886834",
+      "sourceUrl": "https://www.coinbase.com/en-in/legal/digital-asset-disclosures",
+      "normalizedLength": 29986,
+      "textPath": "corpus/text/dee826819eb118a80732017b02d2c5367586122ff1fbc1179a73462fa6886834.txt",
+      "note": "Digital Asset Disclosures — crypto-specific risk disclosure, no matching docType."
+    },
+    {
+      "domain": "doordash.com",
+      "tags": [
+        "ecommerce",
+        "subscription_autorenewal"
+      ],
+      "docType": "terms",
+      "contentHash": "51e9b28ec612c323fe9d1922df5df3dc9f0314c5efccc4050fbedebb45792147",
+      "sourceUrl": "https://help.doordash.com/en-us/legal/article/cx-terms-and-conditions",
+      "normalizedLength": 136335,
+      "textPath": "corpus/text/51e9b28ec612c323fe9d1922df5df3dc9f0314c5efccc4050fbedebb45792147.txt"
+    },
+    {
+      "domain": "dropbox.com",
+      "tags": [
+        "saas",
+        "subscription_autorenewal"
+      ],
+      "docType": "cookie",
+      "contentHash": "a9dbfa29726a446948fc40d231d2d4cc6e9da49d92797c1bd48757697b8d191f",
+      "sourceUrl": "https://help.dropbox.com/security/cookies",
+      "normalizedLength": 7322,
+      "textPath": "corpus/text/a9dbfa29726a446948fc40d231d2d4cc6e9da49d92797c1bd48757697b8d191f.txt"
+    },
+    {
+      "domain": "dropbox.com",
+      "tags": [
+        "saas",
+        "subscription_autorenewal"
+      ],
+      "docType": "terms",
+      "contentHash": "57d58481833d00f337756f2ecaa305ac740e4242ca4c294ab18955f99d60d8e9",
+      "sourceUrl": "https://www.dropbox.com/terms",
+      "normalizedLength": 25414,
+      "textPath": "corpus/text/57d58481833d00f337756f2ecaa305ac740e4242ca4c294ab18955f99d60d8e9.txt",
+      "note": "Typed `privacy` by the shipped classifier; the URL and content are the terms."
+    },
+    {
+      "domain": "ebay.com",
+      "tags": [
+        "ecommerce",
+        "payments_fintech"
+      ],
+      "docType": "cookie",
+      "contentHash": "63c24cb2d80fa5668c464fea899432fe942b6a676ccfe47149bfe84ad06f7ee4",
+      "sourceUrl": "https://www.ebay.com/help/policies/member-behaviour-policies/ebay-cookie-notice?id=4267",
+      "normalizedLength": 21406,
+      "textPath": "corpus/text/63c24cb2d80fa5668c464fea899432fe942b6a676ccfe47149bfe84ad06f7ee4.txt"
+    },
+    {
+      "domain": "ebay.com",
+      "tags": [
+        "ecommerce",
+        "payments_fintech"
+      ],
+      "docType": "privacy",
+      "contentHash": "530c8a6d0a1df01e3ec4d9c17cf5503fc9091840a1b142d3b74e1109662c2d53",
+      "sourceUrl": "https://www.ebay.com/help/policies/member-behaviour-policies/user-privacy-notice-privacy-policy?id=4260",
+      "normalizedLength": 123654,
+      "textPath": "corpus/text/530c8a6d0a1df01e3ec4d9c17cf5503fc9091840a1b142d3b74e1109662c2d53.txt"
+    },
+    {
+      "domain": "ebay.com",
+      "tags": [
+        "ecommerce",
+        "payments_fintech"
+      ],
+      "docType": "privacy",
+      "contentHash": "3df9b3236ad14d8b15fbf8dcc8033ec91151be82fd35b215424366ad5c808cbe",
+      "sourceUrl": "https://www.ebayinc.com/company/privacy-center/privacy-notice/state-privacy-disclosures/",
+      "normalizedLength": 35245,
+      "textPath": "corpus/text/3df9b3236ad14d8b15fbf8dcc8033ec91151be82fd35b215424366ad5c808cbe.txt",
+      "note": "US state privacy disclosures — separate statutory notice."
+    },
+    {
+      "domain": "ebay.com",
+      "tags": [
+        "ecommerce",
+        "payments_fintech"
+      ],
+      "docType": "terms",
+      "contentHash": "e33c29e5e4115628f2498139dd3deebe4cab042690383f56336abf5a271e3222",
+      "sourceUrl": "https://pages.ebay.com/payment/2.0/terms.html",
+      "normalizedLength": 130676,
+      "textPath": "corpus/text/e33c29e5e4115628f2498139dd3deebe4cab042690383f56336abf5a271e3222.txt",
+      "note": "eBay Payments terms. The general User Agreement was not among the discovered links."
+    },
+    {
+      "domain": "facebook.com",
+      "tags": [
+        "social_ugc",
+        "identity_provider"
+      ],
+      "docType": "cookie",
+      "contentHash": "47c4b597f8f50bc2ec587678ba801e00e31e215fc2f128c99c4f25b4cfd50ee2",
+      "sourceUrl": "https://www.facebook.com/privacy/policies/cookies/?entry_point=cookie_policy_redirect&entry=0",
+      "normalizedLength": 3863,
+      "textPath": "corpus/text/47c4b597f8f50bc2ec587678ba801e00e31e215fc2f128c99c4f25b4cfd50ee2.txt"
+    },
+    {
+      "domain": "facebook.com",
+      "tags": [
+        "social_ugc",
+        "identity_provider"
+      ],
+      "docType": "privacy",
+      "contentHash": "3fe6bc5da7086fc27b4191770ebbf54f48539c9c2a1aeb1b51072661aa1ccc62",
+      "sourceUrl": "https://www.facebook.com/privacy/policy/?entry_point=facebook_page_footer",
+      "normalizedLength": 50092,
+      "textPath": "corpus/text/3fe6bc5da7086fc27b4191770ebbf54f48539c9c2a1aeb1b51072661aa1ccc62.txt"
+    },
+    {
+      "domain": "flipkart.com",
+      "tags": [
+        "ecommerce"
+      ],
+      "docType": "privacy",
+      "contentHash": "263a86c01038b753e29db092d48d16bb0147d1738fef8c0305779f524e5f390b",
+      "sourceUrl": "https://www.flipkart.com/pages/privacypolicy?otracker=footer_navlinks",
+      "normalizedLength": 22644,
+      "textPath": "corpus/text/263a86c01038b753e29db092d48d16bb0147d1738fef8c0305779f524e5f390b.txt"
+    },
+    {
+      "domain": "flipkart.com",
+      "tags": [
+        "ecommerce"
+      ],
+      "docType": "terms",
+      "contentHash": "6bc14ba210f3362914773f2e3cfca6bd1d2d013577f04d0cc23c4654acee2cba",
+      "sourceUrl": "https://www.flipkart.com/pages/terms?otracker=footer_navlinks",
+      "normalizedLength": 149663,
+      "textPath": "corpus/text/6bc14ba210f3362914773f2e3cfca6bd1d2d013577f04d0cc23c4654acee2cba.txt"
+    },
+    {
+      "domain": "google.com",
+      "tags": [
+        "identity_provider",
+        "saas",
+        "payments_fintech"
+      ],
+      "docType": "privacy",
+      "contentHash": "b7688f54342591ae35f631d174252a00c9ee3b357c8add54dfd7e0581b1a533c",
+      "sourceUrl": "https://policies.google.com/privacy?hl=en-IN&fg=1",
+      "normalizedLength": 55133,
+      "textPath": "corpus/text/b7688f54342591ae35f631d174252a00c9ee3b357c8add54dfd7e0581b1a533c.txt"
+    },
+    {
+      "domain": "google.com",
+      "tags": [
+        "identity_provider",
+        "saas",
+        "payments_fintech"
+      ],
+      "docType": "terms",
+      "contentHash": "c60d300187bf74cfdba268acf289bda018e23ad88c2131c4d0c123280925ad42",
+      "sourceUrl": "https://policies.google.com/terms?hl=en-IN&fg=1",
+      "normalizedLength": 29510,
+      "textPath": "corpus/text/c60d300187bf74cfdba268acf289bda018e23ad88c2131c4d0c123280925ad42.txt"
+    },
+    {
+      "domain": "hdfcbank.com",
+      "tags": [
+        "finance_banking"
+      ],
+      "docType": "privacy",
+      "contentHash": "b48d44d5992a5972fbe2fef29cf4990f0fac0d26de072f435431f52749fe87a0",
+      "sourceUrl": "https://www.hdfc.bank.in/privacy-policy",
+      "normalizedLength": 147381,
+      "textPath": "corpus/text/b48d44d5992a5972fbe2fef29cf4990f0fac0d26de072f435431f52749fe87a0.txt",
+      "note": "Typed `cookie` by the shipped classifier; it is the privacy policy."
+    },
+    {
+      "domain": "hdfcbank.com",
+      "tags": [
+        "finance_banking"
+      ],
+      "docType": "terms",
+      "contentHash": "32af99579b536b1fc13ff04fbd3761cc0668acf116953367dd52020a7c5f4e1e",
+      "sourceUrl": "https://www.hdfc.bank.in/useful-links/website-usage-terms",
+      "normalizedLength": 13654,
+      "textPath": "corpus/text/32af99579b536b1fc13ff04fbd3761cc0668acf116953367dd52020a7c5f4e1e.txt",
+      "note": "Website usage terms. The chooser picked a 1.5M-character page that is the whole site."
+    },
+    {
+      "domain": "hotstar.com",
+      "tags": [
+        "ott_streaming",
+        "subscription_autorenewal"
+      ],
+      "docType": "privacy",
+      "contentHash": "63e632c54c36c9df4b5d267ffa2591ccf2338e7bc93778878212bdd85e833a5b",
+      "sourceUrl": "https://www.hotstar.com/privacy-policy/in",
+      "normalizedLength": 39187,
+      "textPath": "corpus/text/63e632c54c36c9df4b5d267ffa2591ccf2338e7bc93778878212bdd85e833a5b.txt",
+      "note": "Also serves disneyplus.com from an Indian egress."
+    },
+    {
+      "domain": "hotstar.com",
+      "tags": [
+        "ott_streaming",
+        "subscription_autorenewal"
+      ],
+      "docType": "terms",
+      "contentHash": "24580b81a2a1bb6a719d104ce389249e1cd0e4c530e1a014cd75fa495a58422d",
+      "sourceUrl": "https://www.hotstar.com/tnc/in",
+      "normalizedLength": 60334,
+      "textPath": "corpus/text/24580b81a2a1bb6a719d104ce389249e1cd0e4c530e1a014cd75fa495a58422d.txt",
+      "note": "Also serves disneyplus.com from an Indian egress — one document, two sites."
+    },
+    {
+      "domain": "instagram.com",
+      "tags": [
+        "social_ugc"
+      ],
+      "docType": "privacy",
+      "contentHash": "ab642cdd2aa232dc801d574237a49cbd4ff701d1a39c22220fdb9c2a62e0d99e",
+      "sourceUrl": "https://privacycenter.instagram.com/policy/?entry_point=ig_help_center_data_policy_redirect",
+      "normalizedLength": 48851,
+      "textPath": "corpus/text/ab642cdd2aa232dc801d574237a49cbd4ff701d1a39c22220fdb9c2a62e0d99e.txt"
+    },
+    {
+      "domain": "linkedin.com",
+      "tags": [
+        "social_ugc",
+        "saas"
+      ],
+      "docType": "acceptable_use",
+      "contentHash": "2915eb9af7a56193edafcbae9c2e0f53d2be2c023dc5a788dacb3e525f33bd1c",
+      "sourceUrl": "https://www.linkedin.com/legal/professional-community-policies?trk=homepage-basic_footer-community-guide",
+      "normalizedLength": 11861,
+      "textPath": "corpus/text/2915eb9af7a56193edafcbae9c2e0f53d2be2c023dc5a788dacb3e525f33bd1c.txt"
+    },
+    {
+      "domain": "linkedin.com",
+      "tags": [
+        "social_ugc",
+        "saas"
+      ],
+      "docType": "acceptable_use",
+      "contentHash": "66aadd779527fe1c31389f8f3cbbf9d3419e18b8cb1dfe2f898f158fbba23027",
+      "sourceUrl": "https://www.linkedin.com/legal/copyright-policy?trk=homepage-basic_footer-copyright-policy",
+      "normalizedLength": 5450,
+      "textPath": "corpus/text/66aadd779527fe1c31389f8f3cbbf9d3419e18b8cb1dfe2f898f158fbba23027.txt",
+      "note": "Copyright policy — DMCA process, no matching docType."
+    },
+    {
+      "domain": "linkedin.com",
+      "tags": [
+        "social_ugc",
+        "saas"
+      ],
+      "docType": "cookie",
+      "contentHash": "4e98cb9d98fb5e14ca1bbe62ae02976d0e49d8c689490cd28a6ca28db6eb84c6",
+      "sourceUrl": "https://www.linkedin.com/legal/cookie-policy?trk=linkedin-tc_auth-button_cookie-policy",
+      "normalizedLength": 10664,
+      "textPath": "corpus/text/4e98cb9d98fb5e14ca1bbe62ae02976d0e49d8c689490cd28a6ca28db6eb84c6.txt"
+    },
+    {
+      "domain": "linkedin.com",
+      "tags": [
+        "social_ugc",
+        "saas"
+      ],
+      "docType": "privacy",
+      "contentHash": "76c283b0f4a9751f09a7fc8cfd3b296aecce16d079f1ee9fc6a8055f2c01b249",
+      "sourceUrl": "https://www.linkedin.com/legal/privacy-policy?trk=linkedin-tc_auth-button_privacy-policy",
+      "normalizedLength": 42691,
+      "textPath": "corpus/text/76c283b0f4a9751f09a7fc8cfd3b296aecce16d079f1ee9fc6a8055f2c01b249.txt"
+    },
+    {
+      "domain": "linkedin.com",
+      "tags": [
+        "social_ugc",
+        "saas"
+      ],
+      "docType": "terms",
+      "contentHash": "8efdb100c12ccf1a8018fac1d92b3ebf78068a7d1de21accc05aad33cf9df81d",
+      "sourceUrl": "https://www.linkedin.com/legal/user-agreement?trk=linkedin-tc_auth-button_user-agreement",
+      "normalizedLength": 33278,
+      "textPath": "corpus/text/8efdb100c12ccf1a8018fac1d92b3ebf78068a7d1de21accc05aad33cf9df81d.txt"
+    },
+    {
+      "domain": "makemytrip.com",
+      "tags": [
+        "ecommerce"
+      ],
+      "docType": "cookie",
+      "contentHash": "cf76ce9c36aecc800d8a2fdcc992b3aaa99490d7365232221d76e3a2436fff00",
+      "sourceUrl": "https://www.makemytrip.com/legal/in/eng/cookie_disclosure_policy.html",
+      "normalizedLength": 6184,
+      "textPath": "corpus/text/cf76ce9c36aecc800d8a2fdcc992b3aaa99490d7365232221d76e3a2436fff00.txt"
+    },
+    {
+      "domain": "makemytrip.com",
+      "tags": [
+        "ecommerce"
+      ],
+      "docType": "privacy",
+      "contentHash": "1e80ec13bcdeb20ff87b2de17d1284b6ab41a323140475623343a6fb9b5a02c4",
+      "sourceUrl": "https://www.makemytrip.com/legal/in/eng/privacy_policy.html",
+      "normalizedLength": 83176,
+      "textPath": "corpus/text/1e80ec13bcdeb20ff87b2de17d1284b6ab41a323140475623343a6fb9b5a02c4.txt"
+    },
+    {
+      "domain": "makemytrip.com",
+      "tags": [
+        "ecommerce"
+      ],
+      "docType": "terms",
+      "contentHash": "7292c99707b5cbeb0d3c15d8b50c1a6dff70224849811f56923d5b7c7a2c0e61",
+      "sourceUrl": "https://www.makemytrip.com/legal/in/eng/user_agreement.html",
+      "normalizedLength": 140519,
+      "textPath": "corpus/text/7292c99707b5cbeb0d3c15d8b50c1a6dff70224849811f56923d5b7c7a2c0e61.txt"
+    },
+    {
+      "domain": "microsoft.com",
+      "tags": [
+        "identity_provider",
+        "saas"
+      ],
+      "docType": "privacy",
+      "contentHash": "afedc4d13f693823e7a2f53fb3127c58869923e6c1ddd24e7b185b481cc326df",
+      "sourceUrl": "https://www.microsoft.com/en-us/privacy/privacystatement",
+      "normalizedLength": 213097,
+      "textPath": "corpus/text/afedc4d13f693823e7a2f53fb3127c58869923e6c1ddd24e7b185b481cc326df.txt",
+      "note": "The full Privacy Statement. The chooser picked the Canadian landing page."
+    },
+    {
+      "domain": "netflix.com",
+      "tags": [
+        "ott_streaming",
+        "subscription_autorenewal"
+      ],
+      "docType": "privacy",
+      "contentHash": "80a9c1b30c3fa9af78595e02541f697f3aabddfdb9fc405b05165ecdb7ea00f2",
+      "sourceUrl": "https://help.netflix.com/legal/privacy",
+      "normalizedLength": 54118,
+      "textPath": "corpus/text/80a9c1b30c3fa9af78595e02541f697f3aabddfdb9fc405b05165ecdb7ea00f2.txt"
+    },
+    {
+      "domain": "netflix.com",
+      "tags": [
+        "ott_streaming",
+        "subscription_autorenewal"
+      ],
+      "docType": "terms",
+      "contentHash": "e14eef68442449107850678b82dbabfe8216d348e3b62a2dcb0768cb06c0b8ef",
+      "sourceUrl": "https://help.netflix.com/legal/termsofuse",
+      "normalizedLength": 21941,
+      "textPath": "corpus/text/e14eef68442449107850678b82dbabfe8216d348e3b62a2dcb0768cb06c0b8ef.txt"
+    },
+    {
+      "domain": "openai.com",
+      "tags": [
+        "saas",
+        "subscription_autorenewal"
+      ],
+      "docType": "cookie",
+      "contentHash": "f57fcef816df0522a8f7e9417fe472da958c068f26c4882784b9864c81697cd6",
+      "sourceUrl": "https://openai.com/policies/cookie-policy/",
+      "normalizedLength": 15685,
+      "textPath": "corpus/text/f57fcef816df0522a8f7e9417fe472da958c068f26c4882784b9864c81697cd6.txt"
+    },
+    {
+      "domain": "openai.com",
+      "tags": [
+        "saas",
+        "subscription_autorenewal"
+      ],
+      "docType": "privacy",
+      "contentHash": "83d53ffefa71c9c4ca9f5068afbdeb80502845a2d401023841caa3cf5dc8e04c",
+      "sourceUrl": "https://openai.com/policies/privacy-policy/",
+      "normalizedLength": 22543,
+      "textPath": "corpus/text/83d53ffefa71c9c4ca9f5068afbdeb80502845a2d401023841caa3cf5dc8e04c.txt",
+      "note": "The real privacy policy. The chooser picked a marketing page."
+    },
+    {
+      "domain": "openai.com",
+      "tags": [
+        "saas",
+        "subscription_autorenewal"
+      ],
+      "docType": "terms",
+      "contentHash": "f3968cc2a29fe200c333a41eb798395443ba0e57b3411c3b6eade47d255d0c0e",
+      "sourceUrl": "https://openai.com/policies/terms-of-use/",
+      "normalizedLength": 20675,
+      "textPath": "corpus/text/f3968cc2a29fe200c333a41eb798395443ba0e57b3411c3b6eade47d255d0c0e.txt"
+    },
+    {
+      "domain": "paypal.com",
+      "tags": [
+        "payments_fintech",
+        "finance_banking"
+      ],
+      "docType": "privacy",
+      "contentHash": "4f437c0021f1e653830f307e240b28a457d98ffabedde52097ed567ea753877e",
+      "sourceUrl": "https://www.paypal.com/in/legalhub/paypal/privacy-full",
+      "normalizedLength": 119960,
+      "textPath": "corpus/text/4f437c0021f1e653830f307e240b28a457d98ffabedde52097ed567ea753877e.txt"
+    },
+    {
+      "domain": "paypal.com",
+      "tags": [
+        "payments_fintech",
+        "finance_banking"
+      ],
+      "docType": "terms",
+      "contentHash": "dc62c4d1c9ceea341512019a234a83b0b59d5fa3b389c56fc5e11db36d4c8a70",
+      "sourceUrl": "https://www.paypal.com/in/legalhub/paypal/useragreement-full",
+      "normalizedLength": 90570,
+      "textPath": "corpus/text/dc62c4d1c9ceea341512019a234a83b0b59d5fa3b389c56fc5e11db36d4c8a70.txt"
+    },
+    {
+      "domain": "paytm.com",
+      "tags": [
+        "payments_fintech",
+        "finance_banking"
+      ],
+      "docType": "privacy",
+      "contentHash": "692353637797f93b4ab1837368866d3ba984f8793586dc8de5559fc49ea9b540",
+      "sourceUrl": "https://paytm.com/company/privacy-policy",
+      "normalizedLength": 13809,
+      "textPath": "corpus/text/692353637797f93b4ab1837368866d3ba984f8793586dc8de5559fc49ea9b540.txt"
+    },
+    {
+      "domain": "paytm.com",
+      "tags": [
+        "payments_fintech",
+        "finance_banking"
+      ],
+      "docType": "terms",
+      "contentHash": "0d82e1a0e850eff9bbd81e5e5b7b298e39251cd88dc4c9164debd10c795f6a2b",
+      "sourceUrl": "https://paytm.com/company/terms-and-conditions",
+      "normalizedLength": 294737,
+      "textPath": "corpus/text/0d82e1a0e850eff9bbd81e5e5b7b298e39251cd88dc4c9164debd10c795f6a2b.txt",
+      "note": "294k characters — the page carries every tab of terms at once."
+    },
+    {
+      "domain": "phonepe.com",
+      "tags": [
+        "payments_fintech"
+      ],
+      "docType": "privacy",
+      "contentHash": "041dfb8b61a1ae5489f48ebfe4eb3518e3acc40b6fc1d6bef743376ac351ddd8",
+      "sourceUrl": "https://www.phonepe.com/privacy-policy/",
+      "normalizedLength": 24796,
+      "textPath": "corpus/text/041dfb8b61a1ae5489f48ebfe4eb3518e3acc40b6fc1d6bef743376ac351ddd8.txt"
+    },
+    {
+      "domain": "reddit.com",
+      "tags": [
+        "social_ugc"
+      ],
+      "docType": "privacy",
+      "contentHash": "573a08ca027ccb8f625f212d68edd1894f00d117fc413e48d86297d451778482",
+      "sourceUrl": "https://www.reddit.com/policies/privacy-policy",
+      "normalizedLength": 55310,
+      "textPath": "corpus/text/573a08ca027ccb8f625f212d68edd1894f00d117fc413e48d86297d451778482.txt"
+    },
+    {
+      "domain": "robinhood.com",
+      "tags": [
+        "finance_banking",
+        "payments_fintech"
+      ],
+      "docType": "privacy",
+      "contentHash": "71e23909d453e1e1161ae9cf04f85527d6222bfe23cc00ed579a294f32bd1f3a",
+      "sourceUrl": "https://robinhood.com/us/en/support/articles/privacy-policy/",
+      "normalizedLength": 38368,
+      "textPath": "corpus/text/71e23909d453e1e1161ae9cf04f85527d6222bfe23cc00ed579a294f32bd1f3a.txt"
+    },
+    {
+      "domain": "robinhood.com",
+      "tags": [
+        "finance_banking",
+        "payments_fintech"
+      ],
+      "docType": "privacy",
+      "contentHash": "5de52f539849012068119935bb3d45dd372a184617008317663e651123290785",
+      "sourceUrl": "https://robinhood.com/us/en/support/articles/rhm-privacy-statement/",
+      "normalizedLength": 15755,
+      "textPath": "corpus/text/5de52f539849012068119935bb3d45dd372a184617008317663e651123290785.txt",
+      "note": "Robinhood Money privacy statement — separate entity, separate notice."
+    },
+    {
+      "domain": "snapchat.com",
+      "tags": [
+        "social_ugc"
+      ],
+      "docType": "cookie",
+      "contentHash": "d1b14d20402656cfaab43f8dabd40c46bf7b0038535862cdc7cec4a5c3b7cce8",
+      "sourceUrl": "https://www.snap.com/cookie-policy?lang=en-US",
+      "normalizedLength": 6225,
+      "textPath": "corpus/text/d1b14d20402656cfaab43f8dabd40c46bf7b0038535862cdc7cec4a5c3b7cce8.txt"
+    },
+    {
+      "domain": "snapchat.com",
+      "tags": [
+        "social_ugc"
+      ],
+      "docType": "privacy",
+      "contentHash": "7dcf6330a1c601a0ae8f97990bcb95d66d6dd9a58836ff093abfd9094afc2c3e",
+      "sourceUrl": "https://values.snap.com/privacy/privacy-policy?lang=en-US",
+      "normalizedLength": 35332,
+      "textPath": "corpus/text/7dcf6330a1c601a0ae8f97990bcb95d66d6dd9a58836ff093abfd9094afc2c3e.txt",
+      "note": "The real Privacy Policy. The chooser picked the children’s policy."
+    },
+    {
+      "domain": "snapchat.com",
+      "tags": [
+        "social_ugc"
+      ],
+      "docType": "terms",
+      "contentHash": "01af0ece5433fb33ac52cb617df13e7b6d99abe7df82ac1930d5a8b1c1d56041",
+      "sourceUrl": "https://www.snap.com/terms?lang=en-US",
+      "normalizedLength": 105776,
+      "textPath": "corpus/text/01af0ece5433fb33ac52cb617df13e7b6d99abe7df82ac1930d5a8b1c1d56041.txt",
+      "note": "The real Terms of Service. The chooser picked the geofilter terms."
+    },
+    {
+      "domain": "stripe.com",
+      "tags": [
+        "payments_fintech",
+        "saas"
+      ],
+      "docType": "acceptable_use",
+      "contentHash": "9379c60eaf428acb9d2a1c927adacbb575a92152001722fd321ed7610106f6df",
+      "sourceUrl": "https://stripe.com/in/legal/restricted-businesses",
+      "normalizedLength": 25673,
+      "textPath": "corpus/text/9379c60eaf428acb9d2a1c927adacbb575a92152001722fd321ed7610106f6df.txt",
+      "note": "Restricted businesses list — functions as an acceptable-use policy."
+    },
+    {
+      "domain": "stripe.com",
+      "tags": [
+        "payments_fintech",
+        "saas"
+      ],
+      "docType": "cookie",
+      "contentHash": "665e157ec1c7fa860febc92bcf4a411d32ea226da73c63ec1b9de0b84a141fe9",
+      "sourceUrl": "https://stripe.com/in/cookie-settings",
+      "normalizedLength": 56721,
+      "textPath": "corpus/text/665e157ec1c7fa860febc92bcf4a411d32ea226da73c63ec1b9de0b84a141fe9.txt"
+    },
+    {
+      "domain": "stripe.com",
+      "tags": [
+        "payments_fintech",
+        "saas"
+      ],
+      "docType": "privacy",
+      "contentHash": "fd42eb7fbe6fc362b7f356e5ea3014c4b0acaf765fc24823eb425a66a9cec49b",
+      "sourceUrl": "https://stripe.com/in/privacy",
+      "normalizedLength": 161486,
+      "textPath": "corpus/text/fd42eb7fbe6fc362b7f356e5ea3014c4b0acaf765fc24823eb425a66a9cec49b.txt"
+    },
+    {
+      "domain": "tiktok.com",
+      "tags": [
+        "social_ugc",
+        "ott_streaming"
+      ],
+      "docType": "acceptable_use",
+      "contentHash": "e853637bea18f4be2605fba90717a51e9a3006a51e986d7ae386551d05dc244b",
+      "sourceUrl": "https://www.tiktok.com/legal/page/global/copyright-policy/en",
+      "normalizedLength": 14558,
+      "textPath": "corpus/text/e853637bea18f4be2605fba90717a51e9a3006a51e986d7ae386551d05dc244b.txt",
+      "note": "Copyright policy."
+    },
+    {
+      "domain": "tiktok.com",
+      "tags": [
+        "social_ugc",
+        "ott_streaming"
+      ],
+      "docType": "privacy",
+      "contentHash": "01beb0eb33a55d2f3efe0aae786faf3cb0e01c4f9e42ca4997ec5d494565714b",
+      "sourceUrl": "https://www.tiktok.com/legal/page/us/privacy-policy/en",
+      "normalizedLength": 27908,
+      "textPath": "corpus/text/01beb0eb33a55d2f3efe0aae786faf3cb0e01c4f9e42ca4997ec5d494565714b.txt"
+    },
+    {
+      "domain": "tiktok.com",
+      "tags": [
+        "social_ugc",
+        "ott_streaming"
+      ],
+      "docType": "terms",
+      "contentHash": "90d6bf47f9c033f1558ddf17f5f24358d705c0bf7a288b550b43a7e7c4d65a3a",
+      "sourceUrl": "https://www.tiktok.com/legal/page/row/terms-of-service/en",
+      "normalizedLength": 49769,
+      "textPath": "corpus/text/90d6bf47f9c033f1558ddf17f5f24358d705c0bf7a288b550b43a7e7c4d65a3a.txt"
+    },
+    {
+      "domain": "uber.com",
+      "tags": [
+        "ecommerce",
+        "payments_fintech"
+      ],
+      "docType": "privacy",
+      "contentHash": "9181c896598242df4f2cd035ec9542dae432388e69b48137f7ba2ccb71d0ce26",
+      "sourceUrl": "https://www.uber.com/global/en/privacy-notice-riders-order-recipients/",
+      "normalizedLength": 63848,
+      "textPath": "corpus/text/9181c896598242df4f2cd035ec9542dae432388e69b48137f7ba2ccb71d0ce26.txt"
+    },
+    {
+      "domain": "uber.com",
+      "tags": [
+        "ecommerce",
+        "payments_fintech"
+      ],
+      "docType": "terms",
+      "contentHash": "7db589356103cd04e55d35ebcab9fe1294c099ce027989797902d61f5041f3cc",
+      "sourceUrl": "https://www.uber.com/in/en/legal/general-terms-of-use/",
+      "normalizedLength": 34472,
+      "textPath": "corpus/text/7db589356103cd04e55d35ebcab9fe1294c099ce027989797902d61f5041f3cc.txt"
+    },
+    {
+      "domain": "walmart.com",
+      "tags": [
+        "ecommerce",
+        "subscription_autorenewal"
+      ],
+      "docType": "privacy",
+      "contentHash": "b8f08b0e39c7c04e58f13e773f8b3a29fad72298e5e69614fc7c3ca8dde4422b",
+      "sourceUrl": "https://corporate.walmart.com/privacy-security/walmart-privacy-notice",
+      "normalizedLength": 52898,
+      "textPath": "corpus/text/b8f08b0e39c7c04e58f13e773f8b3a29fad72298e5e69614fc7c3ca8dde4422b.txt"
+    },
+    {
+      "domain": "walmart.com",
+      "tags": [
+        "ecommerce",
+        "subscription_autorenewal"
+      ],
+      "docType": "privacy",
+      "contentHash": "ea6a1b86bc032dc36cc36f5f0403f9b93a33f7ecae2a65bc0d09b0f12b5fb6be",
+      "sourceUrl": "https://corporate.walmart.com/privacy-security/california-privacy-rights",
+      "normalizedLength": 27062,
+      "textPath": "corpus/text/ea6a1b86bc032dc36cc36f5f0403f9b93a33f7ecae2a65bc0d09b0f12b5fb6be.txt",
+      "note": "California privacy rights — separate statutory notice."
+    },
+    {
+      "domain": "walmart.com",
+      "tags": [
+        "ecommerce",
+        "subscription_autorenewal"
+      ],
+      "docType": "terms",
+      "contentHash": "f59779309cd72ce98084a02da24f3467ac94f6385c900deba77eed40d86f6bc4",
+      "sourceUrl": "https://www.walmart.com/help/article/walmart-com-terms-of-use/3b75080af40340d6bbd596f116fae5a0",
+      "normalizedLength": 90565,
+      "textPath": "corpus/text/f59779309cd72ce98084a02da24f3467ac94f6385c900deba77eed40d86f6bc4.txt"
+    },
+    {
+      "domain": "x.com",
+      "tags": [
+        "social_ugc",
+        "identity_provider"
+      ],
+      "docType": "cookie",
+      "contentHash": "52809d7d69c6b122f19df3dbabfaf40f7ba919d8c0d6373f0af7bcd1ac85c6d7",
+      "sourceUrl": "https://help.x.com/en/rules-and-policies/x-cookies",
+      "normalizedLength": 11154,
+      "textPath": "corpus/text/52809d7d69c6b122f19df3dbabfaf40f7ba919d8c0d6373f0af7bcd1ac85c6d7.txt"
+    },
+    {
+      "domain": "x.com",
+      "tags": [
+        "social_ugc",
+        "identity_provider"
+      ],
+      "docType": "privacy",
+      "contentHash": "1ec4c95e4936d3403c95da324b248056397f811256bff4adcda7c5599cc9225c",
+      "sourceUrl": "https://x.com/en/privacy",
+      "normalizedLength": 33183,
+      "textPath": "corpus/text/1ec4c95e4936d3403c95da324b248056397f811256bff4adcda7c5599cc9225c.txt"
+    },
+    {
+      "domain": "x.com",
+      "tags": [
+        "social_ugc",
+        "identity_provider"
+      ],
+      "docType": "terms",
+      "contentHash": "e3c3ba234f680375e61602cfe07d747469926faf0e352fdede2e904ae755d38c",
+      "sourceUrl": "https://x.com/en/tos",
+      "normalizedLength": 58498,
+      "textPath": "corpus/text/e3c3ba234f680375e61602cfe07d747469926faf0e352fdede2e904ae755d38c.txt"
+    },
+    {
+      "domain": "zerodha.com",
+      "tags": [
+        "finance_banking"
+      ],
+      "docType": "privacy",
+      "contentHash": "160a8f6a56e6c6427a4cbdca886f4ad44d52cc2498032adc6cbd46e1ac3c5a60",
+      "sourceUrl": "https://zerodha.com/privacy-policy/",
+      "normalizedLength": 17155,
+      "textPath": "corpus/text/160a8f6a56e6c6427a4cbdca886f4ad44d52cc2498032adc6cbd46e1ac3c5a60.txt"
+    },
+    {
+      "domain": "zerodha.com",
+      "tags": [
+        "finance_banking"
+      ],
+      "docType": "terms",
+      "contentHash": "da51e3552668a7b6b5310d4376112e03961e528ffb42aa7a734daa1c436e28a3",
+      "sourceUrl": "https://zerodha.com/terms-and-conditions/",
+      "normalizedLength": 58319,
+      "textPath": "corpus/text/da51e3552668a7b6b5310d4376112e03961e528ffb42aa7a734daa1c436e28a3.txt"
+    },
+    {
+      "domain": "zomato.com",
+      "tags": [
+        "ecommerce",
+        "subscription_autorenewal"
+      ],
+      "docType": "cookie",
+      "contentHash": "b2850a0a292eb0e2b24778dd2ff8a8bf26f76127e71d04c88c8169f0ed2f353a",
+      "sourceUrl": "https://www.zomato.com/cookies",
+      "normalizedLength": 6296,
+      "textPath": "corpus/text/b2850a0a292eb0e2b24778dd2ff8a8bf26f76127e71d04c88c8169f0ed2f353a.txt"
+    },
+    {
+      "domain": "zomato.com",
+      "tags": [
+        "ecommerce",
+        "subscription_autorenewal"
+      ],
+      "docType": "privacy",
+      "contentHash": "a104baa00a5a9aafe69dbac494710ed8474f6c5e321d6263252157becd0569f9",
+      "sourceUrl": "https://www.zomato.com/policies/privacy/",
+      "normalizedLength": 48127,
+      "textPath": "corpus/text/a104baa00a5a9aafe69dbac494710ed8474f6c5e321d6263252157becd0569f9.txt"
+    },
+    {
+      "domain": "zomato.com",
+      "tags": [
+        "ecommerce",
+        "subscription_autorenewal"
+      ],
+      "docType": "terms",
+      "contentHash": "131379742ac9f616ccb2b61bd41013e71359ba64b010ac362799934322dc201b",
+      "sourceUrl": "https://www.zomato.com/policies/terms-of-service/",
+      "normalizedLength": 136640,
+      "textPath": "corpus/text/131379742ac9f616ccb2b61bd41013e71359ba64b010ac362799934322dc201b.txt"
+    },
+    {
+      "domain": "zoom.us",
+      "tags": [
+        "saas",
+        "subscription_autorenewal"
+      ],
+      "docType": "cookie",
+      "contentHash": "3bf2cd88c43b88903dc712ee4a571458746cec85be57a6c92056e844c143ec65",
+      "sourceUrl": "https://www.zoom.com/en/trust/cookie-policy/?ampDeviceId=66cef1cb-af29-4622-aea5-f0f64bae08d9&ampSessionId=1788512458569&ampDeviceId=66cef1cb-af29-4622-aea5-f0f64bae08d9&ampSessionId=1788512458569",
+      "normalizedLength": 8692,
+      "textPath": "corpus/text/3bf2cd88c43b88903dc712ee4a571458746cec85be57a6c92056e844c143ec65.txt",
+      "note": "The chooser picked onetrust.com’s product marketing page instead."
+    },
+    {
+      "domain": "zoom.us",
+      "tags": [
+        "saas",
+        "subscription_autorenewal"
+      ],
+      "docType": "privacy",
+      "contentHash": "bc86ac55154db4365ed38881ddb6e6d472007f6bc1b03ee0f554b2e5d32b248f",
+      "sourceUrl": "https://www.zoom.com/en/trust/privacy/privacy-statement/",
+      "normalizedLength": 54188,
+      "textPath": "corpus/text/bc86ac55154db4365ed38881ddb6e6d472007f6bc1b03ee0f554b2e5d32b248f.txt"
+    },
+    {
+      "domain": "zoom.us",
+      "tags": [
+        "saas",
+        "subscription_autorenewal"
+      ],
+      "docType": "terms",
+      "contentHash": "f57c65740a4637b7d098959e289a6a549af472cf52c15e2699d56edb3f899765",
+      "sourceUrl": "https://www.zoom.com/en/trust/terms/",
+      "normalizedLength": 87356,
+      "textPath": "corpus/text/f57c65740a4637b7d098959e289a6a549af472cf52c15e2699d56edb3f899765.txt"
+    }
+  ]
+}
