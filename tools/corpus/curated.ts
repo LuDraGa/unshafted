@@ -132,7 +132,7 @@ export const CURATED: Record<string, CuratedDoc[]> = {
   'reddit.com': [{ hash8: '573a08ca', docType: 'privacy' }],
   'robinhood.com': [
     { hash8: '71e23909', docType: 'privacy' },
-    { hash8: '5de52f53', docType: 'privacy', note: 'Robinhood Money privacy statement — separate entity, separate notice.' },
+    { hash8: '5de52f53', docType: 'privacy', note: 'Robinhood Markets US WEB VISITOR statement — expressly does NOT cover customers who hold financial products. The customer-facing statement is a different document.' },
   ],
   'snapchat.com': [
     { hash8: '01af0ece', docType: 'terms', note: 'The real Terms of Service. The chooser picked the geofilter terms.' },
