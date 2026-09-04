@@ -157,6 +157,10 @@ identical content.
 
 ## Implementation
 
+> **Status lives in [Milestones](#milestones).** The per-section boxes below mirror it for local
+> context; where they ever disagree, Milestones wins. Everything still unticked below is really
+> open — including §10's missing eviction test, which Milestones does not separately track.
+
 ### 1. Bundled seed index
 
 **Format.** Binary, not JSON. Fixed 9-byte records, sorted ascending by hash prefix:
@@ -189,9 +193,9 @@ offline function only** — the CDN is the source of truth, and `prompt_version`
 lives in the CDN index and *not* in the bundle, so re-analysis can be invalidated without
 shipping an extension release.
 
-- [ ] Format encoder/decoder + binary search (`index-format.ts`) — **S**
-- [ ] Vite plugin emitting `policy-index.bin` — **S**
-- [ ] Size-cap build assertion — **S**
+- [x] Format encoder/decoder + binary search (`index-format.ts`)
+- [x] Vite plugin emitting `policy-index.bin` (`make-policy-index-plugin.ts`)
+- [x] Size-cap build assertion — `POLICY_INDEX_MAX_BYTES`, enforced in the plugin
 
 ### 2. Hostname resolution — suffix walk, no PSL
 
@@ -238,9 +242,11 @@ Skip non-`http(s)` schemes early (`chrome://`, `file://`, `about:`) — no hashi
 and 20 uncovered sites, capture with `chrome://net-export`, and assert **zero** requests to the
 CDN origin. Re-run this in CI-ish fashion before every release that touches the badge path.
 
-- [ ] Badge listener + per-tab resolution — **S**
-- [ ] Scheme filtering + cold-start index reload — **S**
-- [ ] `net-export` zero-egress verification, documented as a release gate — **M**
+- [x] Badge listener + per-tab resolution — `background/site-policy.ts`
+- [x] Scheme filtering + cold-start index reload — non-`http(s)` resolves to `null`; the index
+      loads lazily through `policy-index-loader.ts`, so a respawned worker re-reads it
+- [ ] **`net-export` zero-egress verification — still open.** A release gate that needs a human
+      in Chrome; see M1b for why it stays open even though the path cannot structurally egress.
 
 ### 4. Capture on popup open (`activeTab` + `scripting`)
 
@@ -258,9 +264,10 @@ Fires only on an explicit user gesture — the popup opening, or a click within 
 6. Fetch the chosen URL *in the page context* (AD-4), return HTML.
 7. Normalize → hash.
 
-- [ ] `discoverPolicyLinks` injected function — **M**
-- [ ] Path-guess fallback — **S**
-- [ ] Popup capture flow + gesture wiring — **M**
+- [x] Injected discovery function — shipped as `collectPolicyCandidatesInPage`, not the
+      `discoverPolicyLinks` name used while planning
+- [x] Path-guess fallback — `wellKnownPolicyPaths`
+- [x] Popup capture flow + gesture wiring — `policy-capture.ts`, `SitePolicyPanel.tsx`
 
 ### 5. HTML → text normalization — the high-risk piece
 
@@ -292,9 +299,11 @@ Pipeline:
 Add a fixture every time a real-world false-change is observed. Currently 8 stable + 4 changed,
 all passing; real two-week captures still to be collected (see M1a).
 
-- [ ] Normalizer implementation — **M**
-- [ ] SHA-256 hashing helper — **S**
-- [ ] 20-site fixture corpus + stability test — **M**
+- [x] Normalizer implementation — `normalize.ts`, DOM-free by design
+- [x] SHA-256 hashing helper — `computePolicyHash`, over normalized text only (AD-1)
+- [ ] **Fixture corpus only half-built.** The stability gate ships and passes, but on 8 synthetic
+      stable pairs + 4 changed pairs. The 20 real pages captured two weeks apart are a
+      data-collection task; drop them in the same directories and the gate picks them up.
 
 ### 6. `SitePolicyAnalysis` — sibling schema
 
@@ -378,8 +387,8 @@ provenance, not freshness. Freshness is answered by §7, not by a stored flag.
 doc's §3 — absence of a legally required disclosure is a harder fact than any severity rating,
 and severity only means anything relative to a vertical's norm.
 
-- [ ] Schema + exported types — **S**
-- [ ] Zod validation on every CDN read (never trust the wire) — **S**
+- [x] Schema + exported types — `site-policy/{schemas,types}.ts`
+- [x] Zod validation on every CDN read (never trust the wire)
 
 ### 7. Lookup, cache, and freshness
 
@@ -418,9 +427,9 @@ the CDN, and needs no invalidation logic of our own.
 update the view only if something actually changed. The user never waits on the network. This is
 the reason the scheduled pull was rejected — it made users wait for updates they didn't ask for.
 
-- [ ] `policy-cdn.ts` — conditional GET, etag persistence, SWR — **M**
-- [ ] `unshafted-policy-storage.ts` following the `createStorage` pattern in
-      `packages/storage/lib/impl/` — **S**
+- [x] `policy-cdn.ts` — conditional GET, etag persistence, SWR
+- [x] `unshafted-policy-storage.ts` following the `createStorage` pattern in
+      `packages/storage/lib/impl/`
 
 ### 8. Local no-LLM clause diffing
 
@@ -440,9 +449,9 @@ is actionable on its own, and it costs nothing.
 
 Do not cache `/{hash}.txt` — these run 50–500 KB. Fetch, diff, discard.
 
-- [ ] Block splitter + set-difference diff — **M**
-- [ ] Map changed blocks → affected exposures — **M**
-- [ ] "What changed" UI section — **M**
+- [x] Block splitter + set-difference diff — `site-policy/diff.ts`
+- [x] Map changed blocks → affected exposures
+- [x] "What changed" UI section
 
 ### 9. "Request analysis" — client half
 
@@ -459,8 +468,10 @@ consistent with the `v0.7.1` Purple Nickel disclosure precedent.
 
 Server half — queueing, review, publishing — is Part 2.
 
-- [ ] Submission POST + disclosure copy — **M**
-- [ ] Pending/submitted/published state in the popup — **S**
+- [x] Submission POST + disclosure copy — `submitPolicyAnalysisRequest`, gated on
+      `CEB_POLICY_SUBMIT_URL`; the button does not render when unconfigured
+- [x] Submitted state in the popup. Pending/published are Part 2 states — there is no server to
+      report them yet, so the client models covered / uncovered / submitted and nothing more.
 
 ### 10. Cache eviction
 
@@ -472,8 +483,9 @@ permission on an extension whose whole story is minimal permissions.
 - Evict LRU until under budget, on write.
 - Never cache `.txt` source (see §8).
 
-- [ ] Cache index + LRU eviction — **M**
-- [ ] Budget assertion test with synthetic 500-entry cache — **S**
+- [x] Cache index + LRU eviction — `unshafted-policy-storage.ts`, 4 MB `CACHE_BUDGET_BYTES`
+- [ ] **Budget assertion test not written.** `policy-index.test.ts` asserts the *index* size
+      budget at 5k domains, which is a different budget; nothing exercises `evictToBudget`.
 
 ---
 
