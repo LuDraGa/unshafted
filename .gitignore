@@ -31,4 +31,5 @@ tsconfig.tsbuildinfo
 # ignored DIRECTORY.
 corpus/*
 !corpus/manifest.json
+!corpus/curated.json
 !corpus/README.md
