@@ -1,5 +1,5 @@
 {
-  "analysed": 39,
+  "analysed": 40,
   "rows": [
     {
       "contentHash": "f44a02e59126044aca9f5b9194ec1b7f77a0dd6b8cc849d37a897e0f8fb22e7a",
@@ -961,6 +961,31 @@
         "Notice of changes to terms",
         "Consent withdrawal mechanism",
         "Retention period"
+      ],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
+      "contentHash": "131379742ac9f616ccb2b61bd41013e71359ba64b010ac362799934322dc201b",
+      "domain": "zomato.com",
+      "domains": [
+        "zomato.com"
+      ],
+      "docType": "terms",
+      "verticals": [
+        "ecommerce",
+        "subscription_autorenewal"
+      ],
+      "riskLevel": "Very High",
+      "confidence": "high",
+      "sourceUrl": "https://www.zomato.com/policies/terms-of-service/",
+      "exposureCount": 11,
+      "highSeverityCount": 8,
+      "actionCount": 10,
+      "absentDisclosures": [
+        "Notice of changes to terms",
+        "Consumer rights preservation"
       ],
       "promptVersion": "adhesion-rubric-v1",
       "normalizerVersion": "normalizer-v1",
