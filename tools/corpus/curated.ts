@@ -43,7 +43,10 @@ export const CURATED: Record<string, CuratedDoc[]> = {
   ],
   'apple.com': [
     { hash8: '1cd58c45', docType: 'terms' },
-    { hash8: '0002e2ff', docType: 'privacy' },
+    // 0002e2ff REMOVED. `apple.com/privacy/` is Apple's privacy MARKETING page — "Privacy.
+    // That's Apple.", a Safari-versus-Chrome comparison table, Apple Intelligence copy. It is
+    // not the Apple Privacy Policy, which lives at /legal/privacy/ and was never discovered by
+    // the footer scrape. Second false positive found only by reading; see also zomato.com.
   ],
   'bankofamerica.com': [
     { hash8: '8d8c3508', docType: 'privacy', note: 'The main Online Privacy Notice. The chooser picked the CHILDREN’S notice instead.' },
@@ -167,7 +170,10 @@ export const CURATED: Record<string, CuratedDoc[]> = {
   'zomato.com': [
     { hash8: '13137974', docType: 'terms' },
     { hash8: 'a104baa0', docType: 'privacy' },
-    { hash8: 'b2850a0a', docType: 'cookie' },
+    // b2850a0a REMOVED. `zomato.com/cookies` is a user PROFILE page — a reviewer whose handle
+    // is "Cookies". POLICY_LINK_PATTERN matched it, guessDocType typed it `cookie`, the path
+    // looks canonical, and it captured 6,296 characters of restaurant reviews. Only reading it
+    // caught this, which is the argument for hand-verification over any heuristic.
   ],
   'zoom.us': [
     { hash8: 'f57c6574', docType: 'terms' },

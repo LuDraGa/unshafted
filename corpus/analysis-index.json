@@ -1,0 +1,271 @@
+{
+  "analysed": 11,
+  "rows": [
+    {
+      "contentHash": "f44a02e59126044aca9f5b9194ec1b7f77a0dd6b8cc849d37a897e0f8fb22e7a",
+      "domain": "amazon.com",
+      "domains": [
+        "amazon.com"
+      ],
+      "docType": "cookie",
+      "verticals": [
+        "ecommerce",
+        "subscription_autorenewal",
+        "ott_streaming",
+        "identity_provider",
+        "payments_fintech"
+      ],
+      "riskLevel": "Medium",
+      "confidence": "high",
+      "sourceUrl": "https://www.amazon.com/gp/help/customer/display.html/?nodeId=GVASXV5UZ64R4Y25",
+      "exposureCount": 4,
+      "highSeverityCount": 0,
+      "actionCount": 3,
+      "absentDisclosures": [
+        "Consent mechanism for non-essential cookies",
+        "Do Not Sell or Share My Personal Information"
+      ],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
+      "contentHash": "1a6484c77e319a382eecd3d55dfdf99bbfecee0f6aa3fa1406c1f87f2ae145fc",
+      "domain": "americanexpress.com",
+      "domains": [
+        "americanexpress.com"
+      ],
+      "docType": "privacy",
+      "verticals": [
+        "finance_banking",
+        "payments_fintech"
+      ],
+      "riskLevel": "High",
+      "confidence": "high",
+      "sourceUrl": "https://www.americanexpress.com/en-in/company/legal/privacy-center/online-privacy-statement/?inav=en_in_legalfooter_privacy_centre",
+      "exposureCount": 6,
+      "highSeverityCount": 3,
+      "actionCount": 4,
+      "absentDisclosures": [
+        "Retention period",
+        "Rights regarding automated decision-making"
+      ],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
+      "contentHash": "886227777c620182982d29337012afd7ade8e3cc921e2f24808b628e0d4ed663",
+      "domain": "americanexpress.com",
+      "domains": [
+        "americanexpress.com"
+      ],
+      "docType": "terms",
+      "verticals": [
+        "finance_banking",
+        "payments_fintech"
+      ],
+      "riskLevel": "High",
+      "confidence": "high",
+      "sourceUrl": "https://www.americanexpress.com/en-in/company/legal/rules-and-regulations/?inav=en_in_legalfooter_website_rules_and_regulations",
+      "exposureCount": 6,
+      "highSeverityCount": 2,
+      "actionCount": 3,
+      "absentDisclosures": [
+        "Notice of changes to terms",
+        "Grievance officer contact"
+      ],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
+      "contentHash": "7d63704bf5f53856aa9a8961ee84968ebb5240e0c8f4e9d7ba52a92aa9dc673d",
+      "domain": "chase.com",
+      "domains": [
+        "chase.com"
+      ],
+      "docType": "privacy",
+      "verticals": [
+        "finance_banking"
+      ],
+      "riskLevel": "High",
+      "confidence": "high",
+      "sourceUrl": "https://www.chase.com/digital/resources/privacy-security/privacy/online-privacy-policy",
+      "exposureCount": 6,
+      "highSeverityCount": 2,
+      "actionCount": 4,
+      "absentDisclosures": [
+        "Retention period",
+        "Do Not Sell or Share My Personal Information"
+      ],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
+      "contentHash": "a9dbfa29726a446948fc40d231d2d4cc6e9da49d92797c1bd48757697b8d191f",
+      "domain": "dropbox.com",
+      "domains": [
+        "dropbox.com"
+      ],
+      "docType": "cookie",
+      "verticals": [
+        "saas_productivity",
+        "subscription_autorenewal"
+      ],
+      "riskLevel": "Medium",
+      "confidence": "high",
+      "sourceUrl": "https://help.dropbox.com/security/cookies",
+      "exposureCount": 5,
+      "highSeverityCount": 0,
+      "actionCount": 3,
+      "absentDisclosures": [],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
+      "contentHash": "47c4b597f8f50bc2ec587678ba801e00e31e215fc2f128c99c4f25b4cfd50ee2",
+      "domain": "facebook.com",
+      "domains": [
+        "facebook.com",
+        "instagram.com"
+      ],
+      "docType": "cookie",
+      "verticals": [
+        "social_ugc",
+        "identity_provider"
+      ],
+      "riskLevel": "High",
+      "confidence": "high",
+      "sourceUrl": "https://www.facebook.com/privacy/policies/cookies/?entry_point=cookie_policy_redirect&entry_point=cookie_policy_redirect",
+      "exposureCount": 4,
+      "highSeverityCount": 2,
+      "actionCount": 3,
+      "absentDisclosures": [
+        "Consent mechanism for non-essential cookies",
+        "Do Not Sell or Share My Personal Information"
+      ],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
+      "contentHash": "32af99579b536b1fc13ff04fbd3761cc0668acf116953367dd52020a7c5f4e1e",
+      "domain": "hdfcbank.com",
+      "domains": [
+        "hdfcbank.com"
+      ],
+      "docType": "terms",
+      "verticals": [
+        "finance_banking"
+      ],
+      "riskLevel": "High",
+      "confidence": "high",
+      "sourceUrl": "https://www.hdfc.bank.in/useful-links/website-usage-terms",
+      "exposureCount": 6,
+      "highSeverityCount": 2,
+      "actionCount": 3,
+      "absentDisclosures": [
+        "Grievance Officer",
+        "Cookie consent mechanism"
+      ],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
+      "contentHash": "66aadd779527fe1c31389f8f3cbbf9d3419e18b8cb1dfe2f898f158fbba23027",
+      "domain": "linkedin.com",
+      "domains": [
+        "linkedin.com"
+      ],
+      "docType": "copyright",
+      "verticals": [
+        "social_ugc",
+        "saas_productivity"
+      ],
+      "riskLevel": "Medium",
+      "confidence": "high",
+      "sourceUrl": "https://www.linkedin.com/legal/copyright-policy?trk=homepage-basic_footer-copyright-policy",
+      "exposureCount": 5,
+      "highSeverityCount": 1,
+      "actionCount": 2,
+      "absentDisclosures": [
+        "Repeat-infringer policy threshold"
+      ],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
+      "contentHash": "cf76ce9c36aecc800d8a2fdcc992b3aaa99490d7365232221d76e3a2436fff00",
+      "domain": "makemytrip.com",
+      "domains": [
+        "makemytrip.com"
+      ],
+      "docType": "cookie",
+      "verticals": [
+        "ecommerce"
+      ],
+      "riskLevel": "Medium",
+      "confidence": "high",
+      "sourceUrl": "https://www.makemytrip.com/legal/in/eng/cookie_disclosure_policy.html",
+      "exposureCount": 5,
+      "highSeverityCount": 0,
+      "actionCount": 3,
+      "absentDisclosures": [],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
+      "contentHash": "692353637797f93b4ab1837368866d3ba984f8793586dc8de5559fc49ea9b540",
+      "domain": "paytm.com",
+      "domains": [
+        "paytm.com"
+      ],
+      "docType": "privacy",
+      "verticals": [
+        "payments_fintech",
+        "finance_banking"
+      ],
+      "riskLevel": "High",
+      "confidence": "high",
+      "sourceUrl": "https://paytm.com/company/privacy-policy",
+      "exposureCount": 5,
+      "highSeverityCount": 3,
+      "actionCount": 3,
+      "absentDisclosures": [
+        "Named third-party recipients"
+      ],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
+      "contentHash": "d1b14d20402656cfaab43f8dabd40c46bf7b0038535862cdc7cec4a5c3b7cce8",
+      "domain": "snapchat.com",
+      "domains": [
+        "snapchat.com"
+      ],
+      "docType": "cookie",
+      "verticals": [
+        "social_ugc"
+      ],
+      "riskLevel": "Medium",
+      "confidence": "high",
+      "sourceUrl": "https://www.snap.com/cookie-policy?lang=en-US",
+      "exposureCount": 5,
+      "highSeverityCount": 2,
+      "actionCount": 3,
+      "absentDisclosures": [
+        "Consent before non-essential cookies are set"
+      ],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    }
+  ]
+}
