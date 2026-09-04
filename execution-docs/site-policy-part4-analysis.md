@@ -1,7 +1,7 @@
 # Site Policy Awareness — Part 4: Analysis
 
-**Status: not started.** Written as a handoff at the end of the Part 3 capture session, so a new
-session can start work without re-deriving anything.
+**Status: pass 1 in progress — 34 of 83 analysed, 28 of 40 in the priority subset.**
+Resume from "How to resume" below. Live status page: https://claude.ai/code/artifact/da53d135-e641-46c2-b3c7-37b99b1bccff
 
 ## Input
 
@@ -137,3 +137,128 @@ behave as `hotstar.com`.
 - [ ] Decide worst-vs-aggregate for the index risk byte
 - [ ] Generate `policy-seed.json` from real analysis
 - [ ] Manual test pass over the 24 fully-testable domains
+
+---
+
+## How to resume
+
+Everything is committed on `feat/site-policy-corpus-capture`. Nothing is in flight.
+
+```
+nvm use
+node --import tsx tools/corpus/validate-analysis.ts          # progress + integrity
+node --import tsx tools/corpus/validate-analysis.ts --todo   # what is left, with paths
+```
+
+**The loop, per document:** read `corpus/text/<hash>.txt` in full (chunk the long ones at
+paragraph boundaries — the normalizer's `\n\n` breaks are stable by construction), then pipe a
+body to the writer:
+
+```
+node --import tsx tools/corpus/write-analysis.ts <<'EOF'
+{ "hash8": "...", "summary": "...", "riskLevel": "...", "confidence": "...",
+  "exposures": [...], "availableActions": [...], "requiredDisclosures": [...] }
+EOF
+```
+
+The writer fills `contentHash`, `docType`, `verticals`, `sourceUrl`, `normalizerVersion`,
+`promptVersion` and `model` from `corpus/curated.json` and schema-checks before writing, so a
+malformed or mis-keyed object cannot land. Then `build-analysis-index.ts` to refresh the
+committed index.
+
+**Rules that have held so far and should keep holding:**
+
+- Analyse the normalized text, never `corpus/raw/`.
+- Every exposure carries a `reference` with the section label, and a `quote` where the wording
+  is the finding.
+- Where a capture is incomplete, mark `confidence: medium` and record the affected disclosure as
+  *unverified*, not *absent* — saying "absent" from a capture artefact is a false claim about a
+  real company.
+- If a document turns out not to be a policy, remove it from `curated.ts` with the reason inline.
+  Three have been removed this way so far.
+
+## Where pass 1 stands
+
+| | |
+|---|---|
+| Analysed | 34 of 83 |
+| Priority subset | 28 of 40 |
+| Risk | Medium 7 · High 22 · Very High 5 |
+| Exposures | 222 (98 high severity) |
+| Actions recorded | 144 |
+
+### Remaining in the priority subset
+
+| Domain | Type | Chars | Hash |
+|---|---|---|---|
+| paytm.com | `terms` | 294,737 | `0d82e1a0` |
+| booking.com | `terms` | 170,114 | `fc60f015` |
+| stripe.com | `privacy` | 161,486 | `fd42eb7f` |
+| flipkart.com | `terms` | 149,663 | `6bc14ba2` |
+| hdfcbank.com | `privacy` | 147,381 | `b48d44d5` |
+| makemytrip.com | `terms` | 140,519 | `7292c997` |
+| zomato.com | `terms` | 136,640 | `13137974` |
+| doordash.com | `terms` | 136,335 | `51e9b28e` |
+| paypal.com | `privacy` | 119,960 | `4f437c00` |
+| paypal.com | `terms` | 90,570 | `dc62c4d1` |
+| makemytrip.com | `privacy` | 83,176 | `1e80ec13` |
+| booking.com | `privacy` | 74,379 | `8e40cf40` |
+
+`paypal.com/terms` was part-read when the session ended; nothing was written for it, so start it
+fresh. Its notable clauses so far: 14 days' notice for changes that reduce your rights, payment
+card details auto-updated from third-party sources without your action, credit report pulled on
+business accounts at opening and whenever PayPal perceives risk, account closure blocked while
+under hold or investigation, and Buyer Protection decided at PayPal's sole discretion with the
+original determination final.
+
+### Most-repeated absent disclosures
+
+| Disclosure | Documents |
+|---|---|
+| Retention period | 12 |
+| Notice of changes to terms | 5 |
+| Do Not Sell or Share My Personal Information | 4 |
+| Named Grievance Officer | 4 |
+| AI training opt-out | 3 |
+| Grievance Officer | 3 |
+| Consent mechanism for non-essential cookies | 2 |
+| Biometric data retention | 2 |
+
+## Findings that came out of doing it
+
+Recorded here because they are corpus-level and no single document produces them.
+
+1. **Two documents describe protections that stop at a border.** Uber marks with an asterisk
+   every collection it does not perform in the EEA/UK/Switzerland — including buying household
+   income and streaming habits from data resellers. LinkedIn collects device data on people
+   outside the EU "where you have not engaged with our Services". Both are disclosed rather than
+   hidden, which makes the pattern countable. The rubric did not anticipate this category.
+2. **Good terms and broad data practice are different axes.** LinkedIn's user agreement is the
+   least restrictive in the corpus (Medium: no arbitration, no class waiver, non-retroactive
+   changes); its privacy policy is High. A single per-site risk level would erase that.
+3. **The same practice, opposite handling, same vertical.** Robinhood, OpenAI and Flipkart build
+   records of people who never signed up. Coinbase collects the identical category for the
+   identical purpose and expressly does not retain it, twice. That contrast is the shape of
+   evidence a peer baseline runs on.
+4. **A site's documents can be read as a set.** JioHotstar's privacy policy cancels your paid
+   subscription without refund if you exercise erasure; its terms make fees non-refundable
+   whether or not you used the service and keep ads on live sport for ad-free plans. Consistent
+   posture across two documents, invisible from either alone.
+5. **Every finance and payments document is High.** That is the peer-baseline problem arriving on
+   schedule: once a vertical rates uniformly, only deviation from the vertical norm carries
+   information. Pass 2 cannot start until the set is complete.
+6. **One policy, many hashes.** Facebook and Instagram serve the identical Meta policy in en-GB
+   and en-US and hash differently — see Part 3, finding 13. The corpus needs a document-identity
+   concept above the hash.
+
+## Still open from the original plan
+
+- **The seven schema changes are applied** (verticals[], four new docTypes, normalizerVersion,
+  surfaces, domains[], peer set on deviations). Two discovery bugs were fixed as a consequence:
+  the `\s*`-versus-hyphen bug in `guessDocType`, and `policy` missing from `POLICY_LINK_PATTERN`.
+- **Pass 2 (peer baselines) not started.** Minimum-N is 10; on current coverage `ecommerce`,
+  `subscription_autorenewal`, `payments_fintech` and `finance_banking` clear it and `saas`,
+  `social_ugc`, `ott_streaming` and `identity_provider` do not.
+- **Packaging not started.** `policy-seed.json` still holds RFC 2606 reserved domains only. The
+  open question there is Part 1's: one risk byte per domain, worst or aggregate.
+- **Retry list from capture** — 6 zero-link sites plus youtube.com, untouched.
