@@ -1,5 +1,5 @@
 {
-  "analysed": 17,
+  "analysed": 19,
   "rows": [
     {
       "contentHash": "f44a02e59126044aca9f5b9194ec1b7f77a0dd6b8cc849d37a897e0f8fb22e7a",
@@ -23,6 +23,35 @@
       "actionCount": 3,
       "absentDisclosures": [
         "Consent mechanism for non-essential cookies",
+        "Do Not Sell or Share My Personal Information"
+      ],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
+      "contentHash": "993ed5120c75318d98473698e001dc29c41935af329de73ab6165f36b146b08c",
+      "domain": "amazon.com",
+      "domains": [
+        "amazon.com"
+      ],
+      "docType": "privacy",
+      "verticals": [
+        "ecommerce",
+        "subscription_autorenewal",
+        "ott_streaming",
+        "identity_provider",
+        "payments_fintech"
+      ],
+      "riskLevel": "High",
+      "confidence": "high",
+      "sourceUrl": "https://www.amazon.com/gp/help/customer/display.html?nodeId=GX7NJQ4ZB8MHFRNJ&ref_=footer_privacy",
+      "exposureCount": 7,
+      "highSeverityCount": 3,
+      "actionCount": 5,
+      "absentDisclosures": [
+        "Retention period",
+        "Generative AI training opt-out",
         "Do Not Sell or Share My Personal Information"
       ],
       "promptVersion": "adhesion-rubric-v1",
@@ -360,6 +389,31 @@
       "actionCount": 3,
       "absentDisclosures": [
         "Named third-party recipients"
+      ],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
+      "contentHash": "041dfb8b61a1ae5489f48ebfe4eb3518e3acc40b6fc1d6bef743376ac351ddd8",
+      "domain": "phonepe.com",
+      "domains": [
+        "phonepe.com"
+      ],
+      "docType": "privacy",
+      "verticals": [
+        "payments_fintech"
+      ],
+      "riskLevel": "High",
+      "confidence": "high",
+      "sourceUrl": "https://www.phonepe.com/privacy-policy/",
+      "exposureCount": 7,
+      "highSeverityCount": 4,
+      "actionCount": 5,
+      "absentDisclosures": [
+        "Named Grievance Officer",
+        "Retention period",
+        "Consent withdrawal for non-Aadhaar processing"
       ],
       "promptVersion": "adhesion-rubric-v1",
       "normalizerVersion": "normalizer-v1",
