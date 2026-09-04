@@ -32,4 +32,7 @@ tsconfig.tsbuildinfo
 corpus/*
 !corpus/manifest.json
 !corpus/curated.json
+!corpus/analysis-index.json
 !corpus/README.md
+# Analyses are derived from third-party documents; same storage posture as the text.
+# The committed record of what was analysed is corpus/analysis-index.json.

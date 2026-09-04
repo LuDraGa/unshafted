@@ -111,20 +111,6 @@
         "ecommerce",
         "payments_fintech"
       ],
-      "docType": "privacy",
-      "contentHash": "0002e2ff51c401dadd4fbb77efc4d581350390d896257924ff273705d8610a4a",
-      "sourceUrl": "https://www.apple.com/privacy/",
-      "normalizedLength": 12429,
-      "textPath": "corpus/text/0002e2ff51c401dadd4fbb77efc4d581350390d896257924ff273705d8610a4a.txt"
-    },
-    {
-      "domain": "apple.com",
-      "tags": [
-        "identity_provider",
-        "ott_streaming",
-        "ecommerce",
-        "payments_fintech"
-      ],
       "docType": "terms",
       "contentHash": "1cd58c4549802d6c736d6f93f91b5baebb7b33e4835ad173bd946b1d25b2f627",
       "sourceUrl": "https://www.apple.com/legal/internet-services/terms/site.html",
@@ -971,18 +957,6 @@
       "sourceUrl": "https://zerodha.com/terms-and-conditions/",
       "normalizedLength": 58319,
       "textPath": "corpus/text/da51e3552668a7b6b5310d4376112e03961e528ffb42aa7a734daa1c436e28a3.txt"
-    },
-    {
-      "domain": "zomato.com",
-      "tags": [
-        "ecommerce",
-        "subscription_autorenewal"
-      ],
-      "docType": "cookie",
-      "contentHash": "b2850a0a292eb0e2b24778dd2ff8a8bf26f76127e71d04c88c8169f0ed2f353a",
-      "sourceUrl": "https://www.zomato.com/cookies",
-      "normalizedLength": 6296,
-      "textPath": "corpus/text/b2850a0a292eb0e2b24778dd2ff8a8bf26f76127e71d04c88c8169f0ed2f353a.txt"
     },
     {
       "domain": "zomato.com",
