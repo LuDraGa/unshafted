@@ -11,7 +11,8 @@
  * Selection is by CONTENT HASH, not URL, because the hash is the identity (AD-1) and a URL can
  * carry tracking parameters that differ between captures.
  *
- * `docType` here is the HAND-ASSIGNED type, which sometimes overrides `guessDocType`:
+ * `docType` here is the HAND-ASSIGNED type, which sometimes overrides `guessDocType` and
+ * sometimes uses a value added to `PolicyDocTypeSchema` because this corpus needed it:
  *  - dropbox.com `/terms` was typed `privacy` by the shipped classifier. It is the terms.
  *  - hdfcbank.com `/privacy-policy` was typed `cookie`. It is the privacy policy.
  *
@@ -37,8 +38,8 @@ export const CURATED: Record<string, CuratedDoc[]> = {
   'americanexpress.com': [
     { hash8: '1a6484c7', docType: 'privacy' },
     { hash8: '88622777', docType: 'terms', note: 'Website Rules and Regulations — the closest thing Amex India publishes to site terms.' },
-    { hash8: 'a75dfac1', docType: 'terms', note: 'Know Your Customer disclosure. A regulated finance document with no matching docType in the shipped enum.' },
-    { hash8: '887b98bf', docType: 'terms', note: 'Customer Complaint / Grievance Redressal Policy. Statutory in India; no matching docType.' },
+    { hash8: 'a75dfac1', docType: 'regulatory_disclosure', note: 'Know Your Customer disclosure — RBI-mandated.' },
+    { hash8: '887b98bf', docType: 'regulatory_disclosure', note: 'Customer Complaint / Grievance Redressal Policy — statutory in India.' },
   ],
   'apple.com': [
     { hash8: '1cd58c45', docType: 'terms' },
@@ -46,7 +47,7 @@ export const CURATED: Record<string, CuratedDoc[]> = {
   ],
   'bankofamerica.com': [
     { hash8: '8d8c3508', docType: 'privacy', note: 'The main Online Privacy Notice. The chooser picked the CHILDREN’S notice instead.' },
-    { hash8: '20993aec', docType: 'privacy', note: 'CCPA disclosure — a separate statutory notice.' },
+    { hash8: '20993aec', docType: 'regulatory_disclosure', note: 'CCPA disclosure.' },
   ],
   'booking.com': [
     { hash8: 'fc60f015', docType: 'terms' },
@@ -63,13 +64,13 @@ export const CURATED: Record<string, CuratedDoc[]> = {
   'coinbase.com': [
     { hash8: '60c77d35', docType: 'privacy', note: 'The real privacy policy. The chooser picked a legal index page.' },
     { hash8: '71f60eed', docType: 'cookie' },
-    { hash8: 'dee82681', docType: 'terms', note: 'Digital Asset Disclosures — crypto-specific risk disclosure, no matching docType.' },
+    { hash8: 'dee82681', docType: 'regulatory_disclosure', note: 'Digital Asset Disclosures — crypto-specific risk disclosure.' },
   ],
   'ebay.com': [
     { hash8: '530c8a6d', docType: 'privacy' },
     { hash8: '63c24cb2', docType: 'cookie' },
     { hash8: 'e33c29e5', docType: 'terms', note: 'eBay Payments terms. The general User Agreement was not among the discovered links.' },
-    { hash8: '3df9b323', docType: 'privacy', note: 'US state privacy disclosures — separate statutory notice.' },
+    { hash8: '3df9b323', docType: 'regulatory_disclosure', note: 'US state privacy disclosures.' },
   ],
   'facebook.com': [
     { hash8: '3fe6bc5d', docType: 'privacy' },
@@ -97,7 +98,7 @@ export const CURATED: Record<string, CuratedDoc[]> = {
     { hash8: '76c283b0', docType: 'privacy' },
     { hash8: '4e98cb9d', docType: 'cookie' },
     { hash8: '2915eb9a', docType: 'acceptable_use' },
-    { hash8: '66aadd77', docType: 'acceptable_use', note: 'Copyright policy — DMCA process, no matching docType.' },
+    { hash8: '66aadd77', docType: 'copyright', note: 'DMCA / copyright process.' },
   ],
   'makemytrip.com': [
     { hash8: '7292c997', docType: 'terms' },
@@ -143,7 +144,7 @@ export const CURATED: Record<string, CuratedDoc[]> = {
   'tiktok.com': [
     { hash8: '90d6bf47', docType: 'terms' },
     { hash8: '01beb0eb', docType: 'privacy' },
-    { hash8: 'e853637b', docType: 'acceptable_use', note: 'Copyright policy.' },
+    { hash8: 'e853637b', docType: 'copyright' },
   ],
   'uber.com': [
     { hash8: '7db58935', docType: 'terms' },
@@ -152,7 +153,7 @@ export const CURATED: Record<string, CuratedDoc[]> = {
   'walmart.com': [
     { hash8: 'f5977930', docType: 'terms' },
     { hash8: 'b8f08b0e', docType: 'privacy' },
-    { hash8: 'ea6a1b86', docType: 'privacy', note: 'California privacy rights — separate statutory notice.' },
+    { hash8: 'ea6a1b86', docType: 'regulatory_disclosure', note: 'California privacy rights.' },
   ],
   'x.com': [
     { hash8: 'e3c3ba23', docType: 'terms' },
