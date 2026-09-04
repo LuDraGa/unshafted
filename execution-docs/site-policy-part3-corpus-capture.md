@@ -452,7 +452,44 @@ Both are fixable at the client without host permissions — resolve the redirect
 and treat `www.x` / `x` as one origin — where a genuine policy subdomain is not. Splitting the
 15% into "hard" and "fixable" changes what AD-4's gap actually costs.
 
-### 13. What is testable end-to-end today
+### 13. One policy, two hashes, because of a spelling
+
+`facebook.com` and `instagram.com` serve the **same Meta privacy policy** — same effective date,
+same substance, same sections — and produce **different content hashes**.
+
+The entire difference is locale rendering. Facebook returned British English, Instagram American:
+
+| Facebook (`3fe6bc5d`, 50,092 chars) | Instagram (`ab642cdd`, 48,985 chars) |
+|---|---|
+| `Updated on 23 July 2026` | `Updated on Jul 23, 2026` |
+| `Privacy Centre` | `Privacy Center` |
+| `that's` (straight apostrophe) | `that’s` (typographic apostrophe) |
+| `The information that we collect` | `The information we collect` |
+
+Three consequences, in increasing order of seriousness:
+
+1. **The corpus stores it twice**, and a peer baseline that counts documents would count Meta
+   twice for one policy.
+2. **A UK reader and a US reader of the same policy compute different hashes.** An analysis
+   published against one is invisible to the other, silently — the badge says covered, the panel
+   says not analysed. This is D7's jurisdiction problem, except the variance here is not even
+   legal, it is orthographic.
+3. **The normalizer could close part of this and does not.** `collapseWhitespace` applies NFKC,
+   strips zero-width characters and folds several space variants — but NFKC does not fold U+2019
+   (’) to U+0027 ('), so typographic and straight apostrophes remain distinct text. Folding
+   quotes and dashes would collapse one axis of this variance.
+
+**It would not collapse all of it.** `The information that we collect` versus `The information we
+collect` is a genuine wording difference, so these remain two documents no matter what the
+normalizer does. The finding is not "fix the normalizer" — it is that **one policy can legitimately
+have many hashes, and the corpus needs a document-identity concept above the hash** to group them.
+`PolicyDomainIndexSchema.hashes[]` already accommodates several hashes per domain; nothing yet
+groups several hashes as *the same document*.
+
+Any decision to fold quotes must be taken with a re-hash plan, since it changes every hash the
+normalizer has ever produced (`POLICY_NORMALIZER_VERSION`).
+
+### 14. What is testable end-to-end today
 
 A domain only works in the product if the client can *reach* its document from the page. Of the
 36 curated domains:
