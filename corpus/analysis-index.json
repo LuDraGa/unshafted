@@ -1,5 +1,5 @@
 {
-  "analysed": 40,
+  "analysed": 42,
   "rows": [
     {
       "contentHash": "f44a02e59126044aca9f5b9194ec1b7f77a0dd6b8cc849d37a897e0f8fb22e7a",
@@ -380,6 +380,32 @@
       "model": "claude-opus-5"
     },
     {
+      "contentHash": "b48d44d5992a5972fbe2fef29cf4990f0fac0d26de072f435431f52749fe87a0",
+      "domain": "hdfcbank.com",
+      "domains": [
+        "hdfcbank.com"
+      ],
+      "docType": "privacy",
+      "verticals": [
+        "finance_banking"
+      ],
+      "riskLevel": "High",
+      "confidence": "high",
+      "sourceUrl": "https://www.hdfc.bank.in/privacy-policy",
+      "exposureCount": 10,
+      "highSeverityCount": 8,
+      "actionCount": 9,
+      "absentDisclosures": [
+        "Retention period",
+        "Named Grievance Officer",
+        "Notice of changes to terms",
+        "Automated decision-making rights"
+      ],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
       "contentHash": "32af99579b536b1fc13ff04fbd3761cc0668acf116953367dd52020a7c5f4e1e",
       "domain": "hdfcbank.com",
       "domains": [
@@ -593,6 +619,30 @@
         "Named Grievance Officer",
         "Automated decision-making rights",
         "Consent mechanism for non-essential cookies"
+      ],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
+      "contentHash": "7292c99707b5cbeb0d3c15d8b50c1a6dff70224849811f56923d5b7c7a2c0e61",
+      "domain": "makemytrip.com",
+      "domains": [
+        "makemytrip.com"
+      ],
+      "docType": "terms",
+      "verticals": [
+        "ecommerce"
+      ],
+      "riskLevel": "High",
+      "confidence": "high",
+      "sourceUrl": "https://www.makemytrip.com/legal/in/eng/user_agreement.html",
+      "exposureCount": 10,
+      "highSeverityCount": 6,
+      "actionCount": 10,
+      "absentDisclosures": [
+        "Notice of changes to terms",
+        "Consent withdrawal mechanism"
       ],
       "promptVersion": "adhesion-rubric-v1",
       "normalizerVersion": "normalizer-v1",
