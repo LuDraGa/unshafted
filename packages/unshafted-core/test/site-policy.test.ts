@@ -1,4 +1,10 @@
-import { computePolicyHash, normalizePolicyHtml, SitePolicyAnalysisSchema, SITE_POLICY_SCHEMA_VERSION } from '../index.mts';
+import {
+  computePolicyHash,
+  normalizePolicyHtml,
+  POLICY_NORMALIZER_VERSION,
+  SitePolicyAnalysisSchema,
+  SITE_POLICY_SCHEMA_VERSION,
+} from '../index.mts';
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -102,7 +108,8 @@ test('SitePolicyAnalysisSchema accepts a minimal adhesion-contract analysis', ()
     contentHash: 'a'.repeat(64),
     domain: 'example.com',
     docType: 'privacy',
-    vertical: 'saas_productivity',
+    verticals: ['saas_productivity'],
+    normalizerVersion: POLICY_NORMALIZER_VERSION,
     sourceUrl: 'https://example.com/privacy',
     promptVersion: 'site-policy-v1',
     model: 'anthropic/claude-sonnet-5',
@@ -144,7 +151,8 @@ test('SitePolicyAnalysisSchema rejects a malformed content hash', () => {
       contentHash: 'too-short',
       domain: 'example.com',
       docType: 'privacy',
-      vertical: 'other',
+      verticals: ['other'],
+      normalizerVersion: POLICY_NORMALIZER_VERSION,
       sourceUrl: 'https://example.com/privacy',
       promptVersion: 'site-policy-v1',
       model: 'test',

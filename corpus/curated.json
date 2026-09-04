@@ -70,38 +70,38 @@
         "finance_banking",
         "payments_fintech"
       ],
+      "docType": "regulatory_disclosure",
+      "contentHash": "a75dfac11e72032e04e87c80c0de3cba7980f8a82f3a37807c90048293563263",
+      "sourceUrl": "https://www.americanexpress.com/in/company/legal-disclosures/know-your-customer.html?inav=en_in_legalfooter_kyc",
+      "normalizedLength": 16345,
+      "textPath": "corpus/text/a75dfac11e72032e04e87c80c0de3cba7980f8a82f3a37807c90048293563263.txt",
+      "note": "Know Your Customer disclosure — RBI-mandated."
+    },
+    {
+      "domain": "americanexpress.com",
+      "tags": [
+        "finance_banking",
+        "payments_fintech"
+      ],
+      "docType": "regulatory_disclosure",
+      "contentHash": "887b98bf17edad2a6f6ce1ead226365d43ea8176773490d2331154da8f6f58f5",
+      "sourceUrl": "https://www.americanexpress.com/in/legal/customer-complaint-grievance-redressal-policy.html?inav=en_in_legalfooter_complaints",
+      "normalizedLength": 9192,
+      "textPath": "corpus/text/887b98bf17edad2a6f6ce1ead226365d43ea8176773490d2331154da8f6f58f5.txt",
+      "note": "Customer Complaint / Grievance Redressal Policy — statutory in India."
+    },
+    {
+      "domain": "americanexpress.com",
+      "tags": [
+        "finance_banking",
+        "payments_fintech"
+      ],
       "docType": "terms",
       "contentHash": "886227777c620182982d29337012afd7ade8e3cc921e2f24808b628e0d4ed663",
       "sourceUrl": "https://www.americanexpress.com/en-in/company/legal/rules-and-regulations/?inav=en_in_legalfooter_website_rules_and_regulations",
       "normalizedLength": 8921,
       "textPath": "corpus/text/886227777c620182982d29337012afd7ade8e3cc921e2f24808b628e0d4ed663.txt",
       "note": "Website Rules and Regulations — the closest thing Amex India publishes to site terms."
-    },
-    {
-      "domain": "americanexpress.com",
-      "tags": [
-        "finance_banking",
-        "payments_fintech"
-      ],
-      "docType": "terms",
-      "contentHash": "a75dfac11e72032e04e87c80c0de3cba7980f8a82f3a37807c90048293563263",
-      "sourceUrl": "https://www.americanexpress.com/in/company/legal-disclosures/know-your-customer.html?inav=en_in_legalfooter_kyc",
-      "normalizedLength": 16345,
-      "textPath": "corpus/text/a75dfac11e72032e04e87c80c0de3cba7980f8a82f3a37807c90048293563263.txt",
-      "note": "Know Your Customer disclosure. A regulated finance document with no matching docType in the shipped enum."
-    },
-    {
-      "domain": "americanexpress.com",
-      "tags": [
-        "finance_banking",
-        "payments_fintech"
-      ],
-      "docType": "terms",
-      "contentHash": "887b98bf17edad2a6f6ce1ead226365d43ea8176773490d2331154da8f6f58f5",
-      "sourceUrl": "https://www.americanexpress.com/in/legal/customer-complaint-grievance-redressal-policy.html?inav=en_in_legalfooter_complaints",
-      "normalizedLength": 9192,
-      "textPath": "corpus/text/887b98bf17edad2a6f6ce1ead226365d43ea8176773490d2331154da8f6f58f5.txt",
-      "note": "Customer Complaint / Grievance Redressal Policy. Statutory in India; no matching docType."
     },
     {
       "domain": "apple.com",
@@ -148,12 +148,12 @@
       "tags": [
         "finance_banking"
       ],
-      "docType": "privacy",
+      "docType": "regulatory_disclosure",
       "contentHash": "20993aec8fb256583401054597672dff8e665264c0a03a43fb24b84cc53d999a",
       "sourceUrl": "https://web.bankofamerica.com/en/privacy/ccpa-disclosure",
       "normalizedLength": 22481,
       "textPath": "corpus/text/20993aec8fb256583401054597672dff8e665264c0a03a43fb24b84cc53d999a.txt",
-      "note": "CCPA disclosure — a separate statutory notice."
+      "note": "CCPA disclosure."
     },
     {
       "domain": "booking.com",
@@ -254,12 +254,12 @@
         "finance_banking",
         "payments_fintech"
       ],
-      "docType": "terms",
+      "docType": "regulatory_disclosure",
       "contentHash": "dee826819eb118a80732017b02d2c5367586122ff1fbc1179a73462fa6886834",
       "sourceUrl": "https://www.coinbase.com/en-in/legal/digital-asset-disclosures",
       "normalizedLength": 29986,
       "textPath": "corpus/text/dee826819eb118a80732017b02d2c5367586122ff1fbc1179a73462fa6886834.txt",
-      "note": "Digital Asset Disclosures — crypto-specific risk disclosure, no matching docType."
+      "note": "Digital Asset Disclosures — crypto-specific risk disclosure."
     },
     {
       "domain": "doordash.com",
@@ -328,12 +328,12 @@
         "ecommerce",
         "payments_fintech"
       ],
-      "docType": "privacy",
+      "docType": "regulatory_disclosure",
       "contentHash": "3df9b3236ad14d8b15fbf8dcc8033ec91151be82fd35b215424366ad5c808cbe",
       "sourceUrl": "https://www.ebayinc.com/company/privacy-center/privacy-notice/state-privacy-disclosures/",
       "normalizedLength": 35245,
       "textPath": "corpus/text/3df9b3236ad14d8b15fbf8dcc8033ec91151be82fd35b215424366ad5c808cbe.txt",
-      "note": "US state privacy disclosures — separate statutory notice."
+      "note": "US state privacy disclosures."
     },
     {
       "domain": "ebay.com",
@@ -499,12 +499,11 @@
         "social_ugc",
         "saas"
       ],
-      "docType": "acceptable_use",
-      "contentHash": "66aadd779527fe1c31389f8f3cbbf9d3419e18b8cb1dfe2f898f158fbba23027",
-      "sourceUrl": "https://www.linkedin.com/legal/copyright-policy?trk=homepage-basic_footer-copyright-policy",
-      "normalizedLength": 5450,
-      "textPath": "corpus/text/66aadd779527fe1c31389f8f3cbbf9d3419e18b8cb1dfe2f898f158fbba23027.txt",
-      "note": "Copyright policy — DMCA process, no matching docType."
+      "docType": "cookie",
+      "contentHash": "4e98cb9d98fb5e14ca1bbe62ae02976d0e49d8c689490cd28a6ca28db6eb84c6",
+      "sourceUrl": "https://www.linkedin.com/legal/cookie-policy?trk=linkedin-tc_auth-button_cookie-policy",
+      "normalizedLength": 10664,
+      "textPath": "corpus/text/4e98cb9d98fb5e14ca1bbe62ae02976d0e49d8c689490cd28a6ca28db6eb84c6.txt"
     },
     {
       "domain": "linkedin.com",
@@ -512,11 +511,12 @@
         "social_ugc",
         "saas"
       ],
-      "docType": "cookie",
-      "contentHash": "4e98cb9d98fb5e14ca1bbe62ae02976d0e49d8c689490cd28a6ca28db6eb84c6",
-      "sourceUrl": "https://www.linkedin.com/legal/cookie-policy?trk=linkedin-tc_auth-button_cookie-policy",
-      "normalizedLength": 10664,
-      "textPath": "corpus/text/4e98cb9d98fb5e14ca1bbe62ae02976d0e49d8c689490cd28a6ca28db6eb84c6.txt"
+      "docType": "copyright",
+      "contentHash": "66aadd779527fe1c31389f8f3cbbf9d3419e18b8cb1dfe2f898f158fbba23027",
+      "sourceUrl": "https://www.linkedin.com/legal/copyright-policy?trk=homepage-basic_footer-copyright-policy",
+      "normalizedLength": 5450,
+      "textPath": "corpus/text/66aadd779527fe1c31389f8f3cbbf9d3419e18b8cb1dfe2f898f158fbba23027.txt",
+      "note": "DMCA / copyright process."
     },
     {
       "domain": "linkedin.com",
@@ -823,12 +823,11 @@
         "social_ugc",
         "ott_streaming"
       ],
-      "docType": "acceptable_use",
+      "docType": "copyright",
       "contentHash": "e853637bea18f4be2605fba90717a51e9a3006a51e986d7ae386551d05dc244b",
       "sourceUrl": "https://www.tiktok.com/legal/page/global/copyright-policy/en",
       "normalizedLength": 14558,
-      "textPath": "corpus/text/e853637bea18f4be2605fba90717a51e9a3006a51e986d7ae386551d05dc244b.txt",
-      "note": "Copyright policy."
+      "textPath": "corpus/text/e853637bea18f4be2605fba90717a51e9a3006a51e986d7ae386551d05dc244b.txt"
     },
     {
       "domain": "tiktok.com",
@@ -896,12 +895,12 @@
         "ecommerce",
         "subscription_autorenewal"
       ],
-      "docType": "privacy",
+      "docType": "regulatory_disclosure",
       "contentHash": "ea6a1b86bc032dc36cc36f5f0403f9b93a33f7ecae2a65bc0d09b0f12b5fb6be",
       "sourceUrl": "https://corporate.walmart.com/privacy-security/california-privacy-rights",
       "normalizedLength": 27062,
       "textPath": "corpus/text/ea6a1b86bc032dc36cc36f5f0403f9b93a33f7ecae2a65bc0d09b0f12b5fb6be.txt",
-      "note": "California privacy rights — separate statutory notice."
+      "note": "California privacy rights."
     },
     {
       "domain": "walmart.com",

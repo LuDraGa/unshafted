@@ -41,16 +41,36 @@ export type InPageFetchResult = {
 };
 
 /** Anchor text / href signals that a link points at a policy document. */
-export const POLICY_LINK_PATTERN = /privacy|terms|cookie|legal|eula|conditions|do\s*not\s*sell/i;
+/**
+ * `policy`, `disclosure` and `consent` were added after the Part 3 capture measured what the
+ * original pattern missed: 51 links across 20 sites named a real policy document and were never
+ * collected, because the pattern had no word for the most common one. "Content Policy",
+ * "Cancellation Policy" and "Regulatory disclosure section" were all invisible.
+ */
+export const POLICY_LINK_PATTERN =
+  /privacy|terms|cookie|legal|eula|conditions|policy|policies|disclosure|consent|do\s*not\s*sell/i;
 
 /**
  * Ordered most-specific-first: "Data Processing Addendum" must not be classified as "terms"
  * just because it also mentions conditions.
  */
 const DOC_TYPE_PATTERNS: [PolicyDocType, RegExp][] = [
-  ['data_processing', /data\s*processing|\bdpa\b|sub-?processor/i],
-  ['acceptable_use', /acceptable\s*use|\baup\b|community\s*(guidelines|standards)/i],
-  ['eula', /\beula\b|end\s*user\s*licen[cs]e|licen[cs]e\s*agreement/i],
+  // `[\s-]*` rather than `\s*`: the original could not classify `/acceptable-use` or
+  // `/data-processing` — the exact paths `wellKnownPolicyPaths` below generates. The chooser
+  // fabricated a URL, fetched it, and then failed to type its own result.
+  ['data_processing', /data[\s-]*processing|\bdpa\b|sub-?processor/i],
+  ['acceptable_use', /acceptable[\s-]*use|\baup\b|community\s*(guidelines|standards)|restricted[\s-]*businesses/i],
+  ['eula', /\beula\b|end[\s-]*user\s*licen[cs]e|licen[cs]e\s*agreement/i],
+  // Added after the Part 3 capture: these documents exist, are consequential, and previously
+  // typed as `null` (invisible) or — worse — as `terms`, where they could outrank the real
+  // terms of service on a shallower path.
+  ['esign_consent', /e-?sign|electronic\s*(signature|disclosure|communication|record)/i],
+  [
+    'regulatory_disclosure',
+    /know[\s-]*your[\s-]*customer|\bkyc\b|grievance|redressal|regulatory\s*(disclosure|notification)|financial\s*disclosure|state\s*privacy\s*disclosure|ccpa\s*disclosure|digital\s*asset\s*disclosure/i,
+  ],
+  ['copyright', /copyright|\bdmca\b/i],
+  ['program_terms', /(rewards?|loyalty|membership|program)[\s-]*(terms|program|policy)/i],
   ['cookie', /cookie/i],
   ['privacy', /privacy|do\s*not\s*sell|data\s*policy/i],
   ['terms', /terms|conditions|\btos\b|user\s*agreement/i],
@@ -76,6 +96,10 @@ export const wellKnownPolicyPaths = (docType: PolicyDocType): string[] => {
     eula: ['/eula', '/legal/eula', '/license'],
     acceptable_use: ['/acceptable-use', '/legal/acceptable-use'],
     data_processing: ['/dpa', '/legal/dpa', '/data-processing'],
+    regulatory_disclosure: ['/legal/disclosures', '/disclosures', '/legal/regulatory'],
+    copyright: ['/copyright', '/legal/copyright', '/dmca'],
+    program_terms: ['/rewards-terms', '/legal/rewards', '/program-terms'],
+    esign_consent: ['/legal/esign', '/esign-consent', '/electronic-disclosures'],
   };
   return paths[docType];
 };
