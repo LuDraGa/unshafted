@@ -1,5 +1,5 @@
 {
-  "analysed": 44,
+  "analysed": 46,
   "rows": [
     {
       "contentHash": "f44a02e59126044aca9f5b9194ec1b7f77a0dd6b8cc849d37a897e0f8fb22e7a",
@@ -182,6 +182,27 @@
         "Retention period",
         "AI training opt-out"
       ],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
+      "contentHash": "fc60f01573a54050c444d719cfeb5c64114e43f663f70a4c5c5556c8d8acd8b5",
+      "domain": "booking.com",
+      "domains": [
+        "booking.com"
+      ],
+      "docType": "terms",
+      "verticals": [
+        "ecommerce"
+      ],
+      "riskLevel": "Medium",
+      "confidence": "high",
+      "sourceUrl": "https://www.booking.com/content/terms.html?aid=304142&label=gen173nr-10CAEoggI46AdIM1gEaGyIAQGYATO4AQfIAQzYAQPoAQH4AQGIAgGoAgG4AtON6tQGwAIB0gIkZTU1YjYyN2MtZjI0OS00NmQzLWE4MjQtYzllYzFkOGE3N2Rh2AIB4AIB&sid=93e52071d2cfa650e15800cc067e71a0",
+      "exposureCount": 9,
+      "highSeverityCount": 0,
+      "actionCount": 10,
+      "absentDisclosures": [],
       "promptVersion": "adhesion-rubric-v1",
       "normalizerVersion": "normalizer-v1",
       "model": "claude-opus-5"
@@ -788,6 +809,33 @@
       "actionCount": 3,
       "absentDisclosures": [
         "Named third-party recipients"
+      ],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
+      "contentHash": "0d82e1a0e850eff9bbd81e5e5b7b298e39251cd88dc4c9164debd10c795f6a2b",
+      "domain": "paytm.com",
+      "domains": [
+        "paytm.com"
+      ],
+      "docType": "terms",
+      "verticals": [
+        "payments_fintech",
+        "finance_banking"
+      ],
+      "riskLevel": "Very High",
+      "confidence": "high",
+      "sourceUrl": "https://paytm.com/company/terms-and-conditions",
+      "exposureCount": 11,
+      "highSeverityCount": 7,
+      "actionCount": 10,
+      "absentDisclosures": [
+        "Named Grievance Officer",
+        "Notice of changes to terms",
+        "Consent withdrawal mechanism",
+        "Limitation on indemnity"
       ],
       "promptVersion": "adhesion-rubric-v1",
       "normalizerVersion": "normalizer-v1",

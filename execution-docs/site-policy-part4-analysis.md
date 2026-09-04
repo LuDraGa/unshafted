@@ -1,6 +1,6 @@
 # Site Policy Awareness — Part 4: Analysis
 
-**Status: pass 1 in progress — 34 of 83 analysed, 28 of 40 in the priority subset.**
+**Status: the priority subset is complete — 46 of 83 analysed, 40 of 40 in the priority subset.**
 Resume from "How to resume" below. Live status page: https://claude.ai/code/artifact/da53d135-e641-46c2-b3c7-37b99b1bccff
 
 ## Input
@@ -132,7 +132,7 @@ behave as `hotstar.com`.
 ## Status
 
 - [ ] Approve and apply the seven schema changes
-- [ ] Pass 1 — per-document analysis of all 85
+- [~] Pass 1 — 46 of 83 done; the 40-document priority subset is complete
 - [ ] Pass 2 — peer baselines for the four tags that clear N=10
 - [ ] Decide worst-vs-aggregate for the index risk byte
 - [ ] Generate `policy-seed.json` from real analysis
@@ -181,48 +181,43 @@ committed index.
 
 | | |
 |---|---|
-| Analysed | 34 of 83 |
-| Priority subset | 28 of 40 |
-| Risk | Medium 7 · High 22 · Very High 5 |
-| Exposures | 222 (98 high severity) |
-| Actions recorded | 144 |
+| Analysed | 46 of 83 |
+| Priority subset | **40 of 40 — complete** |
+| Risk | Medium 8 · High 30 · Very High 8 |
+| Exposures | 346 (179 high severity) |
+| Actions recorded | 263 |
 
-### Remaining in the priority subset
+### Remaining
 
-| Domain | Type | Chars | Hash |
-|---|---|---|---|
-| paytm.com | `terms` | 294,737 | `0d82e1a0` |
-| booking.com | `terms` | 170,114 | `fc60f015` |
-| stripe.com | `privacy` | 161,486 | `fd42eb7f` |
-| flipkart.com | `terms` | 149,663 | `6bc14ba2` |
-| hdfcbank.com | `privacy` | 147,381 | `b48d44d5` |
-| makemytrip.com | `terms` | 140,519 | `7292c997` |
-| zomato.com | `terms` | 136,640 | `13137974` |
-| doordash.com | `terms` | 136,335 | `51e9b28e` |
-| paypal.com | `privacy` | 119,960 | `4f437c00` |
-| paypal.com | `terms` | 90,570 | `dc62c4d1` |
-| makemytrip.com | `privacy` | 83,176 | `1e80ec13` |
-| booking.com | `privacy` | 74,379 | `8e40cf40` |
+Nothing in the priority subset. The 37 outstanding documents are cookie, copyright, acceptable-use
+and regulatory disclosures, plus terms and privacy for the domains that are not testable in-page —
+canva.com, google.com, microsoft.com, netflix.com, snapchat.com, walmart.com, zerodha.com — and the
+partials at bankofamerica.com, dropbox.com, ebay.com, x.com and zoom.us.
 
-`paypal.com/terms` was part-read when the session ended; nothing was written for it, so start it
-fresh. Its notable clauses so far: 14 days' notice for changes that reduce your rights, payment
-card details auto-updated from third-party sources without your action, credit report pulled on
-business accounts at opening and whenever PayPal perceives risk, account closure blocked while
-under hold or investigation, and Buyer Protection decided at PayPal's sole discretion with the
-original determination final.
+**Pass 2 is now unblocked.** All four tags that clear the minimum-N of 10 (`ecommerce`,
+`subscription_autorenewal`, `payments_fintech`, `finance_banking`) draw their members from the
+priority subset, so the peer baselines can be computed on a complete set for those four.
 
 ### Most-repeated absent disclosures
 
 | Disclosure | Documents |
 |---|---|
-| Retention period | 12 |
-| Notice of changes to terms | 5 |
+| Retention period | 16 |
+| Named Grievance Officer | 13 |
+| Notice of changes to terms | 12 |
+| AI training opt-out | 7 |
+| Consent withdrawal mechanism | 5 |
+| Consent mechanism for non-essential cookies | 5 |
+| Rights over automated decision-making | 5 |
 | Do Not Sell or Share My Personal Information | 4 |
-| Named Grievance Officer | 4 |
-| AI training opt-out | 3 |
-| Grievance Officer | 3 |
-| Consent mechanism for non-essential cookies | 2 |
-| Biometric data retention | 2 |
+
+Counts are after canonicalising the `name` field. It is free text, and 36 documents of hand-written
+analysis had drifted into synonyms — the grievance-officer requirement was recorded under three
+spellings, notice-of-changes under eight. Pass 2 computes what fraction of a peer set carries a
+clause, and a clause split across three names divides its own share, so the published number would
+have been wrong in the direction that flatters the companies. Only unambiguous synonyms were merged;
+narrower disclosures (fee-change notice, granular cookie consent, Quebec-scoped ADM rights) were left
+distinct. **Keep using the canonical names when writing new analyses.**
 
 ## Findings that came out of doing it
 
@@ -247,9 +242,50 @@ Recorded here because they are corpus-level and no single document produces them
 5. **Every finance and payments document is High.** That is the peer-baseline problem arriving on
    schedule: once a vertical rates uniformly, only deviation from the vertical norm carries
    information. Pass 2 cannot start until the set is complete.
+7. **Three Indian platforms claim they can override the national Do Not Disturb registry.** PhonePe's
+   privacy notice, MakeMyTrip's user agreement and Paytm's terms each take consent to call and message
+   that expressly supersedes a user's NCPR/DND registration. MakeMyTrip goes further and makes the user
+   indemnify it for losses arising from an "erroneous" complaint to TRAI — a financial risk attached to
+   using a consumer-protection channel. Three instances is a sector practice, not a drafting quirk.
+8. **The ideas-become-our-property boilerplate is now at four.** HDFC Bank, American Express India,
+   Zomato and Paytm. Paytm's is an irrevocable *assignment* rather than a licence. This is the clearest
+   candidate in the corpus for a peer baseline, because the vertical norm is measurable and the
+   deviation is what carries information.
+9. **Two travel agencies hand the hotel the same guest scorecard.** Booking.com and MakeMyTrip both
+   disclose to the property whether the account is verified, the number of completed bookings, the
+   percentage cancelled, and — phrased as an absence — whether misconduct has ever been reported. The
+   wording is close to identical. The rubric had no category for a reputation score disclosed to a
+   third party the user has no relationship with.
+10. **The arbitration opt-out has a spectrum, not a binary.** OpenAI reopens its window on every update;
+   DoorDash offers 30 days from signup and states expressly that updates never reopen it; Amazon offers
+   none. Paytm is off the scale in the other direction — arbitration there is an election *Paytm* holds
+   and the consumer does not, which no other document in the corpus does.
+11. **A sectoral exemption can switch off a consumer privacy right.** PayPal states it relies on a
+   Gramm-Leach-Bliley exemption for precise geolocation instead of offering the CCPA right to limit
+   sensitive personal information; Robinhood says GLBA may mean it has no obligation to honour a
+   deletion request. The category is "financial-sector carve-out used against a consumer right", and
+   the rubric did not anticipate it.
+12. **A named grievance officer is a choice, not an Indian convention.** Thirteen documents lack one.
+   Zomato names Swati Chauhan with address, phone, hours and a 48-hour commitment plus a separate Nodal
+   Officer; Flipkart names Karthik R with a 24-48 hour guarantee; MakeMyTrip names Manav Narula. Paytm,
+   across 294,000 characters, names none of its own — the only grievance chain in the document belongs
+   to a third-party silver vendor.
+
 6. **One policy, many hashes.** Facebook and Instagram serve the identical Meta policy in en-GB
    and en-US and hash differently — see Part 3, finding 13. The corpus needs a document-identity
    concept above the hash.
+
+## Capture-quality notes found during pass 1
+
+- **The normalizer is not stripping markup on hdfc.bank.in.** `corpus/text/b48d44d5….txt` carries raw
+  HTML attributes (`data-font-size`, `data-line-height`) inline. The hash is stable either way, so the
+  client will still match it, but the text is degraded for any downstream analysis. Worth checking
+  whether other captures share the pattern before pass 2.
+- **One hash can cover more than one document.** Stripe's privacy policy carries a full Hindi
+  translation of itself under the same hash, so an English-only rendering of the same policy would
+  hash differently. MakeMyTrip's privacy page carries three policies (India, EU/UK/US, MyBiz) and
+  Paytm's terms carry every product's terms at once. This is the mirror of the Meta en-GB/en-US
+  finding: there, one policy produced two hashes; here, several policies share one.
 
 ## Still open from the original plan
 
