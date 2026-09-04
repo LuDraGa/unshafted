@@ -1,5 +1,5 @@
 {
-  "analysed": 28,
+  "analysed": 30,
   "rows": [
     {
       "contentHash": "f44a02e59126044aca9f5b9194ec1b7f77a0dd6b8cc849d37a897e0f8fb22e7a",
@@ -407,6 +407,32 @@
       "model": "claude-opus-5"
     },
     {
+      "contentHash": "76c283b0f4a9751f09a7fc8cfd3b296aecce16d079f1ee9fc6a8055f2c01b249",
+      "domain": "linkedin.com",
+      "domains": [
+        "linkedin.com"
+      ],
+      "docType": "privacy",
+      "verticals": [
+        "social_ugc",
+        "saas_productivity"
+      ],
+      "riskLevel": "High",
+      "confidence": "high",
+      "sourceUrl": "https://www.linkedin.com/legal/privacy-policy?trk=linkedin-tc_auth-button_privacy-policy",
+      "exposureCount": 7,
+      "highSeverityCount": 4,
+      "actionCount": 5,
+      "absentDisclosures": [
+        "Equal treatment regardless of jurisdiction",
+        "AI training opt-out",
+        "Retention period"
+      ],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
       "contentHash": "8efdb100c12ccf1a8018fac1d92b3ebf78068a7d1de21accc05aad33cf9df81d",
       "domain": "linkedin.com",
       "domains": [
@@ -657,6 +683,31 @@
       "absentDisclosures": [
         "Biometric information consent",
         "Retention period"
+      ],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
+      "contentHash": "90d6bf47f9c033f1558ddf17f5f24358d705c0bf7a288b550b43a7e7c4d65a3a",
+      "domain": "tiktok.com",
+      "domains": [
+        "tiktok.com"
+      ],
+      "docType": "terms",
+      "verticals": [
+        "social_ugc",
+        "ott_streaming"
+      ],
+      "riskLevel": "Very High",
+      "confidence": "high",
+      "sourceUrl": "https://www.tiktok.com/legal/page/row/terms-of-service/en",
+      "exposureCount": 8,
+      "highSeverityCount": 5,
+      "actionCount": 5,
+      "absentDisclosures": [
+        "Compensation for commercial use of content",
+        "Right to contest identity disclosure"
       ],
       "promptVersion": "adhesion-rubric-v1",
       "normalizerVersion": "normalizer-v1",
