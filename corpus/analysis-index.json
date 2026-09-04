@@ -1,5 +1,5 @@
 {
-  "analysed": 23,
+  "analysed": 25,
   "rows": [
     {
       "contentHash": "f44a02e59126044aca9f5b9194ec1b7f77a0dd6b8cc849d37a897e0f8fb22e7a",
@@ -308,6 +308,32 @@
       "model": "claude-opus-5"
     },
     {
+      "contentHash": "63e632c54c36c9df4b5d267ffa2591ccf2338e7bc93778878212bdd85e833a5b",
+      "domain": "hotstar.com",
+      "domains": [
+        "hotstar.com",
+        "disneyplus.com"
+      ],
+      "docType": "privacy",
+      "verticals": [
+        "ott_streaming",
+        "subscription_autorenewal"
+      ],
+      "riskLevel": "High",
+      "confidence": "high",
+      "sourceUrl": "https://www.hotstar.com/privacy-policy/in",
+      "exposureCount": 7,
+      "highSeverityCount": 3,
+      "actionCount": 5,
+      "absentDisclosures": [
+        "Named Grievance Officer",
+        "Retention period"
+      ],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
       "contentHash": "66aadd779527fe1c31389f8f3cbbf9d3419e18b8cb1dfe2f898f158fbba23027",
       "domain": "linkedin.com",
       "domains": [
@@ -488,6 +514,31 @@
       "actionCount": 3,
       "absentDisclosures": [
         "Retention period"
+      ],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
+      "contentHash": "71e23909d453e1e1161ae9cf04f85527d6222bfe23cc00ed579a294f32bd1f3a",
+      "domain": "robinhood.com",
+      "domains": [
+        "robinhood.com"
+      ],
+      "docType": "privacy",
+      "verticals": [
+        "finance_banking",
+        "payments_fintech"
+      ],
+      "riskLevel": "High",
+      "confidence": "high",
+      "sourceUrl": "https://robinhood.com/us/en/support/articles/privacy-policy/",
+      "exposureCount": 7,
+      "highSeverityCount": 3,
+      "actionCount": 5,
+      "absentDisclosures": [
+        "Biometric data consent",
+        "State privacy rights (access, deletion, correction)"
       ],
       "promptVersion": "adhesion-rubric-v1",
       "normalizerVersion": "normalizer-v1",
