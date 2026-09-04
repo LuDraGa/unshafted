@@ -11,6 +11,7 @@ packages:
   - packages/ui
   - packages/unshafted-core
   - packages/vite-config
+  - tools/corpus
 
 onlyBuiltDependencies:
   - '@parcel/watcher'

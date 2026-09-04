@@ -24,3 +24,11 @@ tsconfig.tsbuildinfo
 
 # compiled
 **/tailwind-output.css
+
+# site-policy corpus
+# Captured third-party policy text stays local — see corpus/README.md. `corpus/*` rather than
+# `corpus/` so the negations below actually apply; git cannot re-include a file inside an
+# ignored DIRECTORY.
+corpus/*
+!corpus/manifest.json
+!corpus/README.md

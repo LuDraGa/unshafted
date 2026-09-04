@@ -96,6 +96,9 @@ importers:
       lint-staged:
         specifier: ^16.0.0
         version: 16.1.6
+      playwright-core:
+        specifier: ^1.62.1
+        version: 1.62.1
       postcss:
         specifier: ^8.5.3
         version: 8.5.6
@@ -360,6 +363,12 @@ importers:
       '@extension/vite-config':
         specifier: workspace:*
         version: link:../../packages/vite-config
+
+  tools/corpus:
+    devDependencies:
+      '@extension/tsconfig':
+        specifier: workspace:*
+        version: link:../../packages/tsconfig
 
 packages:
 
@@ -2048,6 +2057,7 @@ packages:
   eslint@9.35.0:
     resolution: {integrity: sha512-QePbBFMJFjgmlE+cXAlbHZbHpdFVS2E/6vzCy7aKlebddvl1vadiC4JFV5u/wqTkNUwEV8WrQi257jf5f06hrg==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    deprecated: This version is no longer supported. Please see https://eslint.org/version-support for other options.
     hasBin: true
     peerDependencies:
       jiti: '*'
@@ -2882,6 +2892,11 @@ packages:
   pkg-dir@5.0.0:
     resolution: {integrity: sha512-NPE8TDbzl/3YQYY7CSS228s3g2ollTFnc+Qi3tqmqJp9Vg2ovUpixcJEo2HJScN2Ez+kEaal6y70c0ehqJBJeA==}
     engines: {node: '>=10'}
+
+  playwright-core@1.62.1:
+    resolution: {integrity: sha512-wPYSwEBJY9GHraISXqyqtx0na0LpO3XEX7jNDhntbex7tzUS7kLnZsOlFruFJB4Hi/rhDMjXGqHewDZ68nYZVw==}
+    engines: {node: '>=20'}
+    hasBin: true
 
   plimit-lit@1.6.1:
     resolution: {integrity: sha512-B7+VDyb8Tl6oMJT9oSO2CW8XC/T4UcJGrwOVoNGwOQsQYhlpfajmrMj5xeejqaASq3V/EqThyOeATEOMuSEXiA==}
@@ -6406,6 +6421,8 @@ snapshots:
   pkg-dir@5.0.0:
     dependencies:
       find-up: 5.0.0
+
+  playwright-core@1.62.1: {}
 
   plimit-lit@1.6.1:
     dependencies:
