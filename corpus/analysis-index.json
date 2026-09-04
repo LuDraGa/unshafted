@@ -1,5 +1,5 @@
 {
-  "analysed": 32,
+  "analysed": 34,
   "rows": [
     {
       "contentHash": "f44a02e59126044aca9f5b9194ec1b7f77a0dd6b8cc849d37a897e0f8fb22e7a",
@@ -384,6 +384,32 @@
       "model": "claude-opus-5"
     },
     {
+      "contentHash": "24580b81a2a1bb6a719d104ce389249e1cd0e4c530e1a014cd75fa495a58422d",
+      "domain": "hotstar.com",
+      "domains": [
+        "hotstar.com",
+        "disneyplus.com"
+      ],
+      "docType": "terms",
+      "verticals": [
+        "ott_streaming",
+        "subscription_autorenewal"
+      ],
+      "riskLevel": "High",
+      "confidence": "high",
+      "sourceUrl": "https://www.hotstar.com/tnc/in",
+      "exposureCount": 8,
+      "highSeverityCount": 4,
+      "actionCount": 5,
+      "absentDisclosures": [
+        "Refund and cancellation rights",
+        "Named Grievance Officer"
+      ],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
       "contentHash": "ab642cdd2aa232dc801d574237a49cbd4ff701d1a39c22220fdb9c2a62e0d99e",
       "domain": "instagram.com",
       "domains": [
@@ -733,6 +759,32 @@
       "absentDisclosures": [
         "Compensation for commercial use of content",
         "Right to contest identity disclosure"
+      ],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
+      "contentHash": "9181c896598242df4f2cd035ec9542dae432388e69b48137f7ba2ccb71d0ce26",
+      "domain": "uber.com",
+      "domains": [
+        "uber.com"
+      ],
+      "docType": "privacy",
+      "verticals": [
+        "ecommerce",
+        "payments_fintech"
+      ],
+      "riskLevel": "Very High",
+      "confidence": "high",
+      "sourceUrl": "https://www.uber.com/global/en/privacy-notice-riders-order-recipients/",
+      "exposureCount": 8,
+      "highSeverityCount": 4,
+      "actionCount": 5,
+      "absentDisclosures": [
+        "Equal treatment regardless of jurisdiction",
+        "Automated decision-making rights outside Quebec",
+        "Biometric data retention"
       ],
       "promptVersion": "adhesion-rubric-v1",
       "normalizerVersion": "normalizer-v1",
