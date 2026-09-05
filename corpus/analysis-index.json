@@ -1,5 +1,5 @@
 {
-  "analysed": 60,
+  "analysed": 62,
   "rows": [
     {
       "contentHash": "f44a02e59126044aca9f5b9194ec1b7f77a0dd6b8cc849d37a897e0f8fb22e7a",
@@ -421,6 +421,54 @@
       "actionCount": 8,
       "absentDisclosures": [
         "Retention period"
+      ],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
+      "contentHash": "530c8a6d0a1df01e3ec4d9c17cf5503fc9091840a1b142d3b74e1109662c2d53",
+      "domain": "ebay.com",
+      "domains": [
+        "ebay.com"
+      ],
+      "docType": "privacy",
+      "verticals": [
+        "ecommerce",
+        "payments_fintech"
+      ],
+      "riskLevel": "High",
+      "confidence": "high",
+      "sourceUrl": "https://www.ebay.com/help/policies/member-behaviour-policies/user-privacy-notice-privacy-policy?id=4260",
+      "exposureCount": 10,
+      "highSeverityCount": 6,
+      "actionCount": 8,
+      "absentDisclosures": [
+        "Equal treatment regardless of jurisdiction"
+      ],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
+      "contentHash": "e33c29e5e4115628f2498139dd3deebe4cab042690383f56336abf5a271e3222",
+      "domain": "ebay.com",
+      "domains": [
+        "ebay.com"
+      ],
+      "docType": "terms",
+      "verticals": [
+        "ecommerce",
+        "payments_fintech"
+      ],
+      "riskLevel": "High",
+      "confidence": "high",
+      "sourceUrl": "https://pages.ebay.com/payment/2.0/terms.html",
+      "exposureCount": 10,
+      "highSeverityCount": 8,
+      "actionCount": 8,
+      "absentDisclosures": [
+        "Limitation on indemnity"
       ],
       "promptVersion": "adhesion-rubric-v1",
       "normalizerVersion": "normalizer-v1",
