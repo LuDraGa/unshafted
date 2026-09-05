@@ -203,8 +203,8 @@ the ones peer baselines need.
 | dropbox.com | terms | `57d58481` | 25,414 | [x] High |
 | google.com | terms | `c60d3001` | 29,510 | [x] High |
 | canva.com | terms | `c1c703a5` | 46,127 | [x] High |
-| walmart.com | privacy | `b8f08b0e` | 52,898 | [ ] |
-| netflix.com | privacy | `80a9c1b3` | 54,118 | [ ] |
+| walmart.com | privacy | `b8f08b0e` | 52,898 | [x] High |
+| netflix.com | privacy | `80a9c1b3` | 54,118 | [x] High |
 | zoom.us | privacy | `bc86ac55` | 54,188 | [ ] |
 | google.com | privacy | `b7688f54` | 55,133 | [ ] |
 | zerodha.com | terms | `da51e355` | 58,319 | [ ] |
@@ -367,6 +367,14 @@ Recorded here because they are corpus-level and no single document produces them
    Officer; Flipkart names Karthik R with a 24-48 hour guarantee; MakeMyTrip names Manav Narula. Paytm,
    across 294,000 characters, names none of its own — the only grievance chain in the document belongs
    to a third-party silver vendor.
+
+13. **A site's two documents can promise different amounts of notice.** Netflix's terms of use commit
+   to at least one month before a material change and before any price rise — among the strongest in
+   the corpus. Netflix's privacy statement, last updated the same day, promises notice only "as
+   required by law" and counts continued use as acceptance. Finding 2 said good terms and broad data
+   practice are different axes; this is the sharper version — the *same* protection, granted in one
+   document and withheld in the other. A per-site risk level would average these into a number that
+   describes neither.
 
 6. **One policy, many hashes.** Facebook and Instagram serve the identical Meta policy in en-GB
    and en-US and hash differently — see Part 3, finding 13. The corpus needs a document-identity
