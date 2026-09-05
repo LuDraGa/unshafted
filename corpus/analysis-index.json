@@ -1,5 +1,5 @@
 {
-  "analysed": 48,
+  "analysed": 50,
   "rows": [
     {
       "contentHash": "f44a02e59126044aca9f5b9194ec1b7f77a0dd6b8cc849d37a897e0f8fb22e7a",
@@ -345,6 +345,30 @@
       "highSeverityCount": 0,
       "actionCount": 3,
       "absentDisclosures": [],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
+      "contentHash": "57d58481833d00f337756f2ecaa305ac740e4242ca4c294ab18955f99d60d8e9",
+      "domain": "dropbox.com",
+      "domains": [
+        "dropbox.com"
+      ],
+      "docType": "terms",
+      "verticals": [
+        "saas_productivity",
+        "subscription_autorenewal"
+      ],
+      "riskLevel": "High",
+      "confidence": "high",
+      "sourceUrl": "https://www.dropbox.com/terms",
+      "exposureCount": 10,
+      "highSeverityCount": 5,
+      "actionCount": 8,
+      "absentDisclosures": [
+        "Retention period"
+      ],
       "promptVersion": "adhesion-rubric-v1",
       "normalizerVersion": "normalizer-v1",
       "model": "claude-opus-5"
@@ -713,6 +737,30 @@
       "absentDisclosures": [
         "Notice of changes to terms",
         "Consent withdrawal mechanism"
+      ],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
+      "contentHash": "e14eef68442449107850678b82dbabfe8216d348e3b62a2dcb0768cb06c0b8ef",
+      "domain": "netflix.com",
+      "domains": [
+        "netflix.com"
+      ],
+      "docType": "terms",
+      "verticals": [
+        "ott_streaming",
+        "subscription_autorenewal"
+      ],
+      "riskLevel": "Medium",
+      "confidence": "high",
+      "sourceUrl": "https://help.netflix.com/legal/termsofuse",
+      "exposureCount": 9,
+      "highSeverityCount": 0,
+      "actionCount": 7,
+      "absentDisclosures": [
+        "Named Grievance Officer"
       ],
       "promptVersion": "adhesion-rubric-v1",
       "normalizerVersion": "normalizer-v1",

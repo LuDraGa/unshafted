@@ -199,8 +199,8 @@ the ones peer baselines need.
 |---|---|---|---|---|
 | zerodha.com | privacy | `160a8f6a` | 17,155 | [x] Medium |
 | bankofamerica.com | privacy | `8d8c3508` | 21,148 | [x] High |
-| netflix.com | terms | `e14eef68` | 21,941 | [ ] |
-| dropbox.com | terms | `57d58481` | 25,414 | [ ] |
+| netflix.com | terms | `e14eef68` | 21,941 | [x] Medium |
+| dropbox.com | terms | `57d58481` | 25,414 | [x] High |
 | google.com | terms | `c60d3001` | 29,510 | [ ] |
 | canva.com | terms | `c1c703a5` | 46,127 | [ ] |
 | walmart.com | privacy | `b8f08b0e` | 52,898 | [ ] |
@@ -375,6 +375,12 @@ Recorded here because they are corpus-level and no single document produces them
   HTML attributes (`data-font-size`, `data-line-height`) inline. The hash is stable either way, so the
   client will still match it, but the text is degraded for any downstream analysis. Worth checking
   whether other captures share the pattern before pass 2.
+- **A document can announce its own replacement.** Dropbox's terms open with a banner saying the
+  Terms of Service change effective 1 January 2027, and link the successor. The captured text is
+  the 7 January 2025 version, so the hash is correct and will simply stop matching on that date.
+  It is a clean illustration of why the hash is the version — but also of a gap: the corpus has no
+  way to record that an analysis has a known expiry, and a user reading it on 2 January 2027 gets
+  "not analysed" with no hint that a newer document exists.
 - **One hash can cover more than one document.** Stripe's privacy policy carries a full Hindi
   translation of itself under the same hash, so an English-only rendering of the same policy would
   hash differently. MakeMyTrip's privacy page carries three policies (India, EU/UK/US, MyBiz) and
