@@ -201,8 +201,8 @@ the ones peer baselines need.
 | bankofamerica.com | privacy | `8d8c3508` | 21,148 | [x] High |
 | netflix.com | terms | `e14eef68` | 21,941 | [x] Medium |
 | dropbox.com | terms | `57d58481` | 25,414 | [x] High |
-| google.com | terms | `c60d3001` | 29,510 | [ ] |
-| canva.com | terms | `c1c703a5` | 46,127 | [ ] |
+| google.com | terms | `c60d3001` | 29,510 | [x] High |
+| canva.com | terms | `c1c703a5` | 46,127 | [x] High |
 | walmart.com | privacy | `b8f08b0e` | 52,898 | [ ] |
 | netflix.com | privacy | `80a9c1b3` | 54,118 | [ ] |
 | zoom.us | privacy | `bc86ac55` | 54,188 | [ ] |
@@ -341,10 +341,13 @@ Recorded here because they are corpus-level and no single document produces them
    that expressly supersedes a user's NCPR/DND registration. MakeMyTrip goes further and makes the user
    indemnify it for losses arising from an "erroneous" complaint to TRAI — a financial risk attached to
    using a consumer-protection channel. Three instances is a sector practice, not a drafting quirk.
-8. **The ideas-become-our-property boilerplate is now at four.** HDFC Bank, American Express India,
-   Zomato and Paytm. Paytm's is an irrevocable *assignment* rather than a licence. This is the clearest
-   candidate in the corpus for a peer baseline, because the vertical norm is measurable and the
-   deviation is what carries information.
+8. **The ideas-become-our-property boilerplate is now at seven, and it has a gradient.** HDFC Bank,
+   American Express India, Zomato, Paytm, Netflix, Dropbox and Canva. Two are outright *assignments* of
+   title — Paytm and Canva. Netflix takes a perpetual worldwide licence with a moral-rights waiver.
+   Dropbox merely disclaims obligation. Google carves feedback out of its content licence entirely and
+   handles it in a single sentence. So the clause is near-universal but its severity spans four distinct
+   drafting choices, which is exactly the shape a peer baseline should measure: not whether the clause
+   is present, but where on the gradient it sits.
 9. **Two travel agencies hand the hotel the same guest scorecard.** Booking.com and MakeMyTrip both
    disclose to the property whether the account is verified, the number of completed bookings, the
    percentage cancelled, and — phrased as an absence — whether misconduct has ever been reported. The
