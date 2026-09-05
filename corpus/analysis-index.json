@@ -1,5 +1,5 @@
 {
-  "analysed": 46,
+  "analysed": 48,
   "rows": [
     {
       "contentHash": "f44a02e59126044aca9f5b9194ec1b7f77a0dd6b8cc849d37a897e0f8fb22e7a",
@@ -157,6 +157,31 @@
       "actionCount": 4,
       "absentDisclosures": [
         "Notice of changes to terms"
+      ],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
+      "contentHash": "8d8c35085d680153a86622a6ab37ee67ba0a3af8fdd9a66e8db60528194e4c0e",
+      "domain": "bankofamerica.com",
+      "domains": [
+        "bankofamerica.com"
+      ],
+      "docType": "privacy",
+      "verticals": [
+        "finance_banking"
+      ],
+      "riskLevel": "High",
+      "confidence": "high",
+      "sourceUrl": "https://web.bankofamerica.com/en/privacy/online-privacy-notice",
+      "exposureCount": 10,
+      "highSeverityCount": 5,
+      "actionCount": 7,
+      "absentDisclosures": [
+        "Notice of changes to terms",
+        "Retention period",
+        "Named third-party recipients"
       ],
       "promptVersion": "adhesion-rubric-v1",
       "normalizerVersion": "normalizer-v1",
@@ -1081,6 +1106,32 @@
         "Named Grievance Officer",
         "Notice of changes to terms",
         "Refund and cancellation policy"
+      ],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
+      "contentHash": "160a8f6a56e6c6427a4cbdca886f4ad44d52cc2498032adc6cbd46e1ac3c5a60",
+      "domain": "zerodha.com",
+      "domains": [
+        "zerodha.com"
+      ],
+      "docType": "privacy",
+      "verticals": [
+        "finance_banking"
+      ],
+      "riskLevel": "Medium",
+      "confidence": "high",
+      "sourceUrl": "https://zerodha.com/privacy-policy/",
+      "exposureCount": 8,
+      "highSeverityCount": 3,
+      "actionCount": 7,
+      "absentDisclosures": [
+        "Notice of changes to terms",
+        "Retention period",
+        "Named Grievance Officer",
+        "Consent mechanism for non-essential cookies"
       ],
       "promptVersion": "adhesion-rubric-v1",
       "normalizerVersion": "normalizer-v1",
