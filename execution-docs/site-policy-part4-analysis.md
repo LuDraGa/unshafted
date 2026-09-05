@@ -205,8 +205,8 @@ the ones peer baselines need.
 | canva.com | terms | `c1c703a5` | 46,127 | [x] High |
 | walmart.com | privacy | `b8f08b0e` | 52,898 | [x] High |
 | netflix.com | privacy | `80a9c1b3` | 54,118 | [x] High |
-| zoom.us | privacy | `bc86ac55` | 54,188 | [ ] |
-| google.com | privacy | `b7688f54` | 55,133 | [ ] |
+| zoom.us | privacy | `bc86ac55` | 54,188 | [x] High |
+| google.com | privacy | `b7688f54` | 55,133 | [x] High |
 | zerodha.com | terms | `da51e355` | 58,319 | [ ] |
 | canva.com | privacy | `15da0f5a` | 63,333 | [ ] |
 | zoom.us | terms | `f57c6574` | 87,356 | [ ] |
@@ -375,6 +375,20 @@ Recorded here because they are corpus-level and no single document produces them
    practice are different axes; this is the sharper version — the *same* protection, granted in one
    document and withheld in the other. A per-site risk level would average these into a number that
    describes neither.
+
+14. **A reseller you never met can read your content.** Zoom states that where an account was bought
+   through a reseller, that reseller "may be able to access personal data and content for users,
+   including meetings, webinars, and messages". Google lists resellers alongside domain administrators
+   as able to read stored email, change your password, and *restrict your ability to edit your own
+   privacy settings*. In both cases the party with access is not named, has no relationship with the
+   participant, and is invisible from the product. The corpus already had the employer-administrator
+   category; the reseller is a second, longer arm of it that no rubric anticipated.
+
+15. **Encryption can be scoped to exclude the party you were worried about.** Zoom Email is end-to-end
+   encrypted by default and the account owner can read it anyway, because the account owner may hold
+   the key. The guarantee is real — Zoom cannot read it — but the phrase "end-to-end encrypted" carries
+   an implication about *employers* that this drafting does not honour. Worth a rubric category of its
+   own: security claims whose threat model excludes the reader's actual adversary.
 
 6. **One policy, many hashes.** Facebook and Instagram serve the identical Meta policy in en-GB
    and en-US and hash differently — see Part 3, finding 13. The corpus needs a document-identity

@@ -1,5 +1,5 @@
 {
-  "analysed": 54,
+  "analysed": 56,
   "rows": [
     {
       "contentHash": "f44a02e59126044aca9f5b9194ec1b7f77a0dd6b8cc849d37a897e0f8fb22e7a",
@@ -495,6 +495,35 @@
       "absentDisclosures": [
         "Notice of changes to terms",
         "Consent withdrawal mechanism"
+      ],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
+      "contentHash": "b7688f54342591ae35f631d174252a00c9ee3b357c8add54dfd7e0581b1a533c",
+      "domain": "google.com",
+      "domains": [
+        "google.com"
+      ],
+      "docType": "privacy",
+      "verticals": [
+        "identity_provider",
+        "saas_productivity",
+        "payments_fintech"
+      ],
+      "riskLevel": "High",
+      "confidence": "high",
+      "sourceUrl": "https://policies.google.com/privacy?hl=en-IN&fg=1",
+      "exposureCount": 10,
+      "highSeverityCount": 6,
+      "actionCount": 9,
+      "absentDisclosures": [
+        "AI training opt-out",
+        "Retention period",
+        "Named third-party recipients",
+        "Data protection officer contact",
+        "Named Grievance Officer"
       ],
       "promptVersion": "adhesion-rubric-v1",
       "normalizerVersion": "normalizer-v1",
@@ -1340,6 +1369,31 @@
       "absentDisclosures": [
         "Notice of changes to terms",
         "Consumer rights preservation"
+      ],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
+      "contentHash": "bc86ac55154db4365ed38881ddb6e6d472007f6bc1b03ee0f554b2e5d32b248f",
+      "domain": "zoom.us",
+      "domains": [
+        "zoom.us"
+      ],
+      "docType": "privacy",
+      "verticals": [
+        "saas_productivity",
+        "subscription_autorenewal"
+      ],
+      "riskLevel": "High",
+      "confidence": "high",
+      "sourceUrl": "https://www.zoom.com/en/trust/privacy/privacy-statement/",
+      "exposureCount": 9,
+      "highSeverityCount": 3,
+      "actionCount": 8,
+      "absentDisclosures": [
+        "Retention period",
+        "Named third-party recipients"
       ],
       "promptVersion": "adhesion-rubric-v1",
       "normalizerVersion": "normalizer-v1",
