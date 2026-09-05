@@ -1,5 +1,5 @@
 {
-  "analysed": 58,
+  "analysed": 59,
   "rows": [
     {
       "contentHash": "f44a02e59126044aca9f5b9194ec1b7f77a0dd6b8cc849d37a897e0f8fb22e7a",
@@ -1446,6 +1446,32 @@
       "absentDisclosures": [
         "Retention period",
         "Named third-party recipients"
+      ],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
+      "contentHash": "f57c65740a4637b7d098959e289a6a549af472cf52c15e2699d56edb3f899765",
+      "domain": "zoom.us",
+      "domains": [
+        "zoom.us"
+      ],
+      "docType": "terms",
+      "verticals": [
+        "saas_productivity",
+        "subscription_autorenewal"
+      ],
+      "riskLevel": "High",
+      "confidence": "high",
+      "sourceUrl": "https://www.zoom.com/en/trust/terms/",
+      "exposureCount": 11,
+      "highSeverityCount": 7,
+      "actionCount": 9,
+      "absentDisclosures": [
+        "Notice of changes to terms",
+        "Limitation on indemnity",
+        "Retention period"
       ],
       "promptVersion": "adhesion-rubric-v1",
       "normalizerVersion": "normalizer-v1",

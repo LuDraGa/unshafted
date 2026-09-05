@@ -209,7 +209,7 @@ the ones peer baselines need.
 | google.com | privacy | `b7688f54` | 55,133 | [x] High |
 | zerodha.com | terms | `da51e355` | 58,319 | [x] Very High |
 | canva.com | privacy | `15da0f5a` | 63,333 | [x] High |
-| zoom.us | terms | `f57c6574` | 87,356 | [ ] |
+| zoom.us | terms | `f57c6574` | 87,356 | [x] High |
 | walmart.com | terms | `f5977930` | 90,565 | [ ] |
 | ebay.com | privacy | `530c8a6d` | 123,654 | [ ] |
 | ebay.com | terms | `e33c29e5` | 130,676 | [ ] |
@@ -342,13 +342,15 @@ Recorded here because they are corpus-level and no single document produces them
    override to its affiliates and representatives and offers no withdrawal mechanism. MakeMyTrip goes further and makes the user
    indemnify it for losses arising from an "erroneous" complaint to TRAI — a financial risk attached to
    using a consumer-protection channel. Three instances is a sector practice, not a drafting quirk.
-8. **The ideas-become-our-property boilerplate is now at seven, and it has a gradient.** HDFC Bank,
-   American Express India, Zomato, Paytm, Netflix, Dropbox and Canva. Two are outright *assignments* of
-   title — Paytm and Canva. Netflix takes a perpetual worldwide licence with a moral-rights waiver.
-   Dropbox merely disclaims obligation. Google carves feedback out of its content licence entirely and
-   handles it in a single sentence. So the clause is near-universal but its severity spans four distinct
-   drafting choices, which is exactly the shape a peer baseline should measure: not whether the clause
-   is present, but where on the gradient it sits.
+8. **The ideas-become-our-property boilerplate is at nine, and it has a gradient.** HDFC Bank,
+   American Express India, Zomato, Paytm, Netflix, Dropbox, Canva, Zoom (in *both* its terms and its
+   privacy statement). Three are outright *assignments* of title — Paytm, Canva and Zoom. Netflix takes
+   a perpetual worldwide licence with a moral-rights waiver. Dropbox merely disclaims obligation.
+   Google carves feedback out of its content licence entirely. Zoom sits at the far end and adds
+   something no one else does: feedback is assigned *and* becomes Zoom Confidential Information until
+   Zoom decides otherwise, so you surrender the idea and the right to discuss it. The clause is
+   near-universal, its severity spans five distinct drafting choices, and that gradient — not mere
+   presence — is what a peer baseline should measure.
 9. **Two travel agencies hand the hotel the same guest scorecard.** Booking.com and MakeMyTrip both
    disclose to the property whether the account is verified, the number of completed bookings, the
    percentage cancelled, and — phrased as an absence — whether misconduct has ever been reported. The
