@@ -207,7 +207,7 @@ the ones peer baselines need.
 | netflix.com | privacy | `80a9c1b3` | 54,118 | [x] High |
 | zoom.us | privacy | `bc86ac55` | 54,188 | [x] High |
 | google.com | privacy | `b7688f54` | 55,133 | [x] High |
-| zerodha.com | terms | `da51e355` | 58,319 | [ ] |
+| zerodha.com | terms | `da51e355` | 58,319 | [x] Very High |
 | canva.com | privacy | `15da0f5a` | 63,333 | [ ] |
 | zoom.us | terms | `f57c6574` | 87,356 | [ ] |
 | walmart.com | terms | `f5977930` | 90,565 | [ ] |
@@ -336,9 +336,10 @@ Recorded here because they are corpus-level and no single document produces them
 5. **Every finance and payments document is High.** That is the peer-baseline problem arriving on
    schedule: once a vertical rates uniformly, only deviation from the vertical norm carries
    information. Pass 2 cannot start until the set is complete.
-7. **Three Indian platforms claim they can override the national Do Not Disturb registry.** PhonePe's
-   privacy notice, MakeMyTrip's user agreement and Paytm's terms each take consent to call and message
-   that expressly supersedes a user's NCPR/DND registration. MakeMyTrip goes further and makes the user
+7. **Four Indian platforms claim they can override the national Do Not Disturb registry.** PhonePe's
+   privacy notice, MakeMyTrip's user agreement, Paytm's terms and Zerodha's terms each take consent to
+   call and message that expressly supersedes a user's NCPR/DND registration. Zerodha's extends the
+   override to its affiliates and representatives and offers no withdrawal mechanism. MakeMyTrip goes further and makes the user
    indemnify it for losses arising from an "erroneous" complaint to TRAI — a financial risk attached to
    using a consumer-protection channel. Three instances is a sector practice, not a drafting quirk.
 8. **The ideas-become-our-property boilerplate is now at seven, and it has a gradient.** HDFC Bank,
@@ -367,6 +368,16 @@ Recorded here because they are corpus-level and no single document produces them
    Officer; Flipkart names Karthik R with a 24-48 hour guarantee; MakeMyTrip names Manav Narula. Paytm,
    across 294,000 characters, names none of its own — the only grievance chain in the document belongs
    to a third-party silver vendor.
+
+16. **The within-site split can invert the whole grade.** Zerodha's privacy policy is the mildest
+   finance document in the corpus at Medium — Aadhaar genuinely voluntary, an offline route that works,
+   no sale of data at all. Zerodha's terms are Very High and contain the lowest absolute liability cap
+   found anywhere: INR 100, about a dollar, for a broker holding the client's portfolio, alongside full
+   client liability for trades made with stolen credentials and an indemnity covering Zerodha's own
+   technical failures. Finding 13 showed one protection granted in one document and withheld in
+   another. This is the stronger case: the two documents of one company land three risk levels apart,
+   so any single per-domain byte is not a summary of Zerodha but a coin flip between two true answers.
+   This is the sharpest evidence yet for Part 1's open question 2, and it argues against "aggregate".
 
 13. **A site's two documents can promise different amounts of notice.** Netflix's terms of use commit
    to at least one month before a material change and before any price rise — among the strongest in
