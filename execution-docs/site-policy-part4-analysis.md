@@ -1,7 +1,8 @@
 # Site Policy Awareness — Part 4: Analysis
 
-**Status: pass 2 started. 46 of 83 analysed; the priority subset is complete, but it did not
-unblock pass 2 — see "Pass 2" below for the 16-document coverage gap now being closed.**
+**Status: pass 2 in progress. 62 of 83 analysed. The coverage gap that actually blocked peer
+baselines is closed; three of eight tag/docType pairs clear minimum-N. Next: the clause
+vocabulary — see "Pass 2" below.**
 Resume from "How to resume" below. Live status page: https://claude.ai/code/artifact/da53d135-e641-46c2-b3c7-37b99b1bccff
 
 ## Input
@@ -190,7 +191,7 @@ The consequence of D2 is that **`finance_banking` will not publish a baseline** 
 `ecommerce`-privacy (8) and `subscription_autorenewal`-privacy (8) will not either. That is the
 minimum-N gate working.
 
-### Blocking queue — 16 documents, 931,535 chars
+### Blocking queue — 16 documents, 931,535 chars — **complete**
 
 Analysed with the pass-1 loop and rubric; these are ordinary pass-1 analyses that happen to be
 the ones peer baselines need.
@@ -211,8 +212,26 @@ the ones peer baselines need.
 | canva.com | privacy | `15da0f5a` | 63,333 | [x] High |
 | zoom.us | terms | `f57c6574` | 87,356 | [x] High |
 | walmart.com | terms | `f5977930` | 90,565 | [x] Very High |
-| ebay.com | privacy | `530c8a6d` | 123,654 | [ ] |
-| ebay.com | terms | `e33c29e5` | 130,676 | [ ] |
+| ebay.com | privacy | `530c8a6d` | 123,654 | [x] High |
+| ebay.com | terms | `e33c29e5` | 130,676 | [x] High |
+
+### Coverage after closing the gap
+
+Every peer set is now at full captured coverage — `missing: none` for all four tags on both
+document types. Under D2 the pairs that clear the minimum-N of 10 are:
+
+| tag | terms | privacy | publishes |
+|---|---|---|---|
+| `payments_fintech` | 8 / 8 | 11 / 11 | **privacy** |
+| `ecommerce` | 10 / 10 | 8 / 8 | **terms** |
+| `subscription_autorenewal` | 10 / 10 | 8 / 8 | **terms** |
+| `finance_banking` | 6 / 6 | 9 / 9 | — |
+
+Three of eight tag/docType pairs publish a baseline. `finance_banking` cannot reach 10 on this
+corpus at any coverage, and the three privacy/terms pairs sitting at 8 are short by two sites
+each. That is the gate working: the answer to "is this clause normal among ecommerce peers?"
+exists for terms and does not exist for privacy, and the published objects should say so by
+omission rather than by publishing a share over eight.
 
 ### Then: the clause vocabulary
 
