@@ -208,7 +208,7 @@ the ones peer baselines need.
 | zoom.us | privacy | `bc86ac55` | 54,188 | [x] High |
 | google.com | privacy | `b7688f54` | 55,133 | [x] High |
 | zerodha.com | terms | `da51e355` | 58,319 | [x] Very High |
-| canva.com | privacy | `15da0f5a` | 63,333 | [ ] |
+| canva.com | privacy | `15da0f5a` | 63,333 | [x] High |
 | zoom.us | terms | `f57c6574` | 87,356 | [ ] |
 | walmart.com | terms | `f5977930` | 90,565 | [ ] |
 | ebay.com | privacy | `530c8a6d` | 123,654 | [ ] |
@@ -417,6 +417,11 @@ Recorded here because they are corpus-level and no single document produces them
   It is a clean illustration of why the hash is the version — but also of a gap: the corpus has no
   way to record that an analysis has a known expiry, and a user reading it on 2 January 2027 gets
   "not analysed" with no hint that a newer document exists.
+- **Canva's Indian editions claim to be AI-translated, in English.** Both `canva.com/en_in/` documents
+  open with "This page has been AI-translated... The official English version prevails to the extent of
+  any inconsistency." The captured text is English throughout. Harmless here, but it means a served
+  page can carry a machine-translation disclaimer that does not describe it — worth knowing before any
+  future locale work treats that banner as a signal.
 - **One hash can cover more than one document.** Stripe's privacy policy carries a full Hindi
   translation of itself under the same hash, so an English-only rendering of the same policy would
   hash differently. MakeMyTrip's privacy page carries three policies (India, EU/UK/US, MyBiz) and
