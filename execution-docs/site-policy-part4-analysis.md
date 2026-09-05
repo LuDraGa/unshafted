@@ -210,7 +210,7 @@ the ones peer baselines need.
 | zerodha.com | terms | `da51e355` | 58,319 | [x] Very High |
 | canva.com | privacy | `15da0f5a` | 63,333 | [x] High |
 | zoom.us | terms | `f57c6574` | 87,356 | [x] High |
-| walmart.com | terms | `f5977930` | 90,565 | [ ] |
+| walmart.com | terms | `f5977930` | 90,565 | [x] Very High |
 | ebay.com | privacy | `530c8a6d` | 123,654 | [ ] |
 | ebay.com | terms | `e33c29e5` | 130,676 | [ ] |
 
@@ -356,6 +356,22 @@ Recorded here because they are corpus-level and no single document produces them
    percentage cancelled, and — phrased as an absence — whether misconduct has ever been reported. The
    wording is close to identical. The rubric had no category for a reputation score disclosed to a
    third party the user has no relationship with.
+17. **Mass arbitration now has its own countermeasure, and it is spreading.** Zoom and Walmart both
+   throttle coordinated individual claims: Zoom turns fifty demands into sixteen, Walmart turns
+   twenty-five into ten and makes the rest wait until every bellwether appeal is exhausted. Walmart
+   adds two things Zoom does not — the fact of the arbitration and the award are confidential, and
+   awards carry no preclusive effect even against the same counsel on the same issues, so no claimant
+   can discover that anyone else won. Read with the class action waiver these clauses answer the
+   remedy that answered the last one. The rubric had a category for arbitration and one for class
+   waivers; it had none for suppressing the aggregation of individual claims.
+
+18. **Walmart requires a wet-ink signature, by courier, to start a claim.** The demand must reach
+   Bentonville by first-class mail, FedEx or UPS bearing the original personal signatures of the
+   claimant *and* their lawyer — the terms exclude digital, scanned, electronic, copied and facsimile
+   signatures by name — sworn under penalty of perjury. The entire relationship it governs is
+   electronic. No other document in the corpus does this, and it is a pure filter: it protects nothing
+   and screens out anyone unwilling to post a letter to Arkansas.
+
 10. **The arbitration opt-out has a spectrum, not a binary.** OpenAI reopens its window on every update;
    DoorDash offers 30 days from signup and states expressly that updates never reopen it; Amazon offers
    none. Paytm is off the scale in the other direction — arbitration there is an election *Paytm* holds
