@@ -1,6 +1,7 @@
 # Site Policy Awareness — Part 4: Analysis
 
-**Status: the priority subset is complete — 46 of 83 analysed, 40 of 40 in the priority subset.**
+**Status: pass 2 started. 46 of 83 analysed; the priority subset is complete, but it did not
+unblock pass 2 — see "Pass 2" below for the 16-document coverage gap now being closed.**
 Resume from "How to resume" below. Live status page: https://claude.ai/code/artifact/da53d135-e641-46c2-b3c7-37b99b1bccff
 
 ## Input
@@ -137,6 +138,99 @@ behave as `hotstar.com`.
 - [ ] Decide worst-vs-aggregate for the index risk byte
 - [ ] Generate `policy-seed.json` from real analysis
 - [ ] Manual test pass over the 24 fully-testable domains
+
+---
+
+## Pass 2 — peer baselines
+
+### The priority subset did not unblock pass 2
+
+This doc previously recorded that all four tags clearing the minimum-N of 10 "draw their members
+from the priority subset, so the peer baselines can be computed on a complete set for those
+four." That is wrong, and the error is worth keeping because it is the same class of mistake as
+the disclosure-name drift.
+
+Those counts — `ecommerce` 10, `subscription_autorenewal` 11, `payments_fintech` 12,
+`finance_banking` 10 — count sites with **at least one captured document**. A share can only be
+computed over sites that have been **analysed**. Peer sets are defined over every site carrying
+the tag, and the priority subset deliberately excluded the sites that are not testable in-page.
+Those excluded sites are peers regardless of whether the client can reach their policies.
+
+Current coverage, as sites (captured / analysed):
+
+| tag | terms | privacy | either |
+|---|---|---|---|
+| `payments_fintech` | 8 / 6 | 11 / 9 | 12 / 10 |
+| `ecommerce` | 10 / 8 | 8 / 6 | 10 / 8 |
+| `finance_banking` | 6 / 5 | 9 / 7 | 9 / 7 |
+| `subscription_autorenewal` | 10 / 5 | 8 / 4 | 10 / 5 |
+
+`finance_banking` has also dropped from 10 captured sites to 9 since the original note, through
+one of the three curation removals. It cannot reach N=10 on a site basis at any coverage.
+
+### Two decisions taken
+
+**D1 — close the gap before computing.** Analyse the 16 documents that hold a peer set below
+full captured coverage, then compute. The alternative was publishing `payments_fintech` alone
+(the only tag at 10 analysed sites) or reopening the minimum-N floor, which Part 3 D1 settled.
+
+**D2 — `peerShare` is a fraction of sites, scoped by docType.** A peer is a company, not a
+document. A clause counts as present for a site when that site's document of the relevant type
+carries it: arbitration is scored across sites with analysed terms, retention across sites with
+analysed privacy.
+
+Counting documents instead would clear N=10 for all four tags (17/16/13/11) by letting capture
+depth stand in for market practice — eBay contributes four documents and Zomato two, so eBay
+would weigh twice as much on a question about companies. Counting sites on an "any analysed
+document" basis reproduces the original 12/10/10/9 but scores a site with only its privacy
+policy analysed as carrying no arbitration clause, which is the flattering-direction error
+again.
+
+The consequence of D2 is that **`finance_banking` will not publish a baseline** at 9 sites, and
+`ecommerce`-privacy (8) and `subscription_autorenewal`-privacy (8) will not either. That is the
+minimum-N gate working.
+
+### Blocking queue — 16 documents, 931,535 chars
+
+Analysed with the pass-1 loop and rubric; these are ordinary pass-1 analyses that happen to be
+the ones peer baselines need.
+
+| site | doc | hash8 | chars | status |
+|---|---|---|---|---|
+| zerodha.com | privacy | `160a8f6a` | 17,155 | [x] Medium |
+| bankofamerica.com | privacy | `8d8c3508` | 21,148 | [x] High |
+| netflix.com | terms | `e14eef68` | 21,941 | [ ] |
+| dropbox.com | terms | `57d58481` | 25,414 | [ ] |
+| google.com | terms | `c60d3001` | 29,510 | [ ] |
+| canva.com | terms | `c1c703a5` | 46,127 | [ ] |
+| walmart.com | privacy | `b8f08b0e` | 52,898 | [ ] |
+| netflix.com | privacy | `80a9c1b3` | 54,118 | [ ] |
+| zoom.us | privacy | `bc86ac55` | 54,188 | [ ] |
+| google.com | privacy | `b7688f54` | 55,133 | [ ] |
+| zerodha.com | terms | `da51e355` | 58,319 | [ ] |
+| canva.com | privacy | `15da0f5a` | 63,333 | [ ] |
+| zoom.us | terms | `f57c6574` | 87,356 | [ ] |
+| walmart.com | terms | `f5977930` | 90,565 | [ ] |
+| ebay.com | privacy | `530c8a6d` | 123,654 | [ ] |
+| ebay.com | terms | `e33c29e5` | 130,676 | [ ] |
+
+### Then: the clause vocabulary
+
+`peerShare` needs a clause key, and neither existing field is one.
+
+- **`exposures[].title` is unusable.** 346 exposures carry 339 distinct titles. They are written
+  as findings about one document, not as labels from a shared vocabulary. The seven repeats are
+  Meta's en-GB/en-US pair hashing twice (finding 6).
+- **`requiredDisclosures[].name` is close but not sufficient.** 276 records, 92 names after the
+  `a0ecba9` canonicalisation, with an explicit present/absent/not_applicable status — it is the
+  field designed for absence claims. But it records what each analysis found worth recording, not
+  a systematic checklist: LinkedIn's terms carry no "Notice of changes to terms" record because
+  the finding went under "Non-retroactivity of changes", deliberately left distinct.
+
+So a clause is present for a site only where a document was **read against that clause**. Silence
+in a pass-1 analysis is not absence, for the same reason an incomplete capture is recorded as
+*unverified* rather than *absent*.
+
 
 ---
 
