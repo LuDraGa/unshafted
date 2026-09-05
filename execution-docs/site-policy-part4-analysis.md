@@ -263,6 +263,21 @@ node --import tsx tools/corpus/validate-analysis.ts          # progress + integr
 node --import tsx tools/corpus/validate-analysis.ts --todo   # what is left, with paths
 ```
 
+**Peer coverage, counted the way the floor is actually applied** — per tag *and* per docType, over
+sites that have been analysed rather than captured. Rerun this before claiming any tag publishes:
+
+```
+node -e '
+const fs=require("fs"),g=require("glob");
+const cur=JSON.parse(fs.readFileSync("corpus/curated.json")).entries;
+const done=new Set(fs.readdirSync("corpus/analysis").map(f=>JSON.parse(fs.readFileSync("corpus/analysis/"+f)).contentHash));
+for(const t of ["payments_fintech","ecommerce","subscription_autorenewal","finance_banking"])
+ for(const dt of ["terms","privacy"]){
+  const a=new Set(cur.filter(e=>e.tags.includes(t)&&e.docType===dt&&done.has(e.contentHash)).map(e=>e.domain));
+  console.log(t,dt,a.size,a.size>=10?"PUBLISHES":"");
+ }'
+```
+
 **The loop, per document:** read `corpus/text/<hash>.txt` in full (chunk the long ones at
 paragraph boundaries — the normalizer's `\n\n` breaks are stable by construction), then pipe a
 body to the writer:
@@ -294,42 +309,63 @@ committed index.
 
 | | |
 |---|---|
-| Analysed | 46 of 83 |
-| Priority subset | **40 of 40 — complete** |
-| Risk | Medium 8 · High 30 · Very High 8 |
-| Exposures | 346 (179 high severity) |
-| Actions recorded | 263 |
+| Analysed | 62 of 83 |
+| Priority subset | 40 of 40 |
+| Peer coverage | full for all four minimum-N tags |
+| Risk | Medium 10 · High 42 · Very High 10 |
+| Exposures | 506 (267 high severity) |
+| Actions recorded | 390 |
+
+### Correction: finishing the priority subset did not unblock pass 2
+
+An earlier revision of this doc and of the ledger claimed it had. It was wrong, in two ways, and
+both are worth keeping written down because they are easy to repeat.
+
+1. **The minimum-N counts were taken over sites with a *captured* document, not an *analysed* one.**
+   That number comes from the capture manifest and was carried into this doc before any analysis
+   existed, so it never moved. Nine sites contributing to the four qualifying tags sat outside the
+   priority subset and were unread — eBay, Walmart, Google, Zerodha, Bank of America, Canva,
+   Dropbox, Netflix, Zoom. A peer share computed then would have been a share over whoever happened
+   to be reachable in-page, which is not a fact about market practice.
+2. **The floor has to be applied per tag *and* per document type.** A clause lives in one or the
+   other, so a peer set mixing terms and privacy documents is not a peer set. Counted that way it is
+   three of eight pairs that publish, not four tags:
+
+| Tag | Terms | Privacy | Publishes |
+|---|---|---|---|
+| `payments_fintech` | 8/8 | 11/11 | privacy |
+| `ecommerce` | 10/10 | 8/8 | terms |
+| `subscription_autorenewal` | 10/10 | 8/8 | terms |
+| `finance_banking` | 6/6 | 9/9 | — short of 10 at any coverage |
+
+Counted as sites rather than documents, deliberately: counting documents would clear the floor for
+all four tags and let capture depth stand in for market practice, since eBay contributes four
+documents and Zomato two. Reproduce with the snippet in "How to resume".
 
 ### Remaining
 
-Nothing in the priority subset. The 37 outstanding documents are cookie, copyright, acceptable-use
-and regulatory disclosures, plus terms and privacy for the domains that are not testable in-page —
-canva.com, google.com, microsoft.com, netflix.com, snapchat.com, walmart.com, zerodha.com — and the
-partials at bankofamerica.com, dropbox.com, ebay.com, x.com and zoom.us.
-
-**Pass 2 is now unblocked.** All four tags that clear the minimum-N of 10 (`ecommerce`,
-`subscription_autorenewal`, `payments_fintech`, `finance_banking`) draw their members from the
-priority subset, so the peer baselines can be computed on a complete set for those four.
+21 documents — cookie, copyright, acceptable-use and regulatory disclosures, plus microsoft.com,
+snapchat.com and the x.com partials.
 
 ### Most-repeated absent disclosures
 
 | Disclosure | Documents |
 |---|---|
-| Retention period | 16 |
-| Named Grievance Officer | 13 |
-| Notice of changes to terms | 12 |
-| AI training opt-out | 7 |
-| Consent withdrawal mechanism | 5 |
-| Consent mechanism for non-essential cookies | 5 |
-| Rights over automated decision-making | 5 |
-| Do Not Sell or Share My Personal Information | 4 |
+| Retention period | 29 |
+| Named Grievance Officer | 19 |
+| Notice of changes to terms | 19 |
+| AI training opt-out | 11 |
+| Named third-party recipients | 7 |
+| Consent mechanism for non-essential cookies | 7 |
+| Any limit on the indemnity you owe | 6 |
+| Consent withdrawal mechanism | 6 |
 
-Counts are after canonicalising the `name` field. It is free text, and 36 documents of hand-written
-analysis had drifted into synonyms — the grievance-officer requirement was recorded under three
-spellings, notice-of-changes under eight. Pass 2 computes what fraction of a peer set carries a
-clause, and a clause split across three names divides its own share, so the published number would
-have been wrong in the direction that flatters the companies. Only unambiguous synonyms were merged;
-narrower disclosures (fee-change notice, granular cookie consent, Quebec-scoped ADM rights) were left
+Counts are after canonicalising the `name` field. It is free text, and the first 36 documents had
+drifted into synonyms — the grievance-officer requirement was recorded under three spellings,
+notice-of-changes under eight. Pass 2 computes what fraction of a peer set carries a clause, and a
+clause split across three names divides its own share, so the published number would have been wrong
+in the direction that flatters the companies. Only unambiguous synonyms were merged; narrower
+disclosures (fee-change notice, granular cookie consent, Quebec-scoped ADM rights) were left
 distinct. **Keep using the canonical names when writing new analyses.**
 
 ## Findings that came out of doing it
