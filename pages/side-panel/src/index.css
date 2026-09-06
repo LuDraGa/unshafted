@@ -1,0 +1,9 @@
+@import '@extension/ui/global.css';
+
+/*
+ * Unlike the popup, the panel does not get to pick its width — Chrome owns it and the user can
+ * drag it. So no fixed dimensions here; the panel fills whatever it is given, full height.
+ */
+body {
+  min-height: 100vh;
+}

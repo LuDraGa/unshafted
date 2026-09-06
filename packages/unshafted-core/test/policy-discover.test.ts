@@ -1,4 +1,10 @@
-import { choosePolicyUrl, guessDocType, POLICY_LINK_PATTERN, wellKnownPolicyPaths } from '../index.mts';
+import {
+  choosePolicyUrl,
+  guessDocType,
+  POLICY_LINK_PATTERN,
+  rankPolicyCandidates,
+  wellKnownPolicyPaths,
+} from '../index.mts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { PolicyCandidate } from '../index.mts';
@@ -62,10 +68,7 @@ test('choosing a URL falls back to a well-known path when nothing is linked', ()
 
 test('choosing a URL rejects unusable hrefs', () => {
   const chosen = choosePolicyUrl(
-    [
-      candidate('javascript:void(0)', 'Privacy Policy'),
-      candidate('mailto:privacy@example.com', 'Privacy'),
-    ],
+    [candidate('javascript:void(0)', 'Privacy Policy'), candidate('mailto:privacy@example.com', 'Privacy')],
     { docType: 'privacy', pageUrl: 'https://example.com/' },
   );
 
@@ -84,6 +87,55 @@ test('choosing a URL resolves relative hrefs against the page', () => {
 
 test('choosing a URL survives a malformed page URL', () => {
   assert.equal(choosePolicyUrl([candidate('/privacy', 'Privacy')], { docType: 'privacy', pageUrl: 'not a url' }), null);
+});
+
+/*
+ * The reader (D9) lists documents for a person, so unlike `choosePolicyUrl` it must not throw
+ * away a candidate for being the wrong type — only sort it down.
+ */
+test('ranking keeps every document and leads with the same-origin typed ones', () => {
+  const ranked = rankPolicyCandidates(
+    [
+      candidate('https://cdn.other.example/privacy', 'Privacy Policy'),
+      candidate('/legal', 'Legal'),
+      candidate('/terms', 'Terms of Service'),
+      candidate('/privacy', 'Privacy Policy'),
+    ],
+    { pageUrl: 'https://shop.example.com/cart' },
+  );
+
+  assert.deepEqual(
+    ranked.map(item => item.url),
+    [
+      'https://shop.example.com/privacy',
+      'https://shop.example.com/terms',
+      'https://shop.example.com/legal',
+      'https://cdn.other.example/privacy',
+    ],
+  );
+
+  // An unclassifiable policy link is still listed, just typed as null and sorted below.
+  assert.equal(ranked[2]?.docType, null);
+  assert.equal(ranked[3]?.sameOrigin, false);
+});
+
+test('ranking folds in-page anchors into one document', () => {
+  const ranked = rankPolicyCandidates(
+    [candidate('/privacy#ads', 'Ad choices'), candidate('/privacy', 'Privacy Policy'), candidate('/privacy#top', '')],
+    { pageUrl: 'https://example.com/' },
+  );
+
+  assert.equal(ranked.length, 1);
+  assert.equal(ranked[0]?.url, 'https://example.com/privacy');
+});
+
+test('ranking drops hrefs that cannot be fetched or opened', () => {
+  const ranked = rankPolicyCandidates(
+    [candidate('javascript:void(0)', 'Privacy'), candidate('mailto:legal@example.com', 'Legal')],
+    { pageUrl: 'https://example.com/' },
+  );
+
+  assert.deepEqual(ranked, []);
 });
 
 test('every doc type has at least one well-known path', () => {
@@ -107,6 +159,7 @@ test('injected functions close over nothing from module scope', async () => {
     'wellKnownPolicyPaths',
     'scoreCandidate',
     'choosePolicyUrl',
+    'rankPolicyCandidates',
   ];
 
   for (const injected of [collectPolicyCandidatesInPage, fetchDocumentInPage]) {

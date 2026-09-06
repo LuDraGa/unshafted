@@ -3,6 +3,7 @@ import { defineConfig, type PluginOption } from 'vite';
 import libAssetsPlugin from '@laynezh/vite-plugin-lib-assets';
 import makeManifestPlugin from './utils/plugins/make-manifest-plugin.js';
 import makePolicyIndexPlugin from './utils/plugins/make-policy-index-plugin.js';
+import checkPolicyCorpusPlugin from './utils/plugins/check-policy-corpus-plugin.js';
 import { watchPublicPlugin, watchRebuildPlugin } from '@extension/hmr';
 import { publicExtensionEnv, watchOption } from '@extension/vite-config';
 import { IS_DEV, IS_PROD } from '@extension/env';
@@ -30,6 +31,7 @@ export default defineConfig({
     watchPublicPlugin(),
     makeManifestPlugin({ outDir }),
     makePolicyIndexPlugin({ outDir }),
+    checkPolicyCorpusPlugin(),
     IS_DEV && watchRebuildPlugin({ reload: true, id: 'chrome-extension-hmr' }),
     nodePolyfills(),
   ],

@@ -25,12 +25,14 @@ const BADGE_COLORS: Record<PolicyIndexEntry['riskLevel'], string> = {
   'Very High': '#991b1b',
 };
 
-/** Distinct tint for "you can still act, but not forever" — an opt-out window closing. */
-const TIME_SENSITIVE_COLOR = '#7c3aed';
-
 type Resolution = Awaited<ReturnType<typeof resolveCoveredHostname>>;
 
-const hostnameFor = (url: string | undefined): string | null => {
+/**
+ * Exported so the side-panel gate resolves tabs by exactly the same rule the badge does. If the
+ * two ever disagree, a tab gets a badge with no panel behind it (or the reverse), which reads as
+ * a broken feature rather than a coverage boundary.
+ */
+export const hostnameFor = (url: string | undefined): string | null => {
   if (!url) return null;
   try {
     const parsed = new URL(url);
@@ -51,12 +53,31 @@ const clearBadge = async (tabId: number) => {
   }
 };
 
+/*
+ * D2: risk tint always wins, and `hasTimeSensitiveAction` never touches the colour.
+ *
+ * This used to paint a violet tint INSTEAD of the risk colour whenever a domain had a deadline.
+ * That fires on 19 of the 37 seeded domains, so it hid the risk grade on half the corpus — the
+ * one byte this feature exists to deliver. Two independent facts cannot share one channel.
+ *
+ * The bit itself is real and stays: it rides the index, it reaches the side panel, and the
+ * tooltip below says so in words. It just does not get to own the colour. If you are about to
+ * restore the override to make deadlines visible, give them a non-colour channel instead.
+ */
 const applyBadge = async (tabId: number, resolution: NonNullable<Resolution>) => {
   const { entry, domain } = resolution;
-  const color = entry.hasTimeSensitiveAction ? TIME_SENSITIVE_COLOR : BADGE_COLORS[entry.riskLevel];
+  const color = BADGE_COLORS[entry.riskLevel];
+
+  /*
+   * The tooltip has to name the unit of the claim. Under D1 this level is the site's WORST
+   * document, not a summary of the site and not an average — averaging is what turns Zerodha's
+   * INR 100 liability cap into a merely "High" site (finding 16). One line is not enough room to
+   * explain that, but it is enough room to not imply the opposite.
+   */
+  const headline = `Unshafted — ${domain}: ${entry.riskLevel.toLowerCase()} risk. That is this site's worst document, not an average.`;
   const title = entry.hasTimeSensitiveAction
-    ? `Unshafted: ${domain} — ${entry.riskLevel.toLowerCase()} risk, and there is a deadline you can still act on.`
-    : `Unshafted: ${domain} — ${entry.riskLevel.toLowerCase()} risk in this site's policies.`;
+    ? `${headline}\nOne of its documents has a deadline you can still act on.`
+    : headline;
 
   try {
     await chrome.action.setBadgeText({ tabId, text: BADGE_TEXT });

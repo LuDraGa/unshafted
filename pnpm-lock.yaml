@@ -364,6 +364,28 @@ importers:
         specifier: workspace:*
         version: link:../../packages/vite-config
 
+  pages/side-panel:
+    dependencies:
+      '@extension/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+      '@extension/storage':
+        specifier: workspace:*
+        version: link:../../packages/storage
+      '@extension/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      '@extension/unshafted-core':
+        specifier: workspace:*
+        version: link:../../packages/unshafted-core
+    devDependencies:
+      '@extension/tsconfig':
+        specifier: workspace:*
+        version: link:../../packages/tsconfig
+      '@extension/vite-config':
+        specifier: workspace:*
+        version: link:../../packages/vite-config
+
   tools/corpus:
     devDependencies:
       '@extension/tsconfig':

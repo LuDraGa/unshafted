@@ -1,0 +1,229 @@
+/*
+ * Panel chrome.
+ *
+ * Sibling of `Popup.css` and deliberately not an import of it: the popup is a fixed 440x600 box
+ * that the user cannot resize, and the panel is a full-height column whose width Chrome owns and
+ * the user drags. Sharing one stylesheet would mean every popup tweak silently re-laying-out a
+ * surface it was never looked at on. The design tokens ARE shared, from `@extension/ui`.
+ *
+ * Written for a narrow column (~400px, and the user can make it narrower). Nothing here assumes
+ * horizontal room: no side-by-side pairs, no fixed widths, and long URLs truncate rather than
+ * force the column wider.
+ */
+
+.panel-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 100vh;
+  padding: 16px 14px 18px;
+  background:
+    radial-gradient(circle at top right, rgba(234, 88, 12, 0.1), transparent 32%),
+    linear-gradient(180deg, #f7f2ea 0%, var(--unshafted-bg-warm) 100%);
+  color: var(--unshafted-text);
+}
+
+.panel-eyebrow {
+  margin: 0;
+  color: var(--unshafted-brand);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.panel-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ── The three D6 states, in one line, never as an error ── */
+.panel-freshness {
+  margin: 0;
+  border-radius: 999px;
+  padding: 5px 11px;
+  font-size: 11px;
+  font-weight: 600;
+  align-self: flex-start;
+  max-width: 100%;
+  border: 1px solid var(--unshafted-border);
+  background: rgba(255, 252, 247, 0.7);
+  color: var(--unshafted-text-muted);
+}
+
+.panel-freshness[data-state='current'] {
+  border-color: var(--unshafted-risk-low-border);
+  background: var(--unshafted-risk-low-bg);
+  color: var(--unshafted-risk-low-text);
+}
+
+.panel-freshness[data-state='changed'] {
+  border-color: #ddd6fe;
+  background: #f5f3ff;
+  color: #5b21b6;
+}
+
+/*
+ * `unconfirmed` and `pending` intentionally keep the neutral tone. A capture that could not run
+ * is not a warning — it is the resting state on 7 of 36 domains, and colouring it would turn a
+ * non-event into a visible failure.
+ */
+
+.panel-verdict {
+  border-width: 1px;
+  border-style: solid;
+  border-radius: var(--unshafted-radius-card);
+  padding: 14px;
+  box-shadow: var(--unshafted-shadow-card);
+}
+
+.panel-one-thing {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--unshafted-border);
+  background: var(--unshafted-surface);
+  border-radius: var(--unshafted-radius-card);
+  padding: 12px 14px;
+  box-shadow: var(--unshafted-shadow-card);
+}
+
+.panel-one-thing .panel-eyebrow {
+  margin-bottom: 6px;
+}
+
+/* ── Per-document card, collapsed by default (D10) ── */
+.panel-doc {
+  border: 1px solid var(--unshafted-border);
+  background: var(--unshafted-surface);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.panel-doc > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 13px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.panel-doc > summary::-webkit-details-marker {
+  display: none;
+}
+
+.panel-doc-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--unshafted-text);
+}
+
+.panel-risk-pill {
+  flex-shrink: 0;
+  border-width: 1px;
+  border-style: solid;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.panel-count {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 9px;
+  background: var(--unshafted-selection-soft);
+  color: var(--unshafted-text-muted);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.panel-doc-chevron {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2378716c' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  transition: transform 200ms ease;
+}
+
+.panel-doc[open] > summary .panel-doc-chevron {
+  transform: rotate(180deg);
+}
+
+.panel-doc-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 13px 13px;
+}
+
+.panel-row {
+  border: 1px solid var(--unshafted-border);
+  border-radius: 12px;
+  background: rgba(255, 252, 247, 0.62);
+  padding: 9px 11px;
+}
+
+.panel-link {
+  color: var(--unshafted-brand);
+  font-weight: 600;
+  word-break: break-all;
+}
+
+.panel-button {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--unshafted-border);
+  border-radius: 999px;
+  background: rgba(255, 252, 247, 0.9);
+  color: var(--unshafted-text);
+  padding: 4px 11px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  transition:
+    background 140ms ease,
+    transform 140ms ease;
+}
+
+.panel-button:hover {
+  transform: translateY(-1px);
+  background: #ede7dc;
+}
+
+/*
+ * The normalized text, shown as-is. It is deliberately unstyled prose: this is the exact string
+ * the content hash was taken over, so dressing it up would break the correspondence between what
+ * the reader sees and what the analysis graded.
+ */
+.panel-reader-text {
+  margin: 0;
+  max-height: 44vh;
+  overflow: auto;
+  border: 1px solid var(--unshafted-border);
+  border-radius: 12px;
+  background: rgba(255, 253, 250, 0.95);
+  padding: 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.55;
+  color: var(--unshafted-text);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
