@@ -56,6 +56,17 @@ Ship the corpus inside the extension; update by publishing a new version.
 - **Verdict:** correct for the *seed index only* — which is exactly what Part 1 uses it for.
   Unusable as the provisioning channel.
 
+> **Update 2026-09-06 — Option A is temporarily live, widened beyond the index.** Part 5
+> (`site-policy-part5-side-panel.md`, D4) bundles all 83 analyses into the extension, because this
+> ticket is still an options document and `CEB_POLICY_CDN_URL` is unset, so nothing else can put an
+> analysis in front of a user. That is the seed argument above stretched from a 45 KB index to a
+> 305 KB (gzipped) corpus, and every objection listed here still applies — a new domain costs a full
+> release, and delivery sits behind CWS review latency.
+>
+> **The forcing function is a build assertion:** the bundle fails the build above 1 MB gzipped.
+> When it trips, Option C stops being a recommendation and becomes the work. Do not raise the cap
+> to buy time.
+
 ### Option B — Scheduled pull
 Extension polls the CDN on a `chrome.alarms` cadence and syncs the corpus locally.
 

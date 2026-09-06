@@ -1,5 +1,5 @@
 {
-  "analysed": 62,
+  "analysed": 83,
   "rows": [
     {
       "contentHash": "f44a02e59126044aca9f5b9194ec1b7f77a0dd6b8cc849d37a897e0f8fb22e7a",
@@ -112,6 +112,58 @@
       "model": "claude-opus-5"
     },
     {
+      "contentHash": "887b98bf17edad2a6f6ce1ead226365d43ea8176773490d2331154da8f6f58f5",
+      "domain": "americanexpress.com",
+      "domains": [
+        "americanexpress.com"
+      ],
+      "docType": "regulatory_disclosure",
+      "verticals": [
+        "finance_banking",
+        "payments_fintech"
+      ],
+      "riskLevel": "Low",
+      "confidence": "high",
+      "sourceUrl": "https://www.americanexpress.com/in/legal/customer-complaint-grievance-redressal-policy.html?inav=en_in_legalfooter_complaints",
+      "exposureCount": 5,
+      "highSeverityCount": 0,
+      "actionCount": 7,
+      "absentDisclosures": [
+        "Notice of changes to terms",
+        "Consumer rights preservation"
+      ],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
+      "contentHash": "a75dfac11e72032e04e87c80c0de3cba7980f8a82f3a37807c90048293563263",
+      "domain": "americanexpress.com",
+      "domains": [
+        "americanexpress.com"
+      ],
+      "docType": "regulatory_disclosure",
+      "verticals": [
+        "finance_banking",
+        "payments_fintech"
+      ],
+      "riskLevel": "Medium",
+      "confidence": "high",
+      "sourceUrl": "https://www.americanexpress.com/in/company/legal-disclosures/know-your-customer.html?inav=en_in_legalfooter_kyc",
+      "exposureCount": 6,
+      "highSeverityCount": 1,
+      "actionCount": 7,
+      "absentDisclosures": [
+        "Retention period",
+        "Named third-party recipients",
+        "Notice of changes to terms",
+        "Consumer complaint route"
+      ],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
       "contentHash": "886227777c620182982d29337012afd7ade8e3cc921e2f24808b628e0d4ed663",
       "domain": "americanexpress.com",
       "domains": [
@@ -182,6 +234,34 @@
         "Notice of changes to terms",
         "Retention period",
         "Named third-party recipients"
+      ],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
+      "contentHash": "20993aec8fb256583401054597672dff8e665264c0a03a43fb24b84cc53d999a",
+      "domain": "bankofamerica.com",
+      "domains": [
+        "bankofamerica.com"
+      ],
+      "docType": "regulatory_disclosure",
+      "verticals": [
+        "finance_banking"
+      ],
+      "riskLevel": "Medium",
+      "confidence": "high",
+      "sourceUrl": "https://web.bankofamerica.com/en/privacy/ccpa-disclosure",
+      "exposureCount": 8,
+      "highSeverityCount": 2,
+      "actionCount": 7,
+      "absentDisclosures": [
+        "Right to limit use of sensitive personal information",
+        "Retention period",
+        "Notice of changes to terms",
+        "Named third-party recipients",
+        "Automated decision-making rights",
+        "Shine the Light disclosure"
       ],
       "promptVersion": "adhesion-rubric-v1",
       "normalizerVersion": "normalizer-v1",
@@ -334,6 +414,34 @@
       "model": "claude-opus-5"
     },
     {
+      "contentHash": "71f60eed1645a3397c07a222564efa59e67d923d86fc4d4318028e58376bc964",
+      "domain": "coinbase.com",
+      "domains": [
+        "coinbase.com"
+      ],
+      "docType": "cookie",
+      "verticals": [
+        "finance_banking",
+        "payments_fintech"
+      ],
+      "riskLevel": "Medium",
+      "confidence": "high",
+      "sourceUrl": "https://www.coinbase.com/en-in/legal/cookie",
+      "exposureCount": 6,
+      "highSeverityCount": 0,
+      "actionCount": 4,
+      "absentDisclosures": [
+        "Retention period",
+        "Named third-party recipients",
+        "Do Not Sell or Share My Personal Information",
+        "Named Grievance Officer",
+        "Notice of changes to terms"
+      ],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
       "contentHash": "60c77d35911b2aea8a319c34813df081f79d4fccf8e2367d4bfd3ce381eed77c",
       "domain": "coinbase.com",
       "domains": [
@@ -353,6 +461,34 @@
       "absentDisclosures": [
         "Automated decision-making rights",
         "Biometric data retention"
+      ],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
+      "contentHash": "dee826819eb118a80732017b02d2c5367586122ff1fbc1179a73462fa6886834",
+      "domain": "coinbase.com",
+      "domains": [
+        "coinbase.com"
+      ],
+      "docType": "regulatory_disclosure",
+      "verticals": [
+        "finance_banking",
+        "payments_fintech"
+      ],
+      "riskLevel": "Medium",
+      "confidence": "high",
+      "sourceUrl": "https://www.coinbase.com/en-in/legal/digital-asset-disclosures",
+      "exposureCount": 6,
+      "highSeverityCount": 2,
+      "actionCount": 4,
+      "absentDisclosures": [
+        "Conflict of interest management policy",
+        "Custody and segregation of customer assets",
+        "Treatment of customer assets in insolvency",
+        "FDIC insurance status of investment products",
+        "Named Grievance Officer"
       ],
       "promptVersion": "adhesion-rubric-v1",
       "normalizerVersion": "normalizer-v1",
@@ -427,6 +563,32 @@
       "model": "claude-opus-5"
     },
     {
+      "contentHash": "63c24cb2d80fa5668c464fea899432fe942b6a676ccfe47149bfe84ad06f7ee4",
+      "domain": "ebay.com",
+      "domains": [
+        "ebay.com"
+      ],
+      "docType": "cookie",
+      "verticals": [
+        "ecommerce",
+        "payments_fintech"
+      ],
+      "riskLevel": "Medium",
+      "confidence": "high",
+      "sourceUrl": "https://www.ebay.com/help/policies/member-behaviour-policies/ebay-cookie-notice?id=4267",
+      "exposureCount": 8,
+      "highSeverityCount": 2,
+      "actionCount": 6,
+      "absentDisclosures": [
+        "Lawful basis for cookie processing",
+        "Notice of changes to terms",
+        "Granular consent control for non-essential cookies"
+      ],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
       "contentHash": "530c8a6d0a1df01e3ec4d9c17cf5503fc9091840a1b142d3b74e1109662c2d53",
       "domain": "ebay.com",
       "domains": [
@@ -445,6 +607,34 @@
       "actionCount": 8,
       "absentDisclosures": [
         "Equal treatment regardless of jurisdiction"
+      ],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
+      "contentHash": "3df9b3236ad14d8b15fbf8dcc8033ec91151be82fd35b215424366ad5c808cbe",
+      "domain": "ebay.com",
+      "domains": [
+        "ebay.com"
+      ],
+      "docType": "regulatory_disclosure",
+      "verticals": [
+        "ecommerce",
+        "payments_fintech"
+      ],
+      "riskLevel": "Medium",
+      "confidence": "high",
+      "sourceUrl": "https://www.ebayinc.com/company/privacy-center/privacy-notice/state-privacy-disclosures/",
+      "exposureCount": 10,
+      "highSeverityCount": 1,
+      "actionCount": 8,
+      "absentDisclosures": [
+        "Retention period",
+        "Automated decision-making rights",
+        "Named third-party recipients",
+        "Notice of changes to terms",
+        "Consumer complaint route"
       ],
       "promptVersion": "adhesion-rubric-v1",
       "normalizerVersion": "normalizer-v1",
@@ -757,6 +947,59 @@
       "model": "claude-opus-5"
     },
     {
+      "contentHash": "2915eb9af7a56193edafcbae9c2e0f53d2be2c023dc5a788dacb3e525f33bd1c",
+      "domain": "linkedin.com",
+      "domains": [
+        "linkedin.com"
+      ],
+      "docType": "acceptable_use",
+      "verticals": [
+        "social_ugc",
+        "saas_productivity"
+      ],
+      "riskLevel": "Medium",
+      "confidence": "high",
+      "sourceUrl": "https://www.linkedin.com/legal/professional-community-policies?trk=homepage-basic_footer-community-guide",
+      "exposureCount": 7,
+      "highSeverityCount": 0,
+      "actionCount": 5,
+      "absentDisclosures": [
+        "Notice of changes to terms",
+        "Consequences of account restriction for user content"
+      ],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
+      "contentHash": "4e98cb9d98fb5e14ca1bbe62ae02976d0e49d8c689490cd28a6ca28db6eb84c6",
+      "domain": "linkedin.com",
+      "domains": [
+        "linkedin.com"
+      ],
+      "docType": "cookie",
+      "verticals": [
+        "social_ugc",
+        "saas_productivity"
+      ],
+      "riskLevel": "High",
+      "confidence": "high",
+      "sourceUrl": "https://www.linkedin.com/legal/cookie-policy?trk=linkedin-tc_auth-button_cookie-policy",
+      "exposureCount": 8,
+      "highSeverityCount": 3,
+      "actionCount": 4,
+      "absentDisclosures": [
+        "Consent mechanism for non-essential cookies",
+        "Retention period",
+        "Named third-party recipients",
+        "Do Not Sell or Share My Personal Information",
+        "Notice of changes to terms"
+      ],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
       "contentHash": "66aadd779527fe1c31389f8f3cbbf9d3419e18b8cb1dfe2f898f158fbba23027",
       "domain": "linkedin.com",
       "domains": [
@@ -900,6 +1143,34 @@
       "model": "claude-opus-5"
     },
     {
+      "contentHash": "afedc4d13f693823e7a2f53fb3127c58869923e6c1ddd24e7b185b481cc326df",
+      "domain": "microsoft.com",
+      "domains": [
+        "microsoft.com"
+      ],
+      "docType": "privacy",
+      "verticals": [
+        "identity_provider",
+        "saas_productivity"
+      ],
+      "riskLevel": "High",
+      "confidence": "high",
+      "sourceUrl": "https://www.microsoft.com/en-us/privacy/privacystatement",
+      "exposureCount": 23,
+      "highSeverityCount": 12,
+      "actionCount": 12,
+      "absentDisclosures": [
+        "Retention period",
+        "No sale of personal information",
+        "Do Not Sell or Share My Personal Information",
+        "Sensitive personal information categories",
+        "Automated decision-making rights"
+      ],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
       "contentHash": "80a9c1b30c3fa9af78595e02541f697f3aabddfdb9fc405b05165ecdb7ea00f2",
       "domain": "netflix.com",
       "domains": [
@@ -944,6 +1215,32 @@
       "actionCount": 7,
       "absentDisclosures": [
         "Named Grievance Officer"
+      ],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
+      "contentHash": "f57fcef816df0522a8f7e9417fe472da958c068f26c4882784b9864c81697cd6",
+      "domain": "openai.com",
+      "domains": [
+        "openai.com"
+      ],
+      "docType": "cookie",
+      "verticals": [
+        "saas_productivity",
+        "subscription_autorenewal"
+      ],
+      "riskLevel": "Medium",
+      "confidence": "high",
+      "sourceUrl": "https://openai.com/policies/cookie-policy/",
+      "exposureCount": 6,
+      "highSeverityCount": 1,
+      "actionCount": 4,
+      "absentDisclosures": [
+        "Do Not Sell or Share My Personal Information",
+        "Scope of covered individuals",
+        "Notice of changes to terms"
       ],
       "promptVersion": "adhesion-rubric-v1",
       "normalizerVersion": "normalizer-v1",
@@ -1216,6 +1513,117 @@
       "model": "claude-opus-5"
     },
     {
+      "contentHash": "7dcf6330a1c601a0ae8f97990bcb95d66d6dd9a58836ff093abfd9094afc2c3e",
+      "domain": "snapchat.com",
+      "domains": [
+        "snapchat.com"
+      ],
+      "docType": "privacy",
+      "verticals": [
+        "social_ugc"
+      ],
+      "riskLevel": "High",
+      "confidence": "high",
+      "sourceUrl": "https://values.snap.com/privacy/privacy-policy?lang=en-US",
+      "exposureCount": 10,
+      "highSeverityCount": 5,
+      "actionCount": 8,
+      "absentDisclosures": [
+        "Retention period",
+        "Biometric data consent",
+        "Biometric data retention",
+        "Do Not Sell or Share My Personal Information",
+        "No sale of personal information",
+        "Sensitive personal information categories",
+        "AI training opt-out",
+        "Lawful basis for processing",
+        "Named third-party recipients"
+      ],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
+      "contentHash": "01af0ece5433fb33ac52cb617df13e7b6d99abe7df82ac1930d5a8b1c1d56041",
+      "domain": "snapchat.com",
+      "domains": [
+        "snapchat.com"
+      ],
+      "docType": "terms",
+      "verticals": [
+        "social_ugc"
+      ],
+      "riskLevel": "Very High",
+      "confidence": "high",
+      "sourceUrl": "https://www.snap.com/terms?lang=en-US",
+      "exposureCount": 12,
+      "highSeverityCount": 9,
+      "actionCount": 8,
+      "absentDisclosures": [
+        "Non-retroactivity of changes",
+        "Limitation on indemnity",
+        "Equal treatment regardless of jurisdiction"
+      ],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
+      "contentHash": "9379c60eaf428acb9d2a1c927adacbb575a92152001722fd321ed7610106f6df",
+      "domain": "stripe.com",
+      "domains": [
+        "stripe.com"
+      ],
+      "docType": "acceptable_use",
+      "verticals": [
+        "payments_fintech",
+        "saas_productivity"
+      ],
+      "riskLevel": "High",
+      "confidence": "high",
+      "sourceUrl": "https://stripe.com/in/legal/restricted-businesses",
+      "exposureCount": 8,
+      "highSeverityCount": 4,
+      "actionCount": 6,
+      "absentDisclosures": [
+        "Notice of changes to terms",
+        "Non-retroactivity of changes",
+        "Consumer complaint route",
+        "Named Grievance Officer",
+        "Treatment of funds on account termination",
+        "Governing law and jurisdiction",
+        "Equal treatment regardless of jurisdiction"
+      ],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
+      "contentHash": "665e157ec1c7fa860febc92bcf4a411d32ea226da73c63ec1b9de0b84a141fe9",
+      "domain": "stripe.com",
+      "domains": [
+        "stripe.com"
+      ],
+      "docType": "cookie",
+      "verticals": [
+        "payments_fintech",
+        "saas_productivity"
+      ],
+      "riskLevel": "Medium",
+      "confidence": "high",
+      "sourceUrl": "https://stripe.com/in/cookie-settings",
+      "exposureCount": 7,
+      "highSeverityCount": 0,
+      "actionCount": 5,
+      "absentDisclosures": [
+        "Lawful basis for cookie processing",
+        "Notice of changes to terms"
+      ],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
       "contentHash": "fd42eb7fbe6fc362b7f356e5ea3014c4b0acaf765fc24823eb425a66a9cec49b",
       "domain": "stripe.com",
       "domains": [
@@ -1235,6 +1643,31 @@
       "absentDisclosures": [
         "Retention period",
         "AI training opt-out"
+      ],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
+      "contentHash": "e853637bea18f4be2605fba90717a51e9a3006a51e986d7ae386551d05dc244b",
+      "domain": "tiktok.com",
+      "domains": [
+        "tiktok.com"
+      ],
+      "docType": "copyright",
+      "verticals": [
+        "social_ugc",
+        "ott_streaming"
+      ],
+      "riskLevel": "High",
+      "confidence": "high",
+      "sourceUrl": "https://www.tiktok.com/legal/page/global/copyright-policy/en",
+      "exposureCount": 8,
+      "highSeverityCount": 4,
+      "actionCount": 5,
+      "absentDisclosures": [
+        "Designated DMCA agent",
+        "Retention period"
       ],
       "promptVersion": "adhesion-rubric-v1",
       "normalizerVersion": "normalizer-v1",
@@ -1371,6 +1804,34 @@
       "model": "claude-opus-5"
     },
     {
+      "contentHash": "ea6a1b86bc032dc36cc36f5f0403f9b93a33f7ecae2a65bc0d09b0f12b5fb6be",
+      "domain": "walmart.com",
+      "domains": [
+        "walmart.com"
+      ],
+      "docType": "regulatory_disclosure",
+      "verticals": [
+        "ecommerce",
+        "subscription_autorenewal"
+      ],
+      "riskLevel": "High",
+      "confidence": "high",
+      "sourceUrl": "https://corporate.walmart.com/privacy-security/california-privacy-rights",
+      "exposureCount": 10,
+      "highSeverityCount": 4,
+      "actionCount": 8,
+      "absentDisclosures": [
+        "Retention period",
+        "AI training opt-out",
+        "Named third-party recipients",
+        "Named Grievance Officer",
+        "Consumer complaint route"
+      ],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
       "contentHash": "f59779309cd72ce98084a02da24f3467ac94f6385c900deba77eed40d86f6bc4",
       "domain": "walmart.com",
       "domains": [
@@ -1396,6 +1857,93 @@
         "Refund and cancellation policy",
         "Named third-party recipients",
         "Retention period"
+      ],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
+      "contentHash": "52809d7d69c6b122f19df3dbabfaf40f7ba919d8c0d6373f0af7bcd1ac85c6d7",
+      "domain": "x.com",
+      "domains": [
+        "x.com"
+      ],
+      "docType": "cookie",
+      "verticals": [
+        "social_ugc",
+        "identity_provider"
+      ],
+      "riskLevel": "Medium",
+      "confidence": "medium",
+      "sourceUrl": "https://help.x.com/en/rules-and-policies/x-cookies",
+      "exposureCount": 7,
+      "highSeverityCount": 0,
+      "actionCount": 5,
+      "absentDisclosures": [
+        "Consent mechanism for non-essential cookies",
+        "Lawful basis for cookie processing",
+        "Equal treatment regardless of jurisdiction",
+        "Named third-party recipients",
+        "Version history"
+      ],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
+      "contentHash": "1ec4c95e4936d3403c95da324b248056397f811256bff4adcda7c5599cc9225c",
+      "domain": "x.com",
+      "domains": [
+        "x.com"
+      ],
+      "docType": "privacy",
+      "verticals": [
+        "social_ugc",
+        "identity_provider"
+      ],
+      "riskLevel": "High",
+      "confidence": "high",
+      "sourceUrl": "https://x.com/en/privacy",
+      "exposureCount": 11,
+      "highSeverityCount": 7,
+      "actionCount": 8,
+      "absentDisclosures": [
+        "AI training opt-out",
+        "Biometric data retention",
+        "Lawful basis for processing",
+        "Do Not Sell or Share My Personal Information",
+        "Named third-party recipients",
+        "Sensitive personal information categories",
+        "Automated decision-making rights",
+        "Named Grievance Officer"
+      ],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
+      "contentHash": "e3c3ba234f680375e61602cfe07d747469926faf0e352fdede2e904ae755d38c",
+      "domain": "x.com",
+      "domains": [
+        "x.com"
+      ],
+      "docType": "terms",
+      "verticals": [
+        "social_ugc",
+        "identity_provider"
+      ],
+      "riskLevel": "Very High",
+      "confidence": "high",
+      "sourceUrl": "https://x.com/en/tos",
+      "exposureCount": 11,
+      "highSeverityCount": 7,
+      "actionCount": 8,
+      "absentDisclosures": [
+        "AI training opt-out",
+        "Repeat infringer policy",
+        "Refund and cancellation rights",
+        "Effect of termination on connected third-party sign-ins",
+        "Named Grievance Officer"
       ],
       "promptVersion": "adhesion-rubric-v1",
       "normalizerVersion": "normalizer-v1",
@@ -1500,6 +2048,32 @@
       "absentDisclosures": [
         "Notice of changes to terms",
         "Consumer rights preservation"
+      ],
+      "promptVersion": "adhesion-rubric-v1",
+      "normalizerVersion": "normalizer-v1",
+      "model": "claude-opus-5"
+    },
+    {
+      "contentHash": "3bf2cd88c43b88903dc712ee4a571458746cec85be57a6c92056e844c143ec65",
+      "domain": "zoom.us",
+      "domains": [
+        "zoom.us"
+      ],
+      "docType": "cookie",
+      "verticals": [
+        "saas_productivity",
+        "subscription_autorenewal"
+      ],
+      "riskLevel": "Medium",
+      "confidence": "high",
+      "sourceUrl": "https://www.zoom.com/en/trust/cookie-policy/?ampDeviceId=66cef1cb-af29-4622-aea5-f0f64bae08d9&ampSessionId=1788512458569&ampDeviceId=66cef1cb-af29-4622-aea5-f0f64bae08d9&ampSessionId=1788512458569",
+      "exposureCount": 6,
+      "highSeverityCount": 0,
+      "actionCount": 5,
+      "absentDisclosures": [
+        "Retention period",
+        "Named third-party recipients",
+        "International transfer safeguards"
       ],
       "promptVersion": "adhesion-rubric-v1",
       "normalizerVersion": "normalizer-v1",

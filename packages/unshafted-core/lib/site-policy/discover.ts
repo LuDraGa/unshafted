@@ -32,6 +32,17 @@ export type ChosenPolicyUrl = {
   source: 'link' | 'path-guess';
 };
 
+/** One discovered document, resolved to an absolute URL and ready to list for a reader. */
+export type RankedPolicyCandidate = {
+  url: string;
+  /** The anchor text as the site wrote it. Empty when the link carried none. */
+  label: string;
+  /** Null when the link is plainly a policy but names no type we recognise ("Legal"). */
+  docType: PolicyDocType | null;
+  /** AD-4: only same-origin documents can be fetched from the page context. */
+  sameOrigin: boolean;
+};
+
 export type InPageFetchResult = {
   ok: boolean;
   status: number;
@@ -151,7 +162,75 @@ export const choosePolicyUrl = (
   if (best) return { url: best.url, docType: options.docType, source: 'link' };
 
   const guess = wellKnownPolicyPaths(options.docType)[0];
-  return guess ? { url: new URL(guess, pageUrl.origin).toString(), docType: options.docType, source: 'path-guess' } : null;
+  return guess
+    ? { url: new URL(guess, pageUrl.origin).toString(), docType: options.docType, source: 'path-guess' }
+    : null;
+};
+
+/**
+ * Every policy document on the page, ranked for a HUMAN to pick from — the other half of
+ * `choosePolicyUrl`, which picks one document for a machine.
+ *
+ * The two rank differently on purpose. `choosePolicyUrl` is answering "which URL do I fetch to
+ * get the privacy policy", so a candidate of the wrong type scores -1 and disappears. The side
+ * panel's reader (D9) is answering "what did this site put in front of you", so nothing is
+ * discarded for being the wrong type — a document we cannot classify is still a document the
+ * user may want to read, it just sorts last.
+ *
+ * Same-origin first because AD-4 means only those are actually fetchable from the page context;
+ * a cross-origin policy host is listed (the user can still open it in a tab) but never leads.
+ */
+export const rankPolicyCandidates = (
+  candidates: PolicyCandidate[],
+  options: { pageUrl: string; limit?: number },
+): RankedPolicyCandidate[] => {
+  let pageUrl: URL;
+  try {
+    pageUrl = new URL(options.pageUrl);
+  } catch {
+    return [];
+  }
+
+  const seen = new Map<string, RankedPolicyCandidate & { score: number }>();
+
+  for (const candidate of candidates) {
+    let url: URL;
+    try {
+      url = new URL(candidate.href, pageUrl);
+    } catch {
+      continue;
+    }
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') continue;
+
+    // The fragment never changes which document is served, and keeping it splits one policy
+    // into an entry per in-page anchor — the single biggest source of duplicate rows.
+    url.hash = '';
+    const key = url.toString();
+
+    const docType = guessDocType(candidate.href, candidate.text);
+    const sameOrigin = url.origin === pageUrl.origin;
+    const label = candidate.text.trim();
+
+    let score = 0;
+    if (sameOrigin) score += 100;
+    if (docType) score += 30;
+    if (candidate.inFooterRegion) score += 10;
+    if (label) score += 5;
+    score -= url.pathname.split('/').filter(Boolean).length * 3;
+
+    const existing = seen.get(key);
+    // Keep the better-scoring sighting, but never lose an anchor label to an unlabelled duplicate.
+    if (existing && existing.score >= score) {
+      if (!existing.label && label) existing.label = label;
+      continue;
+    }
+    seen.set(key, { url: key, label: label || existing?.label || '', docType, sameOrigin, score });
+  }
+
+  return [...seen.values()]
+    .sort((left, right) => right.score - left.score || left.url.localeCompare(right.url))
+    .slice(0, options.limit ?? 20)
+    .map(({ url, label, docType, sameOrigin }) => ({ url, label, docType, sameOrigin }));
 };
 
 /**

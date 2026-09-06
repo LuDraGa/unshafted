@@ -2,23 +2,206 @@
   "comment": [
     "Build input for the bundled domain-coverage index (policy-index.bin).",
     "",
-    "PLACEHOLDER DATA. Every domain here is an RFC 2606 / RFC 6761 reserved name that resolves",
-    "to nobody. Risk levels are illustrative so the badge path can be exercised end to end.",
+    "GENERATED — do not hand-edit. Run: node --import tsx tools/corpus/build-bundle.ts",
     "",
-    "Real domains belong here ONLY once an actual analysis backs them, published through the",
-    "M1 corpus pipeline. Shipping an invented risk level for a real company would be a false",
-    "claim about that company, visible to every user who installs the extension.",
+    "Every domain here is real and every risk level is earned by an actual analysis in",
+    "corpus/analysis/, published through the M1 corpus pipeline. The RFC 2606 placeholders this",
+    "file used to carry are gone: an invented risk level for a real company would be a false claim",
+    "about that company, visible to every user who installs the extension.",
+    "",
+    "riskLevel is the WORST document on the domain, not an average (Part 5, D1). 19 of 37",
+    "domains have documents that disagree and 4 disagree by two full levels, so a mean would",
+    "describe none of them. hasTimeSensitiveAction is true when any document carries a deadline.",
     "",
     "The bundle is a day-one offline SEED, not the source of truth (AD-6). promptVersion lives",
     "in the CDN index so re-analysis can be invalidated without an extension release."
   ],
   "formatVersion": 1,
   "domains": [
-    { "domain": "example.com", "riskLevel": "High", "hasTimeSensitiveAction": true },
-    { "domain": "example.org", "riskLevel": "Medium", "hasTimeSensitiveAction": false },
-    { "domain": "example.net", "riskLevel": "Low", "hasTimeSensitiveAction": false },
-    { "domain": "shop.example.com", "riskLevel": "Very High", "hasTimeSensitiveAction": true },
-    { "domain": "example.co.uk", "riskLevel": "Medium", "hasTimeSensitiveAction": true },
-    { "domain": "test.example", "riskLevel": "Low", "hasTimeSensitiveAction": false }
+    {
+      "domain": "amazon.com",
+      "riskLevel": "High",
+      "hasTimeSensitiveAction": true
+    },
+    {
+      "domain": "americanexpress.com",
+      "riskLevel": "High",
+      "hasTimeSensitiveAction": false
+    },
+    {
+      "domain": "apple.com",
+      "riskLevel": "High",
+      "hasTimeSensitiveAction": false
+    },
+    {
+      "domain": "bankofamerica.com",
+      "riskLevel": "High",
+      "hasTimeSensitiveAction": false
+    },
+    {
+      "domain": "booking.com",
+      "riskLevel": "High",
+      "hasTimeSensitiveAction": false
+    },
+    {
+      "domain": "canva.com",
+      "riskLevel": "High",
+      "hasTimeSensitiveAction": true
+    },
+    {
+      "domain": "chase.com",
+      "riskLevel": "High",
+      "hasTimeSensitiveAction": false
+    },
+    {
+      "domain": "coinbase.com",
+      "riskLevel": "High",
+      "hasTimeSensitiveAction": false
+    },
+    {
+      "domain": "disneyplus.com",
+      "riskLevel": "High",
+      "hasTimeSensitiveAction": false
+    },
+    {
+      "domain": "doordash.com",
+      "riskLevel": "Very High",
+      "hasTimeSensitiveAction": true
+    },
+    {
+      "domain": "dropbox.com",
+      "riskLevel": "High",
+      "hasTimeSensitiveAction": true
+    },
+    {
+      "domain": "ebay.com",
+      "riskLevel": "High",
+      "hasTimeSensitiveAction": true
+    },
+    {
+      "domain": "facebook.com",
+      "riskLevel": "High",
+      "hasTimeSensitiveAction": false
+    },
+    {
+      "domain": "flipkart.com",
+      "riskLevel": "High",
+      "hasTimeSensitiveAction": true
+    },
+    {
+      "domain": "google.com",
+      "riskLevel": "High",
+      "hasTimeSensitiveAction": false
+    },
+    {
+      "domain": "hdfcbank.com",
+      "riskLevel": "High",
+      "hasTimeSensitiveAction": true
+    },
+    {
+      "domain": "hotstar.com",
+      "riskLevel": "High",
+      "hasTimeSensitiveAction": false
+    },
+    {
+      "domain": "instagram.com",
+      "riskLevel": "High",
+      "hasTimeSensitiveAction": false
+    },
+    {
+      "domain": "linkedin.com",
+      "riskLevel": "High",
+      "hasTimeSensitiveAction": false
+    },
+    {
+      "domain": "makemytrip.com",
+      "riskLevel": "High",
+      "hasTimeSensitiveAction": true
+    },
+    {
+      "domain": "microsoft.com",
+      "riskLevel": "High",
+      "hasTimeSensitiveAction": false
+    },
+    {
+      "domain": "netflix.com",
+      "riskLevel": "High",
+      "hasTimeSensitiveAction": true
+    },
+    {
+      "domain": "openai.com",
+      "riskLevel": "High",
+      "hasTimeSensitiveAction": true
+    },
+    {
+      "domain": "paypal.com",
+      "riskLevel": "High",
+      "hasTimeSensitiveAction": true
+    },
+    {
+      "domain": "paytm.com",
+      "riskLevel": "Very High",
+      "hasTimeSensitiveAction": true
+    },
+    {
+      "domain": "phonepe.com",
+      "riskLevel": "High",
+      "hasTimeSensitiveAction": false
+    },
+    {
+      "domain": "reddit.com",
+      "riskLevel": "Medium",
+      "hasTimeSensitiveAction": false
+    },
+    {
+      "domain": "robinhood.com",
+      "riskLevel": "High",
+      "hasTimeSensitiveAction": false
+    },
+    {
+      "domain": "snapchat.com",
+      "riskLevel": "Very High",
+      "hasTimeSensitiveAction": true
+    },
+    {
+      "domain": "stripe.com",
+      "riskLevel": "High",
+      "hasTimeSensitiveAction": false
+    },
+    {
+      "domain": "tiktok.com",
+      "riskLevel": "Very High",
+      "hasTimeSensitiveAction": false
+    },
+    {
+      "domain": "uber.com",
+      "riskLevel": "Very High",
+      "hasTimeSensitiveAction": true
+    },
+    {
+      "domain": "walmart.com",
+      "riskLevel": "Very High",
+      "hasTimeSensitiveAction": true
+    },
+    {
+      "domain": "x.com",
+      "riskLevel": "Very High",
+      "hasTimeSensitiveAction": true
+    },
+    {
+      "domain": "zerodha.com",
+      "riskLevel": "Very High",
+      "hasTimeSensitiveAction": true
+    },
+    {
+      "domain": "zomato.com",
+      "riskLevel": "Very High",
+      "hasTimeSensitiveAction": true
+    },
+    {
+      "domain": "zoom.us",
+      "riskLevel": "High",
+      "hasTimeSensitiveAction": true
+    }
   ]
 }

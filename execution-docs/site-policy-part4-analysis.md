@@ -1,13 +1,25 @@
 # Site Policy Awareness — Part 4: Analysis
 
-**Status: pass 2 in progress. 62 of 83 analysed. The coverage gap that actually blocked peer
-baselines is closed; three of eight tag/docType pairs clear minimum-N. Next: the clause
-vocabulary — see "Pass 2" below.**
+**Status as of 2026-09-06 — PASS 1 COMPLETE, and the corpus is now being shipped.** The first
+user-facing surface is specified in `site-policy-part5-side-panel.md` and under implementation: the
+83 analyses bundle into the extension, `policy-seed.json` gets real domains at last, and a Chrome
+side panel renders them. Two long-open questions closed there — the index risk byte is **worst**,
+and the scope-metadata ticket no longer gates the seed. Pass 2 is unaffected and still blocked on
+the clause vocabulary.
+
+**Pass 1 — 83 of 83 analysed, 0 invalid.** The schema changes
+are applied. The final 21 documents were analysed in one parallel run of six analysts; the
+committed index is rebuilt. **Pass 2 is unstarted and `peerDeviation` is still 0 of 83** — the
+blocker is not coverage, it is that no clause key exists to compute a share over. Analysing the
+last 21 did not change which peer sets publish, as predicted: still three of eight tag/docType
+pairs. Next: the clause vocabulary, and a canonicalisation pass before it — see "Pass 2" below.
 Resume from "How to resume" below. Live status page: https://claude.ai/code/artifact/da53d135-e641-46c2-b3c7-37b99b1bccff
 
 ## Input
 
-`corpus/curated.json` — **85 documents, 36 domains, 4,371,569 normalized characters.** Built by
+`corpus/curated.json` — **83 documents, 36 domains, 4,352,844 normalized characters.** (Down from
+the 85 this doc originally recorded; documents that turned out not to be policies were removed
+from `curated.ts` with the reason inline as pass 1 found them.) Built by
 `node --import tsx tools/corpus/build-curated.ts` from `tools/corpus/curated.ts` and the
 manifest. Each entry carries `domain`, `tags[]`, hand-assigned `docType`, `contentHash`,
 `sourceUrl`, `normalizedLength`, `textPath`, and sometimes a `note`.
@@ -33,7 +45,10 @@ two sites, and where a page carries several policies at once.
   produces an analysis that is confidently wrong, which is the one failure mode this feature
   cannot survive.
 
-## Blocking prerequisite — the schema must change first
+## Blocking prerequisite — the schema must change first — **done**
+
+All seven landed in `packages/unshafted-core/lib/site-policy/schemas.ts` before pass 1 began, while
+they were still free. Kept below as the record of what changed and why.
 
 `SitePolicyAnalysisSchema` cannot represent the analysis this corpus needs. **Nothing is
 published and `CEB_POLICY_CDN_URL` is unset, so these are still free.** They stop being free at
@@ -79,6 +94,11 @@ tag members with at least one document are `ecommerce` 10, `subscription_autoren
 `payments_fintech` 12, `finance_banking` 10 — those four clear it. `saas` 8, `social_ugc` 7,
 `ott_streaming` 6, `identity_provider` 6 do not. **Those four tags get no peer baseline**, and
 that is the gate working, not a failure to route around.
+
+> **Superseded — these are captured-site counts, and the floor is applied per tag *and* per
+> docType over *analysed* sites.** Counted correctly it is three tag/docType pairs that publish,
+> not four tags. See "Pass 2" below; this paragraph is kept because the error it contains is the
+> one worth not repeating.
 
 ## Rubrics
 
@@ -133,12 +153,34 @@ behave as `hotstar.com`.
 
 ## Status
 
-- [ ] Approve and apply the seven schema changes
-- [~] Pass 1 — 46 of 83 done; the 40-document priority subset is complete
-- [ ] Pass 2 — peer baselines for the four tags that clear N=10
-- [ ] Decide worst-vs-aggregate for the index risk byte
-- [ ] Generate `policy-seed.json` from real analysis
-- [ ] Manual test pass over the 24 fully-testable domains
+- [x] Approve and apply the seven schema changes — all seven are in
+      `packages/unshafted-core/lib/site-policy/schemas.ts`
+- [x] Pass 1 — **83 of 83, 0 invalid.** Priority subset 40/40, peer-coverage queue 16/16, final
+      batch 21/21. Whole corpus read: 4,352,844 normalized chars.
+- [ ] **Canonicalise the disclosure vocabulary a second time** — 100 distinct names now, and the
+      parallel run added coinages faster than any single-threaded pass would. Do this BEFORE pass 2.
+- [ ] Pass 2 — blocked on the clause vocabulary, not on coverage. Baselines publish for three
+      tag/docType pairs: `payments_fintech`/privacy (11), `ecommerce`/terms (10),
+      `subscription_autorenewal`/terms (10).
+- [x] **Decide worst-vs-aggregate for the index risk byte — WORST.** Settled in
+      `site-policy-part5-side-panel.md` D1. Measured over the 37 domains: worst-of yields
+      Low 0 / Medium 1 / High 27 / Very High 9, aggregate yields 0 / 4 / 28 / 5, and the two rules
+      disagree on only 7 domains. Worst was taken because aggregate understates exactly where the
+      corpus proves disagreement is real — 19 of 37 domains have documents that disagree, 4 by two
+      full levels. The badge being red on 36 of 37 domains is accepted deliberately: that is the
+      corpus's result, not a defect in the metric.
+- [ ] Generate `policy-seed.json` from real analysis — in flight under Part 5 W1
+- [ ] Manual test pass over the 24 fully-testable domains — x.com is now 3/3 and no longer partial
+- [ ] Retry list from capture — 6 zero-link sites plus youtube.com, untouched
+- [x] **Decided what to do about documents a hash cannot serve.** `665e157e` (stripe.com cookie)
+      is excluded from the bundle and the seed — it hashed transient banner state and can never match
+      a live page. Snapchat's two documents ship as-is and begin matching on 21 Sep 2026; Dropbox's
+      stop matching on 1 Jan 2027. Both are correct behaviour under AD-1, not gaps. Part 5 D6/D7.
+- [ ] **Validity window + jurisdictional scope** — `site-policy-scope-metadata-ticket.md`. Free now,
+      breaking after publish. **No longer blocks `policy-seed.json`** — Part 5 D3 moved every precise
+      claim down to the document and restated the domain byte as an explicit worst-of, so Snapchat and
+      Dropbox self-correct through AD-1 and x.com's two editions are labelled rather than averaged.
+      Still blocks the first CDN publish.
 
 ---
 
@@ -237,11 +279,11 @@ omission rather than by publishing a share over eight.
 
 `peerShare` needs a clause key, and neither existing field is one.
 
-- **`exposures[].title` is unusable.** 346 exposures carry 339 distinct titles. They are written
+- **`exposures[].title` is unusable.** 689 exposures carry 679 distinct titles. They are written
   as findings about one document, not as labels from a shared vocabulary. The seven repeats are
   Meta's en-GB/en-US pair hashing twice (finding 6).
-- **`requiredDisclosures[].name` is close but not sufficient.** 276 records, 92 names after the
-  `a0ecba9` canonicalisation, with an explicit present/absent/not_applicable status — it is the
+- **`requiredDisclosures[].name` is close but not sufficient.** 698 records (443 present, 232
+  absent, 23 not applicable) under 100 names, with an explicit present/absent/not_applicable status — it is the
   field designed for absence claims. But it records what each analysis found worth recording, not
   a systematic checklist: LinkedIn's terms carry no "Notice of changes to terms" record because
   the finding went under "Non-retroactivity of changes", deliberately left distinct.
@@ -309,12 +351,17 @@ committed index.
 
 | | |
 |---|---|
-| Analysed | 62 of 83 |
+| Analysed | **83 of 83** · 4,352,844 chars · 0 invalid |
 | Priority subset | 40 of 40 |
-| Peer coverage | full for all four minimum-N tags |
-| Risk | Medium 10 · High 42 · Very High 10 |
-| Exposures | 506 (267 high severity) |
-| Actions recorded | 390 |
+| Peer-coverage queue | 16 of 16 |
+| Final batch | 21 of 21 (six parallel analysts) |
+| Peer coverage | full for every tag on both docTypes |
+| Risk | Low 1 · Medium 21 · High 49 · Very High 12 |
+| Exposures | 689 (331 high severity) across 679 distinct titles |
+| Actions recorded | 524 |
+| Disclosures recorded | 698 — 443 present, 232 absent, 23 n/a |
+| Distinct disclosure names | 100 |
+| `peerDeviation` written | 0 of 83 |
 
 ### Correction: finishing the priority subset did not unblock pass 2
 
@@ -342,23 +389,64 @@ Counted as sites rather than documents, deliberately: counting documents would c
 all four tags and let capture depth stand in for market practice, since eBay contributes four
 documents and Zomato two. Reproduce with the snippet in "How to resume".
 
-### Remaining
+### The final batch — 21 documents, 770,176 chars — **complete**
 
-21 documents — cookie, copyright, acceptable-use and regulatory disclosures, plus microsoft.com,
-snapchat.com and the x.com partials.
+Run as six parallel analysts against a shared brief, grouped so a site's documents went to one
+analyst (a site's documents read as a set is what produced findings 4, 13 and 16, and it produced
+three more here). Every analyst wrote through `write-analysis.ts`, so nothing landed unvalidated;
+the index was rebuilt once at the end rather than raced on.
+
+| analyst | documents | chars |
+|---|---|---|
+| A | microsoft.com privacy | 213,097 |
+| B | snapchat.com terms + privacy | 141,108 |
+| C | x.com terms + privacy + cookie | 102,835 |
+| D | stripe.com cookie + acceptable_use, coinbase.com regulatory + cookie | 119,945 |
+| E | ebay.com ×2, walmart.com, bankofamerica.com, americanexpress.com ×2 | 131,733 |
+| F | openai.com, tiktok.com, linkedin.com ×2, zoom.us | 62,820 |
+
+Two results worth recording about the run itself:
+
+- **`3bf2cd88` (zoom.us cookie) is genuine Zoom**, not the OneTrust marketing page. The curated
+  `note` in `tools/corpus/curated.ts` is stale — it describes the original mis-pick, not the
+  corrected capture on disk. Clear it so the next reader does not re-litigate it.
+- **Parallelism costs vocabulary discipline.** Six analysts working from the same canonical list
+  still coined seven new names between them, each individually defensible. A canonicalisation pass
+  is now a prerequisite for pass 2, not an optional tidy — see below.
+
+### `docType` calibration was wrong in the brief, and the corpus corrected it
+
+The brief told analysts that cookie policies and regulatory disclosures legitimately run lower-risk
+than terms and privacy policies. That is true on average and false as a rule, and two analysts
+pushed back with evidence:
+
+- **Cookie policies spread Medium→High on substance.** Stripe itemises 273 cookies with host,
+  party, duration and purpose; LinkedIn names zero cookies, zero durations and zero third parties
+  and takes consent from "continuing to visit". Coinbase names three and gives retention as "a few
+  days, weeks or months". **Disclosure depth inverts against risk** — the corpus's most exposed
+  cookie policy is also its least specific. Any pass-2 share over `Named third-party recipients`
+  or `Retention period` now has a real range to sit in.
+- **The corpus has its first `Low`.** `887b98bf`, American Express India's grievance policy: three
+  named officers with direct numbers, emails and address across a six-level chain, 30-day
+  commitment (14 for insurance under IRDAI), and the RBI credit-information compensation framework
+  with a 21-day correction window. A document that does its job is a finding too, and recording it
+  is what makes the other 82 grades mean anything.
 
 ### Most-repeated absent disclosures
 
 | Disclosure | Documents |
 |---|---|
-| Retention period | 29 |
-| Named Grievance Officer | 19 |
-| Notice of changes to terms | 19 |
-| AI training opt-out | 11 |
-| Named third-party recipients | 7 |
-| Consent mechanism for non-essential cookies | 7 |
-| Any limit on the indemnity you owe | 6 |
+| Retention period | 39 |
+| Notice of changes to terms | 30 |
+| Named Grievance Officer | 25 |
+| Named third-party recipients | 17 |
+| AI training opt-out | 15 |
+| Do Not Sell or Share My Personal Information | 10 |
+| Consent mechanism for non-essential cookies | 9 |
+| Automated decision-making rights | 9 |
+| Limitation on indemnity | 7 |
 | Consent withdrawal mechanism | 6 |
+| Equal treatment regardless of jurisdiction | 6 |
 
 Counts are after canonicalising the `name` field. It is free text, and the first 36 documents had
 drifted into synonyms — the grievance-officer requirement was recorded under three spellings,
@@ -478,6 +566,167 @@ Recorded here because they are corpus-level and no single document produces them
    and en-US and hash differently — see Part 3, finding 13. The corpus needs a document-identity
    concept above the hash.
 
+19. **Finding 12 has its counterexample, and it is a per-document choice, not a jurisdictional
+   convention.** American Express India's grievance policy is the strongest instance in the corpus —
+   three named officers, each with a direct number, email and the Gurgaon address, across a six-level
+   chain up to the CEO. It sits alongside Amex's *own terms*, which this corpus already records as
+   lacking a grievance officer. The same company both proves and breaks the pattern depending on which
+   document you open.
+20. **A sectoral carve-out can remove the whole population from the whole document.** Bank of America's
+   online privacy notice routes Californians "covered by the CCPA" to its CCPA notice; that notice then
+   states it does not apply to information collected about residents who apply for or obtain financial
+   products for personal, family or household purposes — the GLBA exemption. The bank's retail
+   customers are sent to a rights document that has already excluded them, and the "covered by"
+   qualifier is the one thing a reader cannot evaluate without making the trip. Finding 11 had GLBA
+   declining one right; this is the escalation.
+21. **Two documents can assert contradictory facts about the same practice.** Walmart's privacy notice:
+   "We do not engage in profiling in furtherance of decisions that produce legal or similarly
+   significant effects concerning consumers." Walmart's California notice: "We may use Automated
+   Decision-Making Technologies to help us make decisions that could have a significant impact on you",
+   with access and opt-out rights attached. Both current. This is stronger than finding 13 (different
+   promises) and different from finding 16 (different severities) — and only the document a user is
+   less likely to read carries the rights. **Aggregation would average a contradiction into a number
+   describing neither.** This is now the second-strongest argument on the worst-vs-aggregate question.
+22. **A disclosure can stop at a border, not just a practice.** eBay's global privacy notice states
+   six-to-ten years for European contracts and business records. The US States/California notice gives
+   no figure at all, only a pointer to internal "regional data retention guidelines". Same company,
+   one concrete retention number, not carried into the document Americans are sent to. Finding 1's
+   shape with a disclosure in place of a collection.
+23. **A consent split can be a consistent company-wide posture visible only across three documents.**
+   eBay gives EEA/CH/UK a consent settings page with withdrawal and everyone else AdChoice, which
+   governs use of eBay activity rather than whether third-party cookies are set. Read with the privacy
+   notice (consent vs legitimate interest) and the state notice, it is deliberate and uniform — the
+   mirror image of findings 13/16, where a site's documents disagree.
+24. **Disclosure-by-reference is a systematic blind spot for a product that hashes a page.** California
+   §7102 metrics are satisfied by a hyperlink almost everywhere. eBay prints them inline: 58,311
+   deletion requests, 30,521 complied with, **27,766 not** — 48%, footnoted as mostly user
+   cancellations during an undescribed grace period; access 4,145 of 63,449 denied; all 661,520
+   opt-outs honoured at a median of one day. Bank of America and Walmart link theirs off-page. The only
+   company whose actual compliance rate is in the captured text is the one that chose to inline it.
+25. **A control can be offered against a technology that escapes it.** eBay's cookie notice discloses
+   fingerprinting by name and admits such techniques work without local storage and "are not fully
+   managed by your browser" — while every control it gives non-European readers operates on stored
+   files. It also sends data to Meta server-to-server as well as by pixel, under joint control where
+   Meta becomes an independent controller with "exclusive responsibility". Second instance of the
+   finding-14 category.
+26. **A company can classify less as sensitive than it collects, then sell the remainder.** Walmart's
+   sensitive-information list has three entries. Voice prints, iris/retina imagery, face geometry and
+   palm prints are defined elsewhere in the same notice and appear as a row in the sold-or-shared
+   table — outside the sensitive-information protections and outside the limit right. Criminal
+   convictions go to "business partners… for their own independent use." Bank of America's CCPA notice
+   *does* classify biometric processing as sensitive, so this is a drafting choice with a peer contrast
+   sitting in the same corpus.
+27. **A disclosure that is also an admission of a compliance failure, remediated at the consumer's
+   expense.** Amex India's KYC page is the corpus's best Aadhaar handling — one of six OVDs, never the
+   default, mask-first-eight-digits on all ten appearances. It then discloses that Amex failed to
+   collect address proof for changes between 13 Feb 2019 and 15 Apr 2020, and puts the remediation work
+   on the affected customers. New rubric category.
+28. **The invisible-third-party category has a fourth member: the infrastructure vendor.** Stripe's `m`
+   (2 years) and `__stripe_mid` (1 year) are set at checkout on *merchant* sites, and the consent
+   surface documenting them is a Stripe URL the affected person has no reason to visit and no path to
+   from the shop they were on. After the employer-administrator, the reseller (finding 14) and
+   Microsoft's ISP-created account, this is the payment processor behind a site you did visit.
+29. **The un-refusable bucket is where the un-nameable recipients sit.** Stripe's "Required" category
+   holds 118 cookies, 23 of them third-party — 18 reCAPTCHA entries, 13 written to `google.com` for a
+   year, plus Human Security, Datadome, PerimeterX and a Mastercard 3-D Secure cookie. Refusing
+   everything refusable still hands Google a year-long identifier. Generalises the Dropbox
+   five-year strictly-necessary finding into a category.
+30. **A stated global neutrality commitment, contradicted by a jurisdiction annex on the same page.**
+   Stripe states it does not restrict access on political viewpoint or affiliation, then applies eleven
+   country lists. The US bars four categories, none civic; **India bars 22, including charities,
+   non-profits, religious organisations, lobby groups and political organisations.** Both statements
+   are true as drafted. Sibling of finding 1 with the polarity reversed — the *restriction* is
+   border-scoped, not the protection.
+31. **Candour without a management policy.** Coinbase discloses, asset by asset, that it holds 209 of
+   209 New York trading assets on its own balance sheet and has a commercial engagement on 163 of them
+   (Prime custody: 327 of 384 held, 277 engaged) — then states no mitigation at all. No information
+   barrier, no listing-committee independence, no restriction on trading against customer flow.
+   Everything disclosed, nothing controlled.
+32. **Liquidated damages against a consumer, for reading.** X charges $15,000 (€15,000 in the EU
+   edition) per 1,000,000 posts "requesting, viewing, or accessing" in 24 hours, joint and several,
+   expressly "not a penalty", against a $100 liability cap — a **150-to-1 ratio** between what a user
+   can owe X and what X can ever owe a user. Nothing else in the corpus prices a user's consumption.
+33. **A class-action waiver with no arbitration behind it.** "Arbitration" does not appear in 58,498
+   characters of X's terms, and the class/collective/representative waiver is kept anyway, enforced
+   exclusively in Wichita or Tarrant County, Texas. The usual bargain trades aggregation for a cheap
+   forum; here the forum is a courthouse in north Texas and X reserves sole discretion to sue you at
+   home instead. The rubric has categories for arbitration and for class waivers and assumes they
+   travel together.
+34. **Fee-shifting inside consumer arbitration.** Snapchat's terms: serve an offer of judgment, and a
+   claimant who rejects it and fails to beat it recovers none of their post-offer costs and pays Snap's
+   — "including all fees paid to the arbitral forum" — against a $100 damages cap. Distinct from both
+   arbitration and class waivers: it prices the act of refusing a lowball settlement.
+35. **Mass arbitration has a third countermeasure and a third mechanism.** Zoom throttles (finding 17),
+   Walmart batches (finding 17), and Snap **voids**: "A Pre-Arbitration Demand brought on behalf of
+   multiple individuals is invalid as to all", compliance is a condition precedent, the arbitrator
+   *shall dismiss*, and Snap holds a separate judicial route to have the arbitration thrown out on that
+   ground. Three companies, three mechanisms, one target.
+36. **Finding 7 is mis-scoped: the do-not-contact override is not an Indian-sector practice.**
+   Snapchat's terms, in *both* editions, take consent to message users "even if your mobile phone
+   number is registered on any state or federal Do Not Call list, or international equivalent." Four
+   Indian platforms plus a US one. The countable category is "consent clause overriding a statutory
+   do-not-contact registry" — rewrite finding 7 accordingly.
+37. **Finding 3 is undercounting because it was scoped to privacy policies.** LinkedIn is a fourth
+   company building records of people who never signed up — ad ID, IP, OS and browser data from devices
+   "where you have not engaged with our Services", outside undefined "Designated Countries" — and it
+   discloses this in its **cookie policy**. A sweep of the corpus's cookie policies for non-user
+   collection is warranted before pass 2 counts anything here.
+38. **The corollary the rubric has no slot for: signing out is not an exit either.** LinkedIn logs a
+   logged-out member's browsing "until the expiration of the cookie", and gives no cookie durations
+   anywhere, so the period is unknowable from the document. Non-user collection and post-logout
+   collection are two halves of one category — tracking that survives the user's own withdrawal.
+39. **The administrator boundary leaks into the personal account.** Microsoft: "If you use a work or
+   school email address to create a Microsoft account, your organization may access your data
+   associated with your Microsoft account." Every prior instance of the administrator category was
+   scoped to the managed account; this one reaches a *personal* account because of an address chosen
+   years earlier. Microsoft also adds an ISP-created "third-party account" where the provider can
+   access or delete the account outright.
+40. **A quantified silence is a finding, and only a whole read produces one.** The word "sell" appears
+   **once in Microsoft's 213,097-character privacy statement** — "not sell or rent student personal
+   data", K-12 only. A statement that long never says whether adult consumer data is sold. This is the
+   direct payoff of the no-truncation rule.
+41. **Presence/absence is the wrong shape for the AI-training opt-out, and the corpus now has all three
+   states.** X grants the training right inside the content licence, again for its own models and a
+   third time for third-party collaborators, with **no opt-out anywhere** — and §3.2 conditions
+   third-party training on the words "If you do not opt out" without ever naming, locating or linking
+   one. Microsoft has a *scope mismatch*: the general training clause carries no opt-out, while the
+   opt-out that exists covers Copilot conversation data in some markets. Recorded `present` with the
+   limitation named, but pass 2's binary will flatten it. Microsoft's Copilot Health is the
+   counter-case — expressly not used for training or advertising.
+42. **Finding 8 needs a sixth tier: perpetuity achieved by survival rather than by adjective.** X's
+   content licence never says "perpetual" or "irrevocable"; the survival clause carries the licence
+   past termination instead. It reads milder than TikTok and lands in the same place. X also sits at
+   *both ends* of the gradient at once — its feedback clause is the mildest tier in the corpus, pure
+   disclaimer, while its content licence is top-tier.
+43. **One hash, two contracts, and the split is where the protections live.** X's terms carry the
+   US/RoW edition and the EU/EFTA/UK edition on one page, diverging on termination grounds ("any other
+   reason or no reason at our convenience" vs five enumerated grounds), notice (30 days vs "we will try
+   to notify you"), and the liability cap ($100 vs none). **The EU licence alone promises to respect a
+   user's choice to restrict distribution** — protected posts are a product feature everywhere and a
+   contractual commitment only in Europe. Snapchat's terms do the same across Snap Inc. (US) and Snap
+   Group Limited, diverging on licence duration, grounds for deletion, moral rights and dispute route.
+   Finding 13's shape, inside a single document.
+44. **A safeguard scoped to a regulator's territory — finding 1 inverted.** X does not store off-X
+   browsing history for users in the EU, Iceland, Liechtenstein, Norway or Switzerland, and stores it
+   by default for everyone else. Findings 1 and 22 recorded a collection and a disclosure stopping at a
+   border; this is a *protection* that does.
+45. **A counter-notice route can exist and still be converted from a right into a discretion.**
+   TikTok's removed content is deleted after "a period of time" that is never quantified and then "can
+   no longer be reinstated", and reinstatement is "at TikTok's sole discretion" — the DMCA §512(g)
+   put-back obligation turned into a favour. **No designated DMCA agent, address, phone or email
+   appears anywhere in the document**, which §512(c)(2) requires and LinkedIn publishes. TikTok also
+   forwards the entire appeal including contact details to the claimant and states the claimant may use
+   it to sue you.
+46. **Cookie tables now disclose B2B de-anonymisation.** ZoomInfo, Clearbit, Demandbase and Madison
+   Logic appear in Stripe's advertising list with their purpose stated: identify which company is
+   visiting, enrich form submissions with firmographic data, track visits at account level. Not
+   tracking — resolution of an unauthenticated visitor to their employer. No rubric category covers it.
+47. **Ancillary documents age out while the terms they attach to move on.** eBay's cookie notice is
+   self-dated 23 Feb 2022 while the User Privacy Notice it must be read with is 21 Apr 2025 and the
+   User Agreement 28 Jun 2026. Second instance after Amazon's Jan 2020 cookie notice. Amex's KYC page
+   carries no date, effective date or version marker at all — worse than a stale date, because there is
+   nothing to compare against.
+
 ## Capture-quality notes found during pass 1
 
 - **The normalizer is not stripping markup on hdfc.bank.in.** `corpus/text/b48d44d5….txt` carries raw
@@ -501,14 +750,104 @@ Recorded here because they are corpus-level and no single document produces them
   Paytm's terms carry every product's terms at once. This is the mirror of the Meta en-GB/en-US
   finding: there, one policy produced two hashes; here, several policies share one.
 
+## Two documents a content hash cannot serve — decide before the seed
+
+Both surfaced in the final batch, and neither is fixable by better analysis.
+
+- **`665e157e` (stripe.com cookie) hashes transient UI state.** Its first three lines are two
+  mutually contradictory banner states — "This link has expired. Please start a new opt-out
+  request." and "You have successfully opted out of data sharing with advertising platforms." It is
+  a live preference manager, not a static policy. A client re-deriving the hash on a real visit will
+  almost certainly see different banner text and **miss the lookup entirely**. This may be a class
+  of URL (`*/cookie-settings` and similar) that hash-based matching structurally cannot serve.
+- **`01af0ece` and `7dcf6330` (snapchat.com) are not yet in force.** Both are "Effective: September
+  21, 2026" and both open with a banner saying the prior version applies until then; capture ran 4
+  September 2026. The corpus holds the *successor*, so a Snapchat user today hashes to a document
+  the corpus does not have, and a perfectly good analysis sits unused. This is the exact inverse of
+  the Dropbox note, where a document announced its own replacement. Same missing concept from the
+  other side: **an analysis needs a validity window, not an implicit "now."**
+
+Check whether any other capture is future-dated before generating `policy-seed.json`.
+
+**Raised as a ticket:** `execution-docs/site-policy-scope-metadata-ticket.md` — validity window and
+jurisdictional scope as two optional, evidence-gated fields. Both are free to add now and breaking
+after first publish, so they sit in the same window the seven Part 4 schema changes did. The
+jurisdiction half is driven by the same evidence: findings 1, 22, 30, 43 and 44, plus the one-hash
+-two-contradictory-editions problem in x.com, snapchat.com and ebay.com.
+
+## Vocabulary — canonicalise again before pass 2
+
+100 distinct names over 698 records. The parallel run added coinages faster than a single-threaded
+pass would have: seven new names across six analysts, each individually defensible.
+
+New this batch, all flagged in their own notes: `Effect of termination on connected third-party
+sign-ins`, `Consequences of account restriction for user content`, `Treatment of funds on account
+termination`, `Conflict of interest management policy`, `Custody and segregation of customer
+assets`, `Treatment of customer assets in insolvency`, `Do Not Track response disclosure`.
+
+Pre-existing drift that was never merged, and should be now:
+
+- `Automated decision-making rights` (9) · `Rights over automated decision-making` (4) ·
+  `Automated decision-making disclosure` (2) · `Automated decision-making rights outside Quebec` (1)
+- `Repeat infringer policy` (5) · `Repeat-infringer policy threshold` (1)
+- `Refund and cancellation rights` (11) · `Refund and cancellation policy` (2)
+- `Biometric data consent` (3) · `Biometric information consent` (1)
+- four cookie-category spellings: `Categories of cookies and their purposes`, `Cookie categories and
+  retention periods`, `Cookie duration and purpose detail`, `Purposes for which cookies are used`
+
+Merge only unambiguous synonyms, as `a0ecba9` did. `Automated decision-making rights outside Quebec`
+is narrower and stays distinct; the cookie spellings are not all the same question.
+
+**Then the harder problem remains unchanged:** a canonical name still records what each analysis
+found worth recording, not a systematic checklist, so silence is not absence. That is what the
+clause vocabulary has to fix, and it is the only thing standing between here and pass 2.
+
+## Capture quality — three patterns, not one-offs
+
+The single-analyst passes recorded these as isolated notes. With 83 documents read they are
+patterns, and two of them corrupt exactly what pass 2 computes over.
+
+1. **Accordion doubling — at least four instances.** Microsoft's privacy statement was captured with
+   *Expand All* on, so ~15–20 paragraphs render twice (collapsed summary plus expanded detail);
+   x.com's cookie notice renders its four section headings twice; x.com's privacy policy duplicates
+   §7 "X's Audience" verbatim; linkedin.com's AUP repeats its section headings in a hero block.
+   Hash-stable and harmless to a reading, but it inflates `normalizedLength` and would produce false
+   duplicate-block hits in any diff. **Sweep the accordion-style captures (Netflix, Zoom) before
+   anything computes over block counts.**
+2. **Markup leaking into normalized text — second and third instances.** x.com's cookie notice opens
+   with ~600 characters of raw SVG path data and `data-*` attributes before the first heading, the
+   same class as the recorded hdfcbank.in defect. Walmart's regulatory disclosure carries the full
+   corporate nav twice plus `#f2f2f2` and a stock-ticker line; eBay's cookie notice carries
+   help-centre search chrome and related-article blurbs. The normalizer needs a look.
+3. **One hash covering several documents — now five instances.** Stripe privacy (Hindi translation),
+   MakeMyTrip (three policies), Paytm (every product's terms), plus two new and higher-stakes ones:
+   `e3c3ba23` (x.com terms — US/RoW *and* EU/UK editions that **contradict each other** on
+   termination, notice and the liability cap) and `3df9b323` (ebay.com — US States and California
+   notices). Where the editions diverge, a per-hash claim must say which one it describes; both
+   analysts named the edition in every affected exposure and note.
+
+Two more, lower stakes but worth knowing:
+
+- **`4e98cb9d` (linkedin.com cookie) carries unfilled CMS placeholders** — the literal strings
+  `ENTER A SUMMARY` and `ENTER SUMMARY` where the policy promises plain-language summaries of its
+  tables. Recorded as *what the captured text carries*, not asserted about LinkedIn's live page.
+  **Confirm against live before this ships** — it is a claim about a real company.
+- **Snap's own HTML spaces its email addresses** (`arbitration-opt-out @ snap.com`) as an
+  anti-scrape measure — verified against `corpus/raw/`, not a normalizer bug. Harmless for hashing,
+  but any contact extraction over the corpus will miss them, and that address is the one a user most
+  needs to act on.
+
 ## Still open from the original plan
 
 - **The seven schema changes are applied** (verticals[], four new docTypes, normalizerVersion,
   surfaces, domains[], peer set on deviations). Two discovery bugs were fixed as a consequence:
   the `\s*`-versus-hyphen bug in `guessDocType`, and `policy` missing from `POLICY_LINK_PATTERN`.
-- **Pass 2 (peer baselines) not started.** Minimum-N is 10; on current coverage `ecommerce`,
-  `subscription_autorenewal`, `payments_fintech` and `finance_banking` clear it and `saas`,
-  `social_ugc`, `ott_streaming` and `identity_provider` do not.
+- **Pass 2 (peer baselines) not started.** Minimum-N is 10, applied per tag *and* per docType
+  (D2), over **analysed** sites. Coverage is now total — every document in the corpus is analysed —
+  and exactly three of eight pairs publish: `payments_fintech`/privacy (11), `ecommerce`/terms (10),
+  `subscription_autorenewal`/terms (10). `finance_banking` cannot reach 10 on this corpus at any
+  coverage. Analysing the last 21 changed none of it, which is the gate working. The blocker is that
+  no clause key exists to compute a share over.
 - **Packaging not started.** `policy-seed.json` still holds RFC 2606 reserved domains only. The
   open question there is Part 1's: one risk byte per domain, worst or aggregate.
 - **Retry list from capture** — 6 zero-link sites plus youtube.com, untouched.

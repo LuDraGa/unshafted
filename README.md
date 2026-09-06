@@ -43,7 +43,7 @@ Unshafted/
   chrome-extension/     # MV3 manifest, service worker, public assets
   pages/
     popup/              # Main UI — upload, scan results, deep analysis
-    content/            # Dormant content-script bundle; upload-first v1 does not expose page analysis
+    side-panel/         # Site policy awareness — bundled analyses for the current site
     options/            # Settings page (API keys, model selection)
   packages/
     unshafted-core/     # Analysis engine — schemas, prompts, PDF parsing, document processing
@@ -210,7 +210,7 @@ Historical implementation plans live in [`execution-docs/`](execution-docs/). Th
 ### Near-Term Cleanup
 - Keep public docs, privacy-policy text, and Chrome Web Store metadata aligned with the current Drive/auth data flow.
 - Improve local dev/CI onboarding and migration workflow clarity as the system grows.
-- Keep current-page analysis dormant unless it returns as a first-class feature with matching permissions and CWS disclosures.
+- Hold the permission line: no host permissions and no registered content scripts. Page reads happen only on a user gesture under `activeTab` + `scripting`. Anything that needs standing page access is a first-class feature with its own CWS disclosure, not a side effect.
 
 ### Future
 - **Tiered subscriptions** — Free, Pro, and team tiers with differentiated analysis depth and volume
