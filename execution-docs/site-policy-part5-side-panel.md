@@ -182,8 +182,9 @@ in-page sidecar that was considered, and it gives full-height real estate that t
 and the upload flow with it — from exactly the sites the user is most likely to be on. Not worth
 one click.
 
-`chrome.sidePanel.setOptions({ tabId, enabled })` gates the panel per tab, so it is not offered on
-uncovered sites. `setPanelBehavior({ openPanelOnActionClick: false })` keeps the toolbar click on
+`chrome.sidePanel.setOptions({ tabId, enabled })` gates the panel per tab. ~~so it is not offered
+on uncovered sites.~~ **Revised by D15** — it is now offered on any http(s) page, and gated only
+against `chrome://`, `file://` and the Web Store. `setPanelBehavior({ openPanelOnActionClick: false })` keeps the toolbar click on
 the popup.
 
 ### D13 — Panel availability is sticky per tab *(added 2026-09-06, from W2)*
@@ -287,6 +288,51 @@ document's own stated wording (`Window: 365 days — One year from the occurrenc
 that names its anchor. `relative_to_signup` is doing the work of at least six distinct anchors, and
 no client can render it honestly until the enum says which one. Free now, breaking after the first
 CDN publish — the same window the ticket's other two fields sit in.
+
+### D15 — The panel is available everywhere; only the badge is coverage-gated *(added 2026-09-06)*
+
+D8 gated panel availability on coverage. That was wrong, and shipping it made the mistake obvious:
+on an uncovered site the badge was dark, the popup strip rendered nothing, and the panel was not
+offered — so there was no way in at all. Meanwhile `DocumentReader` sat fully built inside
+`CoveredView`, and its uncovered branch was a dead end reading *"We have not read this site's
+policies."*
+
+**The reader needs no corpus coverage.** It needs `activeTab` on a user click, which every http(s)
+page grants. So an uncovered site is precisely where finding, reading and downloading the documents
+is the *only* thing we can offer — and it was the one place we refused to offer it.
+
+The split that replaces it is cleaner than the one it replaces:
+
+| | question it answers | reach |
+|---|---|---|
+| **Badge** | "Have we read this site's policies?" | the 37 seeded domains |
+| **Panel** | "What does this site make you agree to?" | any http(s) page |
+
+Those are different questions and they correctly have different answers. The badge stays
+coverage-gated and must not follow the panel.
+
+**The promise gets weaker as it widens, and the UI has to show that.** The covered strip is
+risk-toned and states a level and a document count. The uncovered strip has **no colour, no level,
+no count** — just the hostname, "Not analysed — you can still read its policies", and a *Find
+documents* button. The absence of colour is the message, and it means the uncovered strip makes no
+claim the dark badge contradicts.
+
+**Two nested empty states**, because "nothing found" now has two meanings:
+
+- *Uncovered, documents found* → the reader list. Real value, no grading.
+- *Uncovered, nothing found* → say we could not find a policy linked from this page, that this is
+  common on signed-in pages and sites hosting legal text on another domain, and that we have not
+  analysed the site either — so there is nothing to show rather than something broken.
+
+**Known cul-de-sac, accepted.** The honest next step from an uncovered site is *"request an
+analysis"*, and that button is gated on `CEB_POLICY_SUBMIT_URL`, which is unset because the server
+is Part 2. So the uncovered path ends after reading. Part 1 §9 already settled that a button
+posting nowhere is worse than no button, and that still holds — but it means the uncovered branch
+is a half-feature until Part 2 lands.
+
+**Consequence for D13:** the sticky-availability set still exists and still matters, but it now
+protects a much narrower case — a navigation from a web page into `chrome://` or the Web Store,
+rather than the coverage boundary it was written for.
 
 ---
 
@@ -418,6 +464,10 @@ Two notes from wiring it:
       nothing was built. The analysts named the edition inline in the exposure text and the panel
       renders that text verbatim, which is the whole of the requirement
 - [x] Document reader: list candidates, read normalized text, download via blob (D9)
+- [x] **D15** — panel available on any http(s) page; uncovered strip in the popup; uncovered panel
+      view renders the reader; two nested empty states
+- [x] Copy: footer trimmed to "Nothing about the site you are on leaves this browser."; the
+      redundant "This site" eyebrow above the domain heading removed — the domain is the label
 - [x] `captureActiveTabPolicy` split into discovery + per-URL capture
 
 Three things the design above did not account for, all found while building this:
