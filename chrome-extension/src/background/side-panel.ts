@@ -1,25 +1,26 @@
-import { resolveCoveredHostname } from '@extension/shared';
 import { hostnameFor } from './site-policy.js';
 
 /**
  * Side-panel availability.
  *
- * The panel is offered on sites we have read and nowhere else. Chrome's own affordance for
- * opening it is global once `side_panel.default_path` is declared, so the default is "available
- * everywhere" and this module is what narrows it back down — per tab, via
+ * The panel is offered on any http(s) page and nowhere else — not on `chrome://`, `file://` or
+ * the Web Store, where there is no site and no page we may read. Chrome's affordance is global
+ * once `side_panel.default_path` is declared, so this module narrows it per tab via
  * `sidePanel.setOptions({ tabId, enabled })`.
  *
- * THE ZERO-NETWORK GUARANTEE STILL HOLDS (AD-2 / D11). This asks the same question the badge
- * asks, through the same `resolveCoveredHostname`, against the same bundled 45 KB index. It is
- * one extra local lookup per tab event and not one extra byte over the wire.
+ * IT DOES NOT GATE ON COVERAGE (D15). It used to, and that hid the reader on exactly the sites
+ * where the reader is the only thing we have. See `applyAvailability`.
  *
- * What must never happen here: loading the bundled corpus. The worker's job is "is this site
- * covered?" — a domain lookup. "What do these policies say?" is 305 KB of analyses, it is the
- * panel page's job, and it happens only once a user has opened the panel. Merging the two would
- * pull the whole corpus into every service-worker wake.
+ * THE ZERO-NETWORK GUARANTEE STILL HOLDS (AD-2 / D11). Availability is now decided by parsing the
+ * tab's URL — no index read, no corpus read, no network. Strictly less work than before.
  *
- * This lives beside `site-policy.ts` rather than inside it because that module owns the badge
- * and its guarantee; availability is a separate concern that happens to share an input.
+ * What must never happen here: loading the bundled corpus. The worker's job is availability.
+ * "What do these policies say?" is 305 KB of analyses, it is the panel page's job, and it happens
+ * only once a user has opened the panel. Merging the two would pull the whole corpus into every
+ * service-worker wake.
+ *
+ * This lives beside `site-policy.ts` rather than inside it because that module owns the badge and
+ * its guarantee. The badge stays coverage-gated; availability is a different question.
  *
  * Permissions: `sidePanel` and `tabs`. No host permissions, no content script.
  */
@@ -31,14 +32,14 @@ const SIDE_PANEL_PATH = 'side-panel/index.html';
  * Tabs that have ever been offered the panel, kept in session storage.
  *
  * WHY THIS EXISTS: `setOptions({ enabled: false })` does not merely hide the affordance — it
- * CLOSES the panel if it is open. Without this set, a user reading an analysis who clicks a link
- * to an uncovered page has the panel yanked out from under them mid-sentence. That reads as a
- * crash, not as a coverage boundary.
+ * CLOSES the panel if it is open. Without this set, a user reading a document who follows a link
+ * into `chrome://settings` or the Web Store has the panel yanked out from under them mid-sentence.
+ * That reads as a crash, not as a boundary.
  *
- * So availability is sticky per tab: once offered, it stays offered for that tab's life, and the
- * panel itself renders "we haven't read this site" for pages outside the corpus. The cost is that
- * a tab which once visited a covered site keeps offering the panel afterwards. That is a far
- * smaller sin than closing a panel someone is reading.
+ * So availability is sticky per tab: once offered, it stays offered for that tab's life. Since
+ * D15 widened availability to every http(s) page, the only thing this now protects against is a
+ * navigation to a non-web scheme — a much narrower case than the coverage boundary it was written
+ * for, and still worth keeping for exactly the same reason.
  *
  * Session storage rather than a module variable because MV3 workers sleep, and a forgotten set
  * means the next `sweepOpenTabs` disables — and therefore closes — a panel that is open.
@@ -76,10 +77,22 @@ const forgetTab = async (tabId: number) => {
 };
 
 const applyAvailability = async (tabId: number, url: string | undefined) => {
-  const hostname = hostnameFor(url);
-  const covered = hostname !== null && (await resolveCoveredHostname(hostname)) !== null;
+  /*
+   * D15: availability follows "is this a web page?", not "have we analysed it?".
+   *
+   * This used to gate on coverage. That was wrong, and it hid the one thing we can offer on a site
+   * outside the corpus: the reader needs no analysis, only `activeTab` on a user click, so on an
+   * uncovered site finding and showing the policy documents is the *whole* value. Gating it away
+   * left the panel unreachable exactly where it was the only thing we had.
+   *
+   * The badge does NOT follow this and must not. The badge means "we have read this site's
+   * policies" — a claim we can only make about 37 domains. The panel answers "what does this site
+   * make you agree to?", which is answerable anywhere. Different questions, deliberately different
+   * reach; the panel's own copy carries the weaker promise.
+   */
+  const available = hostnameFor(url) !== null;
 
-  if (covered) await rememberOfferedTab(tabId);
+  if (available) await rememberOfferedTab(tabId);
   // Never revoke from a tab that has been offered the panel — see OFFERED_TABS_KEY above.
   else if ((await readOfferedTabs()).has(tabId)) return;
 
@@ -89,7 +102,7 @@ const applyAvailability = async (tabId: number, url: string | undefined) => {
      * configuration for a panel that cannot open, and the disable call is clearer without it.
      */
     await chrome.sidePanel.setOptions(
-      covered ? { tabId, path: SIDE_PANEL_PATH, enabled: true } : { tabId, enabled: false },
+      available ? { tabId, path: SIDE_PANEL_PATH, enabled: true } : { tabId, enabled: false },
     );
   } catch {
     // Tab closed or discarded mid-flight; there is nothing left to configure.
@@ -108,7 +121,7 @@ const refreshTabById = async (tabId: number) => {
 /**
  * Tabs that were already open when the worker started have fired no event, so nothing has
  * narrowed the manifest's global default for them. Without this sweep the panel is offered on
- * every pre-existing tab — including uncovered ones — until the user navigates.
+ * every pre-existing tab — including `chrome://` ones — until the user navigates.
  *
  * MV3 workers wake often, so this runs often. It costs a `tabs.query` plus one cached map lookup
  * per tab, and no network.

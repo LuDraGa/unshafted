@@ -155,6 +155,50 @@ const CoveredView = ({
   </>
 );
 
+/**
+ * The uncovered site (D15).
+ *
+ * This used to be a dead end — "we have not read this site's policies" and nothing else — because
+ * D8 gated the panel to covered sites and this branch was only reachable by navigating away with
+ * the panel open. That was backwards: the reader needs no corpus coverage at all, only
+ * `activeTab` on the user's click, so an uncovered site is exactly where finding the documents is
+ * the *only* thing we can offer.
+ *
+ * The promise here is deliberately weaker than the covered view's, and the copy has to carry that:
+ * we are saying "here is what this site makes you agree to", not "here is what is wrong with it".
+ * Nothing is graded, so nothing is coloured.
+ */
+const UncoveredView = ({
+  hostname,
+  check,
+  loading,
+}: {
+  hostname: string | null;
+  check: LivePolicyCheck;
+  loading: boolean;
+}) => {
+  if (loading) {
+    return (
+      <section className="panel-one-thing">
+        <p className="m-0 text-xs leading-relaxed text-[var(--unshafted-text-muted)]">Reading the current tab…</p>
+      </section>
+    );
+  }
+
+  return (
+    <>
+      <section className="panel-one-thing">
+        <p className="m-0 text-xs leading-relaxed text-[var(--unshafted-text-muted)]">
+          We have not analysed this site, so there is no risk level and no findings. You can still read what it makes
+          you agree to.
+        </p>
+      </section>
+
+      <DocumentReader domain={hostname ?? ''} analyses={[]} check={check} />
+    </>
+  );
+};
+
 const SidePanel = () => {
   const site = useActiveTabSite();
   const { status, domain, analyses } = useDomainAnalyses(site.hostname);
@@ -164,8 +208,8 @@ const SidePanel = () => {
 
   return (
     <main className="panel-shell">
+      {/* No "This site" label above the domain — the domain is the label. */}
       <header className="flex flex-col gap-1">
-        <p className="panel-eyebrow">This site</p>
         <h1 className="m-0 text-lg font-semibold leading-tight tracking-tight text-[var(--unshafted-text)]">
           {domain ?? site.hostname ?? 'No site here'}
         </h1>
@@ -179,23 +223,11 @@ const SidePanel = () => {
       {covered ? (
         <CoveredView domain={domain} analyses={analyses} check={check} />
       ) : (
-        /*
-         * The background disables the panel per tab on uncovered sites, so this branch is nearly
-         * unreachable — a tab navigating away while the panel is open is the way in. It states
-         * the fact and stops; there is nothing to apologise for.
-         */
-        <section className="panel-one-thing">
-          <p className="m-0 text-xs leading-relaxed text-[var(--unshafted-text-muted)]">
-            {status === 'loading' || site.status === 'loading'
-              ? 'Reading the current tab…'
-              : 'We have not read this site’s policies.'}
-          </p>
-        </section>
+        <UncoveredView hostname={site.hostname} check={check} loading={status === 'loading' || site.status === 'loading'} />
       )}
 
       <p className="m-0 mt-auto pt-2 text-[10px] leading-relaxed text-[var(--unshafted-text-faint)]">
-        Analyses ship inside the extension and are read from disk. Nothing about the site you are on leaves this
-        browser.
+        Nothing about the site you are on leaves this browser.
       </p>
     </main>
   );

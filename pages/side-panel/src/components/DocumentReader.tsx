@@ -148,12 +148,28 @@ export const DocumentReader = ({
           <div className="panel-group">
             <p className="m-0 text-xs leading-relaxed text-[var(--unshafted-text-muted)]">
               Nothing on this page links to a policy document. That is common on signed-in pages and on sites that host
-              their legal text on another domain — it says nothing about the analysis above, which came from the bundle
-              and needed no page access.
+              their legal text on another domain
+              {analyses.length > 0
+                ? ' — it says nothing about the analysis above, which came from the bundle and needed no page access.'
+                : '.'}
             </p>
-            <p className="m-0 text-xs leading-relaxed text-[var(--unshafted-text-muted)]">
-              These are the addresses we read:
-            </p>
+
+            {/*
+             * The uncovered dead end, and the only place in the panel where we have nothing at all
+             * to offer. Say that plainly and stop. There is no "request an analysis" button to
+             * point at — the submit endpoint is Part 2 and unset, and Part 1 settled that a button
+             * posting nowhere is worse than no button.
+             */}
+            {analyses.length === 0 ? (
+              <p className="m-0 text-xs leading-relaxed text-[var(--unshafted-text-muted)]">
+                We have not analysed this site either, so there is nothing else to show you here yet.
+              </p>
+            ) : (
+              <p className="m-0 text-xs leading-relaxed text-[var(--unshafted-text-muted)]">
+                These are the addresses we read:
+              </p>
+            )}
+
             {analyses.map(analysis => (
               <a
                 key={analysis.contentHash}

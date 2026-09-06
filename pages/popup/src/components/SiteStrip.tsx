@@ -9,12 +9,21 @@ import type { RiskLevel } from '@extension/unshafted-core';
  * The popup belongs to the document-upload flow. Everything site-policy moved to the side panel,
  * and what is left here is the doorway: domain, worst risk level, document count, one button.
  *
- * IT RENDERS ONLY ON A COVERED SITE. Not a "check this site" button on every page — that is what
- * the old panel did, and it is why the badge and the popup could disagree: the badge was silent
- * on an uncovered site while the popup still invited a click that could only end in
- * "couldn't find a policy document linked from this page". Coverage is decided by
- * `resolveCoveredHostname`, the exact call the badge and the side-panel gate make, so all three
- * surfaces answer from the same 45 KB bundled index and cannot contradict each other.
+ * IT RENDERS IN TWO STRENGTHS (D15), and the difference has to be visible at a glance:
+ *
+ *  - COVERED — risk-toned, states the level and the document count. A graded claim.
+ *  - UNCOVERED — no colour, no level, no count. Says only that we have not analysed the site and
+ *    that its documents can still be read. That is a real offer, and a much weaker one.
+ *
+ * The original version rendered nothing at all when uncovered. That was over-corrected: it did
+ * stop the old panel's failure mode (a "check this site" button on every page that could only end
+ * in "couldn't find a policy document"), but it also made the reader unreachable on precisely the
+ * sites where the reader is the only thing we have.
+ *
+ * What must not come back is the two surfaces disagreeing. Coverage is decided by
+ * `resolveCoveredHostname`, the exact call the badge makes, so the strip's *colour* and the badge
+ * can never contradict each other. The uncovered strip is deliberately uncoloured, so it makes no
+ * claim the dark badge denies.
  *
  * ZERO NETWORK (AD-2 / D11). Both lookups below read extension-local assets through
  * `chrome.runtime.getURL`. Nothing keyed by the user's domain leaves the browser.
@@ -30,6 +39,7 @@ const RISK_TONE: Record<RiskLevel, string> = {
 
 type StripState =
   | { kind: 'hidden' }
+  | { kind: 'uncovered'; tabId: number | null; hostname: string }
   | { kind: 'covered'; tabId: number | null; domain: string; riskLevel: RiskLevel; documentCount: number | null };
 
 const hostnameFor = (url: string | undefined): string | null => {
@@ -56,7 +66,13 @@ export const SiteStrip = () => {
       if (!hostname) return;
 
       const resolution = await resolveCoveredHostname(hostname);
-      if (!resolution || disposed) return;
+      if (disposed) return;
+
+      if (!resolution) {
+        // Uncovered is a state, not an absence. The panel can still read the page's documents.
+        setState({ kind: 'uncovered', tabId: tab?.id ?? null, hostname });
+        return;
+      }
 
       /*
        * Show the strip on the index alone. The corpus is ~1 MB of JSON and the count is the only
@@ -88,9 +104,9 @@ export const SiteStrip = () => {
     };
   }, []);
 
-  if (state.kind !== 'covered') return null;
+  if (state.kind === 'hidden') return null;
 
-  const { tabId, domain, riskLevel, documentCount } = state;
+  const { tabId } = state;
 
   /*
    * `sidePanel.open()` requires a user gesture, and this click is it — which is the whole reason
@@ -101,6 +117,27 @@ export const SiteStrip = () => {
     if (tabId === null) return;
     void chrome.sidePanel.open({ tabId }).catch(error => console.warn('[Unshafted] side panel did not open:', error));
   };
+
+  // Uncovered: no tone, no level, no count. The absence of colour IS the message.
+  if (state.kind === 'uncovered') {
+    return (
+      <section className="mb-4 flex items-center gap-3 rounded-2xl border border-stone-200 bg-stone-50 px-3 py-2">
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold text-stone-700">{state.hostname}</p>
+          <p className="text-xs text-stone-500">Not analysed — you can still read its policies</p>
+        </div>
+        <button
+          className="flex-shrink-0 rounded-xl border border-stone-300 bg-white px-3 py-1.5 text-xs font-semibold text-stone-700 transition hover:bg-stone-100"
+          onClick={openPanel}
+          type="button"
+          disabled={tabId === null}>
+          Find documents
+        </button>
+      </section>
+    );
+  }
+
+  const { domain, riskLevel, documentCount } = state;
 
   return (
     <section className={`mb-4 flex items-center gap-3 rounded-2xl border px-3 py-2 ${RISK_TONE[riskLevel]}`}>
