@@ -36,3 +36,8 @@ corpus/*
 !corpus/README.md
 # Analyses are derived from third-party documents; same storage posture as the text.
 # The committed record of what was analysed is corpus/analysis-index.json.
+
+# Claude Code workspace
+# Per-machine session state: local tool permissions and the browser-preview launch entry.
+# Nothing in here describes the project, so it stays out of the repo.
+.claude/
