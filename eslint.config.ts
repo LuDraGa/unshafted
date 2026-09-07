@@ -36,7 +36,7 @@ export default config(
       parserOptions: {
         ecmaFeatures: { jsx: true },
         projectService: {
-          allowDefaultProject: ['packages/unshafted-core/test/*.ts'],
+          allowDefaultProject: ['packages/unshafted-core/test/*.ts', 'packages/storage/test/*.ts'],
         },
       },
       globals: {

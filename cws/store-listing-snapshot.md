@@ -30,6 +30,8 @@ Companion to `cws-privacy-form-snapshot.md`. Captures the public-facing listing 
 ```
 Unshafted reviews contracts, terms, and licenses from your side of the table. Upload a .pdf or .txt file to receive a clear, structured breakdown of risks, missing protections, negotiation points, and key questions — before you sign.
 
+It also reads the fine print you never signed on purpose. Open the side panel on a site and Unshafted finds the terms, privacy policy, and other legal documents that site links to, and tells you what accepting them actually costs you — what you gave up, what you can still opt out of, and what deadline you have to do it by.
+
 - Works with OpenRouter (free models available) or OpenAI (GPT-5). Bring your own API key; the only data sent off your device is the contract text and your API key, going directly to the AI provider you choose.
 
 - What you get:
@@ -40,6 +42,7 @@ Unshafted reviews contracts, terms, and licenses from your side of the table. Up
   ✍️ Negotiation tips and suggested improvements
   🔐 Bring your own OpenAI or OpenRouter API key — stored locally in chrome.storage.local
   💾 Local-first: contracts and analyses live on your device by default
+  📄 On any site: find the terms and privacy policies it links to, and see what they make you agree to
 
 - Privacy at a glance
   No analytics, no tracking, no ads
@@ -48,6 +51,7 @@ Unshafted reviews contracts, terms, and licenses from your side of the table. Up
   Drive backup uses the limited drive.file scope — Unshafted cannot read or modify other Drive files
   Authentication is handled by Supabase; only your Google email, profile, and a backup-preference flag are stored on our side
   Contract text is sent only to the AI provider you configure
+  Site policies are read only while the side panel is open on that page, to find and read that site's legal documents — no persistent page script, no record of the sites you visit, and nothing about the page is ever sent to Unshafted
   Full disclosure of data handling: see the privacy policy linked from the Privacy tab below
 
 Disclaimer: Unshafted provides informational insights and does not constitute legal advice.
@@ -92,6 +96,8 @@ Disclaimer: Unshafted provides informational insights and does not constitute le
 ---
 
 ## Change log
+
+- **2026-09-07** — Description updated for site policy awareness, which adds `host_permissions: ['<all_urls>']`. The prior copy described an upload-only product; leaving it while shipping standing page access would recreate the exact listing/manifest contradiction that drew Purple Nickel on 0.7.0. Paired with privacy policy §5 and the `Website content` data-usage checkbox. **Not yet pasted into the dashboard.**
 
 - **2026-05-11** — v0.7.1 approved and published with this description. Purple Nickel cleared; the listing copy above is what's live.
 - **2026-05-07** — Replaced description with privacy-accurate copy after Purple Nickel re-rejection on 0.7.0. Removes the v0.1 "no accounts / no cloud storage / data stays on device" claims that contradicted Phase 1 (Supabase auth) and Phase 2 (Drive backup). Paired with in-extension consent disclosure.

@@ -227,3 +227,38 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+/*
+ * The one moving thing in the panel, and it exists for a specific failure: a refused page read
+ * finishes in a couple of milliseconds, so without something visible the whole attempt looked
+ * like a click that did nothing at all.
+ */
+.panel-busy-dot {
+  flex-shrink: 0;
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 7px;
+  border-radius: 999px;
+  background: var(--unshafted-brand);
+  animation: panel-busy-pulse 1s ease-in-out infinite;
+}
+
+@keyframes panel-busy-pulse {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: scale(0.75);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel-busy-dot {
+    animation: none;
+    opacity: 0.7;
+  }
+}

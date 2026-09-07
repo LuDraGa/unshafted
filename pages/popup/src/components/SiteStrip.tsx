@@ -131,7 +131,14 @@ export const SiteStrip = () => {
           onClick={openPanel}
           type="button"
           disabled={tabId === null}>
-          Find documents
+          {/*
+            A destination, not an action. This button opens the panel and searches nothing — the
+            reader does that once it is open — and "Find documents" read as a promise it does not
+            keep: a user who clicked it and then watched an unchanged popup had no way to tell
+            whether a search was running, finished, or never started. Its covered sibling below
+            names a destination for the same reason.
+          */}
+          Read its policies
         </button>
       </section>
     );

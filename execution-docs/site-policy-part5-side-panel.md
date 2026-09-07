@@ -324,6 +324,9 @@ claim the dark badge contradicts.
   common on signed-in pages and sites hosting legal text on another domain, and that we have not
   analysed the site either — so there is nothing to show rather than something broken.
 
+**A third one was missing and is now D16** — *no page at all*, which is not an empty state of the
+site but the absence of a site.
+
 **Known cul-de-sac, accepted.** The honest next step from an uncovered site is *"request an
 analysis"*, and that button is gated on `CEB_POLICY_SUBMIT_URL`, which is unset because the server
 is Part 2. So the uncovered path ends after reading. Part 1 §9 already settled that a button
@@ -333,6 +336,103 @@ is a half-feature until Part 2 lands.
 **Consequence for D13:** the sticky-availability set still exists and still matters, but it now
 protects a much narrower case — a navigation from a web page into `chrome://` or the Web Store,
 rather than the coverage boundary it was written for.
+
+### D16 — "No site" is its own state, not an uncovered site *(added 2026-09-07)*
+
+D15 widened the panel to every http(s) page and wrote two empty states. It missed the third, and
+D13 guarantees a user reaches it: availability is sticky per tab, so opening the panel on a website
+and then navigating that tab to `chrome://extensions` deliberately *keeps* the panel — and that
+page has no hostname, so it fell through to the uncovered branch and read:
+
+> No site here
+> We have not analysed this site, so there is no risk level and no findings. You can still read
+> what it makes you agree to.
+
+Three false claims. There is no site to have analysed, nothing to grade, and Chrome's settings page
+makes you agree to nothing. **Weakening a promise (D15) is not the same as making one about
+nothing**, and the reader — the whole reason D15 widened the panel — has nothing to find here.
+
+So `NoSiteView` grades nothing, discovers nothing and renders no reader:
+
+> This is a browser page, not a website. Open a site and the panel will show what it makes you
+> agree to.
+
+Second sentence carries the weight: it says what would fill the panel, which is the only true and
+useful thing available in this state.
+
+**"No site here" now waits for the resolve.** It was the heading's `??` fallback, so it rendered on
+*every* panel open while the first `tabs.query` was in flight — a false claim about the site the
+user is looking at, flashed every single time. While loading, the heading says so instead.
+
+**Two bugs this exposed, both in the D15 path that had never been run:**
+
+- **`useLivePolicyCheck` bailed on an empty analysis set**, which is every site outside the corpus.
+  Discovery never ran there, `discovery` stayed `null`, and the reader D15 added *for those exact
+  sites* sat on "Looking at the page…" forever. The reader needs `activeTab` on a click, not an
+  analysis. With no analyses the run costs one discovery and no fetches, since `confirmationTargets`
+  is asked for no doc types.
+- **`originOf` let `chrome://` through.** `new URL('chrome://extensions/').origin` is the *string*
+  `"null"`, which is truthy. The empty-analysis bail had been the thing stopping the run on Chrome's
+  own pages; removing it moved that responsibility to the origin guard, which now checks the scheme
+  the same way `hostnameFor` does.
+
+Both are the same shape of mistake: coverage was doing load-bearing work in a code path that is no
+longer about coverage.
+
+---
+
+### D17 — "Look again" could never work, and the panel now says what does *(added 2026-09-07)*
+
+Reported from use: on a page the panel could not read, clicking **Look again** did nothing at all —
+while clicking the toolbar icon and then **Read its policies** in the popup listed four documents
+instantly. Both observations are the same fact.
+
+**Permission to read a tab is granted when the user *invokes* the extension** — the toolbar icon, a
+context menu item, a keyboard command — and revoked the moment that tab navigates. A click on a
+button inside the side panel is a user gesture but *not* an invocation, so it grants nothing.
+`rediscover` therefore re-issued the identical refused `executeScript` and landed on the identical
+error. D16's comment claimed the opposite ("the click is the gesture the failed attempt was
+missing"); that premise was wrong and is corrected in the hook.
+
+The popup route works for exactly the reason its own comment already gives: **it is a destination,
+not an action.** Clicking the icon mints the grant; the button only opens the panel, and discovery
+then succeeds on its own. The two buttons were never siblings — one navigates, one retried.
+
+**What changed:**
+
+- **The retry stays, because the *other* failures it covers are real** — a page still loading, an
+  SPA that renders its footer late, a tab mid-swap. It is offered once. A retry that also fails
+  replaces the button with the gesture that works: click the icon, open the panel from there.
+- **A visible "looking" state, with a floor.** A refused injection rejects in ~2ms — faster than a
+  frame — so the attempt finished before anything painted, which is *why* it read as dead. It was
+  running. `MIN_VISIBLE_DISCOVERY_MS` (450ms) holds the state up long enough to be seen. The floor
+  gates the display only; confirmation fetches are unaffected. Documents arrive all at once, since
+  discovery is one injection returning every candidate — the copy says so.
+- **Retries are keyed to tab+origin.** "You already tried" is only true of the page it was tried
+  on; an unkeyed counter would have hidden the button on every later site the user visited.
+
+**And the reader stopped being a disclosure that hides nothing.** It had one `<details>` for four
+states, so an unreadable page rendered as:
+
+> Documents on this page  `0`
+> We could not look at this page.
+
+The badge asserted we had looked and found none, about a page Chrome never let us open — the exact
+claim-about-someone-else's-site that D16 removed from the prose two lines below it. Now only the
+found-some state gets a chevron and a count; looking, could-not-look and found-nothing render flat.
+A collapsed disclosure whose entire payload is "there is nothing here" charges a click for a
+non-answer.
+
+The found-some state also **opens by default on an uncovered site**, where those documents are the
+whole contents of the panel. On a covered site it stays folded under the graded analysis (D10).
+
+A fifth state fell out for free: `discovery === null` with nothing in flight (the effect never ran,
+on `chrome://` and new tabs) used to sit on "Looking at the page…" forever. It now reads as
+unsupported, which is what it is.
+
+**Not done, and deliberately.** The panel cannot grant itself page access. The only way to make its
+button self-sufficient is `optional_host_permissions` plus a `permissions.request()` prompt, which
+reopens the host-permission surface excised in `3657ca0` to clear CWS review. Out of scope here.
 
 ---
 
@@ -469,6 +569,9 @@ Two notes from wiring it:
 - [x] Copy: footer trimmed to "Nothing about the site you are on leaves this browser."; the
       redundant "This site" eyebrow above the domain heading removed — the domain is the label
 - [x] `captureActiveTabPolicy` split into discovery + per-URL capture
+- [x] **D16** — "no site" is its own state, not an uncovered one; the heading's "No site here"
+      waits for the resolve instead of flashing on every open; discovery no longer requires
+      coverage, and the origin guard now checks the scheme rather than relying on it
 
 Three things the design above did not account for, all found while building this:
 

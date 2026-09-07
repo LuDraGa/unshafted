@@ -16,11 +16,16 @@ import type {
 /**
  * Reading the active tab's policy documents.
  *
- * Runs ONLY on a user gesture (the panel or popup opening, or a click inside it), under
- * `activeTab` + `scripting`. No host permissions, no persistent content script — page access was
- * excised in `3657ca0` to clear CWS review and this deliberately does not reopen it. `activeTab`
- * is also revoked when the tab navigates, so every entry point here has to treat "cannot read
- * this page" as an ordinary outcome rather than a fault.
+ * Runs under standing `host_permissions` + `scripting`, added 2026-09-07 because `activeTab` made
+ * automatic detection impossible — it is granted only on a toolbar invocation and revoked the
+ * instant the tab navigates, so a panel left open while someone browses was refused on every new
+ * page (see `chrome-extension/manifest.ts`).
+ *
+ * Still NO persistent content script. Every read here is a one-shot injection the panel asks for,
+ * at a moment the user is looking at the panel — nothing runs on a page we were not asked about,
+ * and nothing stays behind on one we were. "Cannot read this page" remains an ordinary outcome
+ * rather than a fault: Chrome refuses injection on its own pages and on the Web Store, and a page
+ * mid-load has no footer to read yet.
  *
  * Split into two halves for D9, because the side panel asks a different question than the popup
  * did:
