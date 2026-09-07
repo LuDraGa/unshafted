@@ -3,8 +3,10 @@
 **Item:** Unshafted: AI Contract Risk Analyzer
 **Item ID:** `fpjjdlffjfkdiibljglmgfkbpkkibpia`
 **Version live:** 0.7.1 — approved and published 2026-05-11
-**Snapshot date:** 2026-05-05 (form values unchanged by the 0.7.1 resubmission;
-no permissions or data-usage categories changed between 0.7.0 and 0.7.1)
+**Snapshot date:** 2026-09-07 — **PREPARED, NOT YET ENTERED IN THE DASHBOARD.** This file now
+describes the form as it must look for the site-policy release. The live form is still the
+0.7.1 state: single purpose names uploads only, `Website content` unchecked, and no
+`host_permissions` justification. See `cws/submission-checklist.md`.
 **Source:** Chrome Web Store Developer Dashboard → Privacy tab
 
 This file mirrors the live values entered in the CWS dashboard's Privacy tab so the source of truth lives in git alongside `privacy-policy.md`. Update this file whenever the dashboard form is changed.
@@ -13,9 +15,7 @@ This file mirrors the live values entered in the CWS dashboard's Privacy tab so 
 
 ## Single purpose
 
-> Analyze contracts and agreements for risk, unfavorable clauses, and missing protections using AI models, then display structured findings to the user.
-
-`151 / 1,000` characters.
+> Show a user the risk in the agreements they are asked to accept. Unshafted analyzes contracts the user uploads, and reads the legal documents a website links to — terms of service, privacy policy, cookie policy — so it can tell the user what that site makes them agree to. Both produce the same structured findings: unfavorable clauses, missing protections, and what the user can still do about them.
 
 ---
 
@@ -121,7 +121,8 @@ The gist is auto-synced from `privacy-policy.md` on every push to `main` via `.g
 | `identity` justification | Yes | §1, §7, "How we handle and protect your data" |
 | `host_permissions` justification | Yes | §5 "Website content (policy documents only)" |
 | PII checkbox | Yes — email, display name, profile picture | §1 |
-| Authentication info checkbox | Yes — Google OAuth tokens, Supabase JWT/refresh | §6 |
+| Authentication info checkbox | Yes — Google OAuth tokens, Supabase JWT/refresh | §7 |
+| Website content checkbox | Yes — page hyperlinks and policy-document text | §5 |
 | No remote code | Implicit (no eval/remote script in source) | n/a |
 | No-sell / single-purpose / no-credit certifications | Yes | "Data sharing and third parties" + Limited Use section |
 
@@ -129,4 +130,5 @@ The gist is auto-synced from `privacy-policy.md` on every push to `main` via `.g
 
 ## Change log
 
+- **2026-09-07** — Prepared for the site-policy release. Single purpose rewritten to name reading a site's linked legal documents, because that is the sentence a reviewer maps `<all_urls>` against and the old one described uploads only. `Website content` selected. Justifications added for `host_permissions`, `tabs`, `activeTab`, `scripting`, `sidePanel` — the last four were live without justifications because they predate this file. **Not yet entered.**
 - **2026-05-05** — Initial snapshot at v0.7.0 resubmission. Captures form state after Purple Nickel hardening pass (Limited Use disclosure, handling section, §6 auth-token enumeration in policy).
