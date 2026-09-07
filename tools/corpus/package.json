@@ -1,6 +1,6 @@
 {
   "name": "@extension/corpus-tools",
-  "version": "0.7.1",
+  "version": "0.8.0",
   "description": "Site-policy corpus capture — maintainer tooling, never shipped to users",
   "type": "module",
   "private": true,
