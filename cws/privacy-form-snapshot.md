@@ -33,6 +33,26 @@ This file mirrors the live values entered in the CWS dashboard's Privacy tab so 
 
 `268 / 1,000` characters.
 
+### `host_permissions` (`<all_urls>`)
+
+> Unshafted tells a user what the site they are on makes them agree to. To do that it must read that site's own page to find the legal documents it links to — terms of service, privacy policy, cookie policy — and fetch their text. Standing site access is required because Chrome grants activeTab only when the user clicks the toolbar icon and revokes it the moment the tab navigates, which makes automatic detection impossible. The read is a single one-shot script run only while the Unshafted side panel is open on that page. There is no persistent content script. Only links that identify a legal document are kept; all other page content is discarded inside the tab. No page content and no record of visited sites is sent to Unshafted.
+
+### `tabs`
+
+> Reads the URL of the active tab so the extension can tell whether the site the user is on appears in Unshafted's bundled index of already-analysed policy documents, and show the corresponding risk level. This lookup is local and involves no network request.
+
+### `activeTab`
+
+> Retained as the fallback path for reading the current page when a user has restricted the extension's site access from chrome://extensions. Used for the same one-shot policy-document read described under host_permissions.
+
+### `scripting`
+
+> Runs the one-shot script that collects the current page's legal-document links and fetches the text of a policy document, in the page's own session. No script is registered to run persistently on any page.
+
+### `sidePanel`
+
+> Renders the policy analysis in Chrome's side panel beside the page, so the extension never injects UI into the page itself.
+
 ---
 
 ## Remote code
@@ -56,14 +76,17 @@ This file mirrors the live values entered in the CWS dashboard's Privacy tab so 
 | ⬜ | Location — region, IP address, GPS coordinates, nearby-device info | No |
 | ⬜ | Web history — pages visited, page titles, visit times | No |
 | ⬜ | User activity — network monitoring, clicks, mouse position, scroll, keystrokes | No |
-| ⬜ | Website content — text, images, sounds, videos, hyperlinks | No |
+| ✅ | **Website content** — text, images, sounds, videos, hyperlinks | **Yes** |
 
 ### Rationale for unselected categories
 
 - **Personal communications** — user-uploaded contracts/agreements are documents the user supplies for analysis, not communications observed or intercepted by the extension. The extension does not read email, chat, or messaging content.
 - **User activity** — the extension stores local rate-limit counters (daily quick-scan count, monthly deep-analysis count) on the user's own device. It does not perform network monitoring, click/scroll/keystroke logging, or any cross-session activity tracking.
-- **Website content** — the extension does not read web pages. The page-extraction flow was removed during the v0.6 UI simplification, and `tabs`/`activeTab`/`scripting` permissions were dropped from the manifest.
-- **Web history, Location, Health, Financial** — never collected.
+- **Web history, Location, Health, Financial** — never collected. The extension reads the page the side panel is open on in the moment, but does not record, store, or transmit which sites the user visited, so no history is collected.
+
+### Rationale for Website content (selected as of the site policy awareness release)
+
+The extension reads the current page's hyperlinks to find the legal documents the site links to, and fetches the text of those documents. Selected honestly even though the collection is narrow, because the category covers hyperlinks and text and the read is real. Scope, in the extension and in the privacy policy: a single one-shot script run only while the side panel is open on that page; no persistent content script; only legal-document links retained, everything else discarded inside the tab; policy text hashed on-device for comparison against the bundled corpus; text leaves the device only to the AI provider the user configured, on the user's own API key, and only when the user explicitly asks for an analysis. Nothing is sent to Unshafted.
 
 ---
 
@@ -94,8 +117,9 @@ The gist is auto-synced from `privacy-policy.md` on every push to `main` via `.g
 | Form field | Mirrored in policy | Section |
 |---|---|---|
 | Single purpose | Yes (intro paragraph) | Top of file |
-| `storage` justification | Yes | §1–§6 + "How we store your data" |
-| `identity` justification | Yes | §1, §6, "How we handle and protect your data" |
+| `storage` justification | Yes | §1–§7 + "How we store your data" |
+| `identity` justification | Yes | §1, §7, "How we handle and protect your data" |
+| `host_permissions` justification | Yes | §5 "Website content (policy documents only)" |
 | PII checkbox | Yes — email, display name, profile picture | §1 |
 | Authentication info checkbox | Yes — Google OAuth tokens, Supabase JWT/refresh | §6 |
 | No remote code | Implicit (no eval/remote script in source) | n/a |

@@ -1,9 +1,37 @@
 # Phase 2 Execution: Google Drive Storage
 
-**Status:** Not started
+**Status:** Shipped — see the 2026-09-07 note below for what the code does versus what this plan describes
 **Date:** 2026-04-14
 **Parent doc:** `execution-docs/supabase-auth-profiles-credits.md`
 **Depends on:** Phase 1 (complete)
+
+---
+
+## Note — 2026-09-07: this document was stale, and this is the correction
+
+This said **"Not started"** for months after Drive storage shipped. It cost real time; do not trust
+a status line here again without checking the tree.
+
+**What is actually in the tree:**
+
+- [`packages/supabase/lib/drive.ts`](../packages/supabase/lib/drive.ts) — the "Unshafted" folder
+  (created on demand, cached in memory with a TTL and in `chrome.storage.local`, single-flighted),
+  `upsertAnalysisFile` deduping on `appProperties` `contentHash` + `analysisType`, paginated
+  listing, deletion, and original-source-file upload with orphan cleanup.
+- [`packages/supabase/lib/drive-sync.ts`](../packages/supabase/lib/drive-sync.ts) —
+  `syncQuickScanToDrive`, `syncDeepAnalysisToDrive`, `loadHistoryFromDrive`, `deleteFromDrive`.
+- [`packages/supabase/lib/drive-token.ts`](../packages/supabase/lib/drive-token.ts) — token access.
+- Call sites: `chrome-extension/src/background/index.ts` (fire-and-forget after each analysis) and
+  `pages/popup/src/Popup.tsx` (manual sync, Drive hydration of empty history, delete).
+
+**What this plan describes that did not ship as written:** treat everything below as the original
+design intent, not as a description of the code. Where the two disagree, the code is the record.
+
+**Added 2026-09-07 (Part 6, W5):** a third analysis type, `site-policy` — a `DriveSitePolicyFile`
+wrapping a `LocalPolicyAnalysis` plus `syncSitePolicyToDrive`, for a site analysis the user ran on
+their own key. It rides the same folder, the same upsert and the same never-throw contract. It is
+deliberately excluded from `loadHistoryFromDrive`: those analyses belong to the side panel, not to
+the popup's upload history. See `execution-docs/site-policy-part6-self-analysis.md` §S9.
 
 ---
 

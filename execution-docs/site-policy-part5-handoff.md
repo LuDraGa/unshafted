@@ -2,7 +2,7 @@
 
 **Status:** Handoff · written 2026-09-06
 **Owner:** @LuDraGa
-**Read this with:** `site-policy-part5-side-panel.md` (the settled design, D1–D15)
+**Read this with:** `site-policy-part5-side-panel.md` (the settled design, D1–D16)
 
 For picking this up in a fresh session. Three parts: **where it actually stands**, **what to do
 next in order**, and **ideas worth arguing about** — the third is deliberately unfiltered.
@@ -49,7 +49,10 @@ none of it added host permissions or a content script.
   two documents three risk levels apart
 - `linkedin.com` — five documents, worst-first ordering
 - `americanexpress.com` — three-level spread; the corpus's only `Low` sits under a High badge
-- any uncovered site — dark badge, uncoloured strip, panel opens into the reader (D15)
+- any uncovered site — dark badge, uncoloured strip, panel opens into the reader (D15). Discovery
+  on this path was dead until D16, so it has never actually been seen working
+- `chrome://extensions` with the panel already open — D13's sticky availability keeps it, and D16
+  is the state it lands in. Expect no reader, no grade, no claim about a site
 
 ---
 
@@ -155,9 +158,12 @@ Unfiltered. Some of these are probably bad. None are decided.
 ## Rules that have held and should keep holding
 
 - Analyse `corpus/text/`, never `corpus/raw/`.
-- Where a capture is incomplete, mark `confidence: medium` and record the disclosure as
-  *unverified*, not *absent*. Saying "absent" from a capture artefact is a false claim about a real
-  company.
+- Where a capture is incomplete, mark `confidence: medium` and **do not record the disclosure as
+  *absent***. Saying "absent" from a capture artefact is a false claim about a real company.
+  (Corrected 2026-09-07: this rule used to read "record it as *unverified*", which cannot be done —
+  `DisclosureStatusSchema` is `present | absent | not_applicable` and has no such value. In the
+  corpus "unverified" appears only inside prose `note` text. The operation is to omit the entry;
+  Part 6 §S6 carries the code that enforces it.)
 - Never infer a fact the document does not state — not an effective date, not a jurisdiction, not a
   deadline's anchor. D14 exists because that rule got broken once already.
 - Deadlines render as windows, never countdowns.

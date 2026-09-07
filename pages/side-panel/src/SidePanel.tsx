@@ -1,12 +1,16 @@
 import '@src/SidePanel.css';
-import { domainRiskSummary } from '@extension/unshafted-core';
+import { AnalyseConfirm } from '@src/components/AnalyseConfirm';
+import { OneThing, WorstRisk } from '@src/components/AnalysisView';
 import { DocumentCard } from '@src/components/DocumentCard';
 import { DocumentReader } from '@src/components/DocumentReader';
+import { LocalAnalysisView } from '@src/components/LocalAnalysisView';
+import { RunOutcome, RunProgress } from '@src/components/RunStatus';
 import { useActiveTabSite } from '@src/hooks/useActiveTabSite';
 import { useDomainAnalyses } from '@src/hooks/useDomainAnalyses';
 import { useLivePolicyCheck } from '@src/hooks/useLivePolicyCheck';
-import { selectOneThing, worstDocument } from '@src/lib/domain-summary';
-import { DOC_TYPE_LABELS, RISK_TONE, describeDeadline, formatAnalysedDate } from '@src/lib/presentation';
+import { useLocalAnalyses } from '@src/hooks/useLocalAnalyses';
+import { formatAnalysedDate } from '@src/lib/presentation';
+import { useMemo, useState } from 'react';
 import type { SitePolicyAnalysis } from '@extension/unshafted-core';
 import type { DocumentFreshness, LivePolicyCheck } from '@src/hooks/useLivePolicyCheck';
 
@@ -67,65 +71,6 @@ const FreshnessStrip = ({
   );
 };
 
-const WorstRisk = ({
-  analyses,
-  freshness,
-}: {
-  analyses: readonly SitePolicyAnalysis[];
-  freshness: Record<string, DocumentFreshness>;
-}) => {
-  const summary = domainRiskSummary(analyses);
-  const worst = worstDocument(analyses);
-  if (!summary || !worst) return null;
-
-  return (
-    <section className={`panel-verdict ${RISK_TONE[summary.riskLevel]}`}>
-      <p className="m-0 text-lg font-semibold leading-tight tracking-tight">{summary.riskLevel} risk</p>
-      <p className="m-0 mt-1 text-xs leading-relaxed">
-        The worst of {summary.documentCount === 1 ? 'the one document' : `${summary.documentCount} documents`} we read
-        here. Earned by the {DOC_TYPE_LABELS[worst.docType].toLowerCase()}.
-      </p>
-      {/*
-        Open Q4: the grade still comes from the bundled worst-of even when that very document has
-        moved. Rather than degrade the badge silently, say so — the reader can then weigh it.
-      */}
-      {freshness[worst.contentHash] === 'changed' ? (
-        <p className="m-0 mt-1 text-[11px] font-semibold">
-          That document has changed since we read it, so treat this grade as being about the earlier version.
-        </p>
-      ) : null}
-    </section>
-  );
-};
-
-const OneThing = ({ analyses }: { analyses: readonly SitePolicyAnalysis[] }) => {
-  const one = selectOneThing(analyses);
-  if (!one) return null;
-
-  return (
-    <section className="panel-one-thing">
-      <p className="panel-eyebrow">{one.kind === 'deadline' ? 'On a clock' : 'The one thing'}</p>
-      {one.kind === 'deadline' ? (
-        <>
-          <p className="m-0 text-sm font-semibold leading-snug text-[var(--unshafted-text)]">{one.action.action}</p>
-          <p className="m-0 mt-1 text-xs font-semibold text-violet-700">{describeDeadline(one.deadline)}</p>
-          <p className="m-0 mt-1 text-xs leading-relaxed text-[var(--unshafted-text-muted)]">{one.action.howTo}</p>
-        </>
-      ) : (
-        <>
-          <p className="m-0 text-sm font-semibold leading-snug text-[var(--unshafted-text)]">{one.exposure.title}</p>
-          <p className="m-0 mt-1 text-xs leading-relaxed text-[var(--unshafted-text-muted)]">
-            {one.exposure.whatItMeans}
-          </p>
-        </>
-      )}
-      <p className="m-0 mt-1.5 text-[10px] uppercase tracking-wide text-[var(--unshafted-text-faint)]">
-        From the {DOC_TYPE_LABELS[one.analysis.docType].toLowerCase()}
-      </p>
-    </section>
-  );
-};
-
 const CoveredView = ({
   domain,
   analyses,
@@ -156,27 +101,63 @@ const CoveredView = ({
 );
 
 /**
- * The uncovered site (D15).
+ * The uncovered site (D15), and from Part 6 the only place in the panel that can spend money.
  *
  * This used to be a dead end — "we have not read this site's policies" and nothing else — because
  * D8 gated the panel to covered sites and this branch was only reachable by navigating away with
- * the panel open. That was backwards: the reader needs no corpus coverage at all, only
- * `activeTab` on the user's click, so an uncovered site is exactly where finding the documents is
- * the *only* thing we can offer.
+ * the panel open. That was backwards: the reader needs no corpus coverage at all, only page
+ * access, so an uncovered site is exactly where finding the documents is the *only* thing we can
+ * offer.
  *
  * The promise here is deliberately weaker than the covered view's, and the copy has to carry that:
  * we are saying "here is what this site makes you agree to", not "here is what is wrong with it".
  * Nothing is graded, so nothing is coloured.
+ *
+ * PART 6 ADDS THE THIRD STATE, between those two. A site the USER analysed on their own key gets
+ * the full layout and a signature saying whose analysis it is (S3). It is not coverage — the
+ * toolbar badge stays dark, nothing is submitted, and nothing here is reviewed by us — and the
+ * ordering says so: the attribution renders above the verdict, never after it.
+ *
+ * Every path to a call goes through the confirm (S5). Nothing on this screen spends a credit.
  */
 const UncoveredView = ({
   hostname,
   check,
   loading,
 }: {
-  hostname: string | null;
+  hostname: string;
   check: LivePolicyCheck;
   loading: boolean;
 }) => {
+  const { analyses: localAnalyses, runState, reload } = useLocalAnalyses(hostname);
+  /** Null when the sheet is closed; `preselected` is the row the user asked from, if any. */
+  const [confirming, setConfirming] = useState<{ preselected: string | null } | null>(null);
+
+  /*
+   * S10: cross-origin documents are unreadable from the page, so they are not analysable either.
+   *
+   * An untyped candidate is excluded for a different and stronger reason. `docType` drives the
+   * brief and the disclosure checklist the prompt reads the document AGAINST, and it is stored on
+   * the analysis as a claim about what the document IS. Discovery leaves it null on a link that is
+   * plainly legal but names no type we recognise ("Legal"), and defaulting those to `terms` would
+   * read a privacy policy against the wrong checklist and then file the result — in the user's own
+   * Drive — asserting it was the terms. The reader's filename fallback is cosmetic; this one would
+   * be a false claim about a real company's document, which is the one thing this corpus never
+   * does. They stay listed and readable; they are simply not offered.
+   */
+  const discovery = check.discovery;
+  const analysable = useMemo(
+    () =>
+      discovery?.status === 'discovered'
+        ? discovery.documents.filter(candidate => candidate.sameOrigin && candidate.docType !== null)
+        : [],
+    [discovery],
+  );
+
+  // A run belongs to a domain. One started on another tab's site is somebody else's progress bar.
+  const run = runState.domain === hostname ? runState : null;
+  const running = run?.status === 'running';
+
   if (loading) {
     return (
       <section className="panel-one-thing">
@@ -187,15 +168,79 @@ const UncoveredView = ({
 
   return (
     <>
-      <section className="panel-one-thing">
-        <p className="m-0 text-xs leading-relaxed text-[var(--unshafted-text-muted)]">
-          We have not analysed this site, so there is no risk level and no findings. You can still read what it makes
-          you agree to.
-        </p>
-      </section>
+      {localAnalyses.length > 0 ? (
+        <LocalAnalysisView analyses={localAnalyses} />
+      ) : (
+        <section className="panel-one-thing">
+          <p className="m-0 text-xs leading-relaxed text-[var(--unshafted-text-muted)]">
+            We have not analysed this site, so there is no risk level and no findings. You can still read what it makes
+            you agree to.
+          </p>
+        </section>
+      )}
 
-      <DocumentReader domain={hostname ?? ''} analyses={[]} check={check} />
+      {running ? <RunProgress runState={run} /> : null}
+      {run?.status === 'complete' ? <RunOutcome runState={run} onStorageChanged={reload} /> : null}
+
+      {confirming ? (
+        <AnalyseConfirm
+          domain={hostname}
+          candidates={analysable}
+          preselected={confirming.preselected}
+          check={check}
+          onCancel={() => setConfirming(null)}
+          onStarted={() => setConfirming(null)}
+        />
+      ) : !running && analysable.length > 0 ? (
+        <section className="panel-one-thing">
+          <p className="m-0 text-xs leading-relaxed text-[var(--unshafted-text-muted)]">
+            {localAnalyses.length > 0
+              ? 'You can run these documents again on your own key.'
+              : 'You can have these documents analysed on your own API key. We do not review the result.'}
+          </p>
+          <div className="mt-2">
+            <button className="panel-button" type="button" onClick={() => setConfirming({ preselected: null })}>
+              Analyse this site
+            </button>
+          </div>
+        </section>
+      ) : null}
+
+      <DocumentReader
+        domain={hostname}
+        analyses={[]}
+        check={check}
+        onAnalyse={running ? undefined : candidate => setConfirming({ preselected: candidate.url })}
+      />
     </>
+  );
+};
+
+/**
+ * No page to speak of (D16) — `chrome://`, `file://`, the Web Store, a new tab.
+ *
+ * D13 makes availability sticky per tab precisely so that someone who opens the panel on a website
+ * and then navigates that tab into `chrome://extensions` keeps the surface instead of having it
+ * closed mid-sentence. That is the right call, and it means this state is not an edge case the
+ * panel may ignore: it is one navigation away from every session.
+ *
+ * Until now it fell through to `UncoveredView`, which said we had not analysed *this site* and
+ * offered to show what it *makes you agree to* — both claims about something that is not a site
+ * and asks nothing of you. Weakening a promise (D15) is not the same as making one about nothing.
+ *
+ * So this branch grades nothing, discovers nothing and offers no reader. It says why the panel is
+ * empty and what would fill it, which is the only true thing available here.
+ */
+const NoSiteView = ({ loading }: { loading: boolean }) => {
+  // First resolve: we do not yet know whether there is a site, so claim neither way.
+  if (loading) return null;
+
+  return (
+    <section className="panel-one-thing">
+      <p className="m-0 text-xs leading-relaxed text-[var(--unshafted-text-muted)]">
+        This is a browser page, not a website. Open a site and the panel will show what it makes you agree to.
+      </p>
+    </section>
   );
 };
 
@@ -205,13 +250,19 @@ const SidePanel = () => {
   const check = useLivePolicyCheck(site.tabId, site.url, analyses);
 
   const covered = domain !== null && analyses.length > 0;
+  const loading = status === 'loading' || site.status === 'loading';
 
   return (
     <main className="panel-shell">
       {/* No "This site" label above the domain — the domain is the label. */}
       <header className="flex flex-col gap-1">
         <h1 className="m-0 text-lg font-semibold leading-tight tracking-tight text-[var(--unshafted-text)]">
-          {domain ?? site.hostname ?? 'No site here'}
+          {/*
+            "No site here" is a finding, not a placeholder, so it waits for the resolve. Showing it
+            on every panel open — which is what the fallback did while the first query was in
+            flight — flashed a false claim about the site the user is looking at.
+          */}
+          {domain ?? site.hostname ?? (loading ? 'Reading the current tab…' : 'No site here')}
         </h1>
         {covered ? (
           <p className="m-0 text-xs text-[var(--unshafted-text-muted)]">
@@ -222,8 +273,10 @@ const SidePanel = () => {
 
       {covered ? (
         <CoveredView domain={domain} analyses={analyses} check={check} />
+      ) : site.hostname === null ? (
+        <NoSiteView loading={loading} />
       ) : (
-        <UncoveredView hostname={site.hostname} check={check} loading={status === 'loading' || site.status === 'loading'} />
+        <UncoveredView hostname={site.hostname} check={check} loading={loading} />
       )}
 
       <p className="m-0 mt-auto pt-2 text-[10px] leading-relaxed text-[var(--unshafted-text-faint)]">

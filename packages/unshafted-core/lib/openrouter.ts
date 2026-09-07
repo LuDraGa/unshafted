@@ -88,6 +88,48 @@ const checkResponseHealth = (payload: ChatCompletionResponse, label: string) => 
   }
 };
 
+/**
+ * Rewrites draft-4 exclusive bounds into the draft-2020-12 form OpenAI's validator demands.
+ *
+ * `zodToJsonSchema`'s `openAi` target is derived from the OpenAPI 3 dialect, where an exclusive
+ * bound is spelled as the BOOLEAN `exclusiveMinimum: true` alongside `minimum: 0`. OpenAI
+ * validates `response_format` schemas as draft 2020-12, where the same keyword is the NUMBER
+ * itself — so any `z.number().positive()` in a response schema comes back as a 400:
+ * "Invalid schema ... True is not of type 'number'".
+ *
+ * The alternative — banning exclusive bounds from every response schema — makes a domain schema
+ * write `min(1)` where it means `positive()` to appease a transport detail, and only holds until
+ * the next one forgets. This is the seam the two dialects actually meet at, so it is fixed here
+ * once for every caller.
+ */
+const toDraft2020ExclusiveBounds = (node: unknown): unknown => {
+  if (Array.isArray(node)) return node.map(toDraft2020ExclusiveBounds);
+  if (!node || typeof node !== 'object') return node;
+
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(node as Record<string, unknown>)) {
+    result[key] = toDraft2020ExclusiveBounds(value);
+  }
+
+  for (const [flag, bound] of [
+    ['exclusiveMinimum', 'minimum'],
+    ['exclusiveMaximum', 'maximum'],
+  ] as const) {
+    if (typeof result[flag] !== 'boolean') continue;
+
+    // `false` is the dialect's way of saying "the bound is inclusive after all" — the number
+    // stays where it is and only the flag has to go.
+    if (result[flag] === true && typeof result[bound] === 'number') {
+      result[flag] = result[bound];
+      delete result[bound];
+    } else {
+      delete result[flag];
+    }
+  }
+
+  return result;
+};
+
 const buildResponseFormat = <T>(
   provider: Provider,
   schema: ZodSchema<T> | undefined,
@@ -98,7 +140,7 @@ const buildResponseFormat = <T>(
 
   // OpenAI: use json_schema with strict: true for constrained decoding
   if (provider === 'openai' && schema) {
-    const converted = zodToJsonSchema(schema, { target: 'openAi', $refStrategy: 'none' });
+    const converted = toDraft2020ExclusiveBounds(zodToJsonSchema(schema, { target: 'openAi', $refStrategy: 'none' }));
     return {
       type: 'json_schema' as const,
       json_schema: {

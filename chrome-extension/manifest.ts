@@ -33,13 +33,35 @@ const manifest = {
   version: packageJson.version,
   description: '__MSG_extensionDescription__',
   // `tabs` reads tab URLs for the ambient badge (bundled index, zero network).
-  // `activeTab` + `scripting` capture the current page's policy, and only on a user gesture.
+  // `scripting` runs the one-shot policy discovery and fetch in the page.
   // `sidePanel` renders the analysis in Chrome's own panel — beside the page, never inside it.
-  // It grants no access to page content, injects nothing, and raises no install warning, so it
-  // buys the full-height surface a content script would have bought at none of its cost.
-  // Still no host permissions and no registered content scripts — page access was excised in
-  // 3657ca0 to clear review, and this does not reopen it.
+  // `activeTab` is kept alongside `host_permissions` on purpose: it is what still works if a user
+  // ever revokes site access from chrome://extensions, and it costs nothing to declare.
   permissions: ['storage', 'identity', 'tabs', 'activeTab', 'scripting', 'sidePanel'],
+  /**
+   * Standing read access to the page, added 2026-09-07 for site policy awareness (see
+   * execution-docs/site-policy-part7-page-access.md). NOT YET SUBMITTED — the live listing is
+   * 0.7.1, which has no host permissions.
+   *
+   * WHY THIS REOPENS WHAT 3657ca0 CLOSED, AND WHY THAT IS NOT A REGRESSION.
+   *
+   * That commit deleted a page-scraping content script because the extension was an UPLOAD-ONLY
+   * product: you handed it a contract file and it analysed it. A scraper in the ZIP contradicted
+   * the listing, and it was the cleanest available "single-purpose drift" citation. Deleting it
+   * was right for the product that existed.
+   *
+   * The product changed. Site policy awareness reads the terms a site links to and tells the user
+   * what they already agreed to — page access is not scope drift from that purpose, it IS that
+   * purpose. `activeTab` cannot serve it: Chrome grants it only when the user invokes the
+   * extension from the toolbar and revokes it the instant the tab navigates, so a panel left open
+   * while someone browses is refused on every new page. That is not a UX rough edge to smooth
+   * over; it makes automatic detection structurally impossible.
+   *
+   * The obligation this carries is the review surface named in cws/rejection-history.md — policy,
+   * in-product disclosure, listing copy, and what is actually in the ZIP have to agree. All four
+   * moved with this line.
+   */
+  host_permissions: ['<all_urls>'],
   options_ui: {
     page: 'options/index.html',
     open_in_tab: true,

@@ -6,11 +6,25 @@ import {
   deleteAnalysisFile,
   deleteSourceFileIfOrphaned,
 } from './drive.js';
-import type { DriveAnalysisFile, DriveQuickScanFile, DriveDeepAnalysisFile } from './drive-types.js';
-import type { CurrentAnalysis } from '@extension/unshafted-core';
+import type { DriveQuickScanFile, DriveDeepAnalysisFile, DriveSitePolicyFile } from './drive-types.js';
+import { sanitizeDocumentName } from '@extension/unshafted-core';
+import type { CurrentAnalysis, LocalPolicyAnalysis, PolicyDocType } from '@extension/unshafted-core';
 
 const buildFilename = (slug: string, analysisType: string, contentHash: string): string =>
   `${slug}_${analysisType}_${contentHash.slice(0, 8)}.json`;
+
+/**
+ * The other two syncs take `slug` off the uploaded document. A site policy was never uploaded, so
+ * the only things that identify it are the domain and the doc type, and the slug is derived.
+ *
+ * Both parts go through `sanitizeDocumentName` so Drive filenames stay consistent with the rest of
+ * the app, but the dots and underscores have to be turned into hyphens first: that sanitizer reads
+ * a trailing `.com` as a file extension and strips it, which would file zerodha.com and zerodha.in
+ * under the same name, and it drops underscores outright, which would render `acceptable_use` as
+ * `acceptableuse`.
+ */
+const buildSitePolicySlug = (domain: string, docType: PolicyDocType): string =>
+  `${sanitizeDocumentName(domain.replace(/\./g, '-'))}_${sanitizeDocumentName(docType.replace(/_/g, '-'))}`;
 
 /** Save quick scan to Drive. Returns false on any failure and never throws. */
 export const syncQuickScanToDrive = async (analysis: CurrentAnalysis): Promise<boolean> => {
@@ -79,8 +93,50 @@ export const syncDeepAnalysisToDrive = async (analysis: CurrentAnalysis): Promis
   }
 };
 
-/** Load all analyses from Drive (for hydrating empty local history). Returns [] on any failure. */
-export const loadHistoryFromDrive = async (): Promise<DriveAnalysisFile[]> => {
+/** Save a self-run site policy analysis to Drive. Returns false on any failure and never throws. */
+export const syncSitePolicyToDrive = async (local: LocalPolicyAnalysis): Promise<boolean> => {
+  try {
+    const { analysis, provenance } = local;
+    if (!analysis.contentHash) return false;
+
+    const token = await getDriveToken();
+    if (!token) return false;
+
+    const folderId = await getOrCreateFolder(token);
+
+    const file: DriveSitePolicyFile = {
+      contentHash: analysis.contentHash,
+      documentName: `${analysis.domain} — ${analysis.docType.replace(/_/g, ' ')}`,
+      analysisType: 'site-policy',
+      // The moment the user ran it, not the moment we got round to backing it up.
+      createdAt: provenance.ranAt,
+      updatedAt: new Date().toISOString(),
+      domain: analysis.domain,
+      docType: analysis.docType,
+      charCount: provenance.sourceChars,
+      provenance,
+      result: analysis,
+    };
+
+    const filename = buildFilename(
+      buildSitePolicySlug(analysis.domain, analysis.docType),
+      'site-policy',
+      analysis.contentHash,
+    );
+    await upsertAnalysisFile(token, folderId, filename, file, analysis.contentHash, 'site-policy');
+    return true;
+  } catch (e) {
+    console.warn('[Drive sync] sitePolicy failed:', e);
+    return false;
+  }
+};
+
+/**
+ * Load upload analyses from Drive (for hydrating empty local history). Returns [] on any failure.
+ *
+ * Site policy files are deliberately not among them — see `listAnalysisFiles`.
+ */
+export const loadHistoryFromDrive = async (): Promise<(DriveQuickScanFile | DriveDeepAnalysisFile)[]> => {
   try {
     const token = await getDriveToken();
     if (!token) return [];

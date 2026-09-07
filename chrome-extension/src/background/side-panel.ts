@@ -81,9 +81,9 @@ const applyAvailability = async (tabId: number, url: string | undefined) => {
    * D15: availability follows "is this a web page?", not "have we analysed it?".
    *
    * This used to gate on coverage. That was wrong, and it hid the one thing we can offer on a site
-   * outside the corpus: the reader needs no analysis, only `activeTab` on a user click, so on an
-   * uncovered site finding and showing the policy documents is the *whole* value. Gating it away
-   * left the panel unreachable exactly where it was the only thing we had.
+   * outside the corpus: the reader needs no analysis, only page access, so on an uncovered site
+   * finding and showing the policy documents is the *whole* value. Gating it away left the panel
+   * unreachable exactly where it was the only thing we had.
    *
    * The badge does NOT follow this and must not. The badge means "we have read this site's
    * policies" — a claim we can only make about 37 domains. The panel answers "what does this site

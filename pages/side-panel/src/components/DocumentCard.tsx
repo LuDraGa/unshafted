@@ -100,12 +100,18 @@ const Group = ({ label, children }: { label: string; children: ReactNode }) => (
   </div>
 );
 
+/**
+ * `freshness: null` means NO freshness claim is available for this document, and the line is
+ * omitted rather than defaulted. Part 6 (S3) is the case: an analysis the user ran on their own
+ * key was never read by us, so every label above — including "as we read it on <date>" — would
+ * attribute their work to us. A missing line says nothing; a wrong one says something false.
+ */
 export const DocumentCard = ({
   analysis,
   freshness,
 }: {
   analysis: SitePolicyAnalysis;
-  freshness: DocumentFreshness;
+  freshness: DocumentFreshness | null;
 }) => {
   const changed = freshness === 'changed';
   const absent = analysis.requiredDisclosures.filter(disclosure => disclosure.status === 'absent');
@@ -122,9 +128,11 @@ export const DocumentCard = ({
       </summary>
 
       <div className="panel-doc-body">
-        <p className={`m-0 text-[11px] font-semibold ${FRESHNESS_TONE[freshness]}`}>
-          {FRESHNESS_LABEL[freshness](analysis.analyzedAt)}
-        </p>
+        {freshness ? (
+          <p className={`m-0 text-[11px] font-semibold ${FRESHNESS_TONE[freshness]}`}>
+            {FRESHNESS_LABEL[freshness](analysis.analyzedAt)}
+          </p>
+        ) : null}
 
         {changed ? (
           <div className="rounded-xl border border-violet-200 bg-violet-50 px-3 py-2">

@@ -21,5 +21,16 @@ export {
   deleteAnalysisFile,
   deleteSourceFileIfOrphaned,
 } from './drive.js';
-export { syncQuickScanToDrive, syncDeepAnalysisToDrive, loadHistoryFromDrive, deleteFromDrive } from './drive-sync.js';
-export type { DriveAnalysisFile, DriveQuickScanFile, DriveDeepAnalysisFile } from './drive-types.js';
+export {
+  syncQuickScanToDrive,
+  syncDeepAnalysisToDrive,
+  syncSitePolicyToDrive,
+  loadHistoryFromDrive,
+  deleteFromDrive,
+} from './drive-sync.js';
+export type {
+  DriveAnalysisFile,
+  DriveQuickScanFile,
+  DriveDeepAnalysisFile,
+  DriveSitePolicyFile,
+} from './drive-types.js';

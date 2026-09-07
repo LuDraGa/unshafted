@@ -8,7 +8,8 @@
     "type-check": "tsc --noEmit",
     "capture": "node --import tsx capture.ts",
     "report": "node --import tsx report.ts",
-    "build-bundle": "node --import tsx build-bundle.ts"
+    "build-bundle": "node --import tsx build-bundle.ts",
+    "calibrate": "node --import tsx calibrate-site-policy-prompt.ts"
   },
   "devDependencies": {
     "@extension/tsconfig": "workspace:*"

@@ -1,9 +1,9 @@
 Privacy Policy
 ==============
 
-**Effective date:** May 7, 2026
+**Effective date:** September 7, 2026
 
-**Unshafted** (Chrome Web Store item ID: `fpjjdlffjfkdiibljglmgfkbpkkibpia`) is a browser extension that analyzes contracts and agreements for risk using AI models. This policy explains what data the extension collects, how it is handled, how it is stored, and how it is shared.
+**Unshafted** (Chrome Web Store item ID: `fpjjdlffjfkdiibljglmgfkbpkkibpia`) is a browser extension that analyzes contracts and agreements for risk using AI models, and that reads the policy documents a website links to so it can tell you what that site makes you agree to. This policy explains what data the extension collects, how it is handled, how it is stored, and how it is shared.
 
 ---
 
@@ -26,11 +26,24 @@ When you upload a `.pdf` or `.txt` file for analysis, the document text is extra
 
 AI-generated risk analysis results (quick scans and deep analyses) are stored locally. The analysis results contain the AI-generated risk summary, which includes referenced excerpts from the contract. If you are signed in and Drive backup is enabled, quick-scan and deep-analysis report JSON files are stored as separate files in the "Unshafted" folder in **your own Google Drive** account. If you enable Drive backup after a local report already exists, the extension asks before backing up the visible report; that manual backup may only sync report JSON if the original source file was not uploaded during the original scan.
 
-### 5. Usage counters
+### 5. Website content (policy documents only)
+
+To tell you what a site makes you agree to, the extension reads the page you are viewing. It does this in a **single, one-shot script run in the open tab**, and only while the Unshafted side panel is open on that page. There is no persistent content script, nothing runs in the background on pages you are not looking at, and nothing is left behind on a page after the read.
+
+Two things are read:
+
+1. **The links on the page.** The extension collects the anchor links on the current page and keeps only those whose text or URL identifies a legal document — terms of service, privacy policy, cookie policy, EULA, acceptable use, and similar. Everything else on the page is discarded and never leaves the tab.
+2. **The text of a policy document, when there is a reason to read it.** The extension fetches those policy URLs from the page's own session and extracts their text. This happens to check whether a document we have already analyzed still matches what the site is currently serving, and when you explicitly ask to read or analyze a document.
+
+**Where this text goes.** Nothing here is sent to Unshafted. Policy text is hashed on your device (SHA-256) to compare against our published corpus, and the comparison happens locally. If — and only if — you explicitly click to analyze a site's documents, the policy text is sent to the AI provider **you** configured, using **your own** API key, exactly as an uploaded contract is (see the AI provider section below). If you have enabled Drive backup, the resulting analysis is written to your own Google Drive.
+
+**What is never read.** Page content that is not a policy document, form fields, passwords, cookies, page contents on tabs where the panel is not open, and anything on a page you have not opened the panel on. The extension does not build, store, or transmit a record of the sites you visit.
+
+### 6. Usage counters
 
 Anonymous users: a daily quick-scan counter is stored locally to enforce the free-tier limit (3 quick scans per day). Signed-in users get unlimited quick scans; a monthly full-analysis counter is stored locally.
 
-### 6. Authentication tokens (signed-in users)
+### 7. Authentication tokens (signed-in users)
 
 When you sign in or enable Drive backup, the extension receives and stores authentication tokens issued by Google and Supabase. These tokens are used only to keep your session alive and to authorize calls to the issuing service; they are not transmitted to any other party.
 
@@ -138,7 +151,8 @@ Data retention and deletion
 What we do NOT collect
 ----------------------
 
-- No browsing history or page content (the extension does not read web pages)
+- No browsing history. The extension reads the page you have the panel open on, in the moment, to find its policy documents; it does not record, store, or transmit which sites you visited
+- No page content beyond policy documents. Everything else the one-shot read touches is discarded inside the tab and never leaves your device
 - No analytics, telemetry, or crash reporting
 - No cookies, fingerprinting, or tracking
 - No location data

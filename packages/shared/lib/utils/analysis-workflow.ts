@@ -1,6 +1,5 @@
 import {
   AnalysisErrorSchema,
-  AppSettingsSchema,
   DeepAnalysisResultSchema,
   CurrentAnalysisSchema,
   QuickScanResultSchema,
@@ -16,6 +15,7 @@ import {
   touchCurrentAnalysis,
 } from '@extension/unshafted-core';
 import type { AnalysisError, AppSettings, CurrentAnalysis } from '@extension/unshafted-core';
+import { resolveProvider } from './resolve-provider.js';
 
 const makeError = (error: unknown, fallback: AnalysisError): AnalysisError => {
   if (error instanceof Error) {
@@ -27,29 +27,6 @@ const makeError = (error: unknown, fallback: AnalysisError): AnalysisError => {
   }
 
   return AnalysisErrorSchema.parse(fallback);
-};
-
-const resolveProvider = (settings: AppSettings) => {
-  const parsed = AppSettingsSchema.parse(settings);
-  const isOpenAI = parsed.provider === 'openai';
-
-  const apiKey = isOpenAI ? parsed.openaiApiKey : parsed.apiKey;
-  if (!apiKey.trim()) {
-    throw AnalysisErrorSchema.parse({
-      code: 'missing_api_key',
-      message: `Add your ${isOpenAI ? 'OpenAI' : 'OpenRouter'} API key in Options before running analysis.`,
-      suggestion: 'Open the Options page, paste your key, save it, and try again.',
-      retryable: false,
-    });
-  }
-
-  return {
-    provider: parsed.provider,
-    apiKey,
-    quickModel: isOpenAI ? parsed.openaiQuickModel : parsed.quickModel,
-    deepModel: isOpenAI ? parsed.openaiDeepModel : parsed.deepModel,
-    temperature: parsed.temperature,
-  };
 };
 
 export const runQuickScan = async (analysis: CurrentAnalysis, settings: AppSettings): Promise<CurrentAnalysis> => {

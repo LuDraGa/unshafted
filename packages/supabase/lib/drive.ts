@@ -1,4 +1,4 @@
-import type { DriveAnalysisFile } from './drive-types.js';
+import type { DriveAnalysisFile, DriveQuickScanFile, DriveDeepAnalysisFile } from './drive-types.js';
 
 const DRIVE_API = 'https://www.googleapis.com/drive/v3/files';
 const DRIVE_UPLOAD_API = 'https://www.googleapis.com/upload/drive/v3/files';
@@ -173,8 +173,14 @@ const upsertAnalysisFile = async (
   }
 };
 
-/** Validate that a parsed object looks like a DriveAnalysisFile */
-const isValidAnalysisFile = (data: unknown): data is DriveAnalysisFile => {
+/**
+ * Validate that a parsed object looks like an upload-history analysis file.
+ *
+ * Site policy files live in the same folder and are excluded on purpose. They belong to the side
+ * panel, not the popup's upload history, and they carry no `role` and no uploaded document — a
+ * hydration path that let one through would put a website in a list of the user's own contracts.
+ */
+const isValidHistoryFile = (data: unknown): data is DriveQuickScanFile | DriveDeepAnalysisFile => {
   if (typeof data !== 'object' || data === null) return false;
   const obj = data as Record<string, unknown>;
   return (
@@ -190,12 +196,17 @@ const isValidAnalysisFile = (data: unknown): data is DriveAnalysisFile => {
   );
 };
 
-/** List analysis JSON files from the Unshafted folder. */
-const listAnalysisFiles = async (token: string, folderId: string): Promise<DriveAnalysisFile[]> => {
-  const files: DriveAnalysisFile[] = [];
+/** List upload-history analysis JSON files from the Unshafted folder. Never returns site policies. */
+const listAnalysisFiles = async (
+  token: string,
+  folderId: string,
+): Promise<(DriveQuickScanFile | DriveDeepAnalysisFile)[]> => {
+  const files: (DriveQuickScanFile | DriveDeepAnalysisFile)[] = [];
   let pageToken: string | undefined;
 
   do {
+    // Enumerating the two upload types rather than excluding site policies keeps the next analysis
+    // type opt-in: a new one has to be added here to reach the history UI, instead of arriving in it.
     const q = [
       `'${folderId}' in parents`,
       `(appProperties has { key='analysisType' and value='quick-scan' } or appProperties has { key='analysisType' and value='deep-analysis' })`,
@@ -224,7 +235,7 @@ const listAnalysisFiles = async (token: string, folderId: string): Promise<Drive
       );
 
       for (const result of results) {
-        if (result.status === 'fulfilled' && isValidAnalysisFile(result.value)) {
+        if (result.status === 'fulfilled' && isValidHistoryFile(result.value)) {
           files.push(result.value);
         }
       }
