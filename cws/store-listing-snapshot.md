@@ -23,7 +23,7 @@ Companion to `cws-privacy-form-snapshot.md`. Captures the public-facing listing 
 
 ### Summary (from `package.json`)
 
-> Spot risky clauses before you sign. Upload contracts and get plain-English risk guidance with privacy-first AI.
+> Spot risky clauses before you sign — and see what the sites you already use make you agree to.
 
 ### Description — paste this verbatim into the Chrome Web Store Developer Dashboard → Store listing → Description
 
