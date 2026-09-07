@@ -1,139 +1,131 @@
-# CWS Submission Checklist — adding `<all_urls>`
+# CWS Submission Checklist — 0.8.0, adding `<all_urls>`
 
-**Prepared:** 2026-09-07 · **Status:** nothing below has been entered in the dashboard
+**Prepared:** 2026-09-07 · **Last updated:** 2026-09-07
+**Status:** dashboard draft filled in. **Screenshots outstanding, then submit.**
 **Applies to:** the site-policy release (adds `host_permissions: ['<all_urls>']`)
 **Live item:** `fpjjdlffjfkdiibljglmgfkbpkkibpia`, version `0.7.1`, no host permissions
 
-Everything here is paste-ready. The other files in `cws/` are the standing mirrors; this one is
-the working order for a single submission, and can be deleted once it is done.
+This is the working order for a single submission. The other files in `cws/` are the standing
+mirrors. Delete this one once the release is approved.
 
 ---
 
-## What review will actually be looking at
+## What review is actually looking at
 
 `<all_urls>` is the broadest permission Chrome grants, and this item has two rejections on record
 (Purple Potassium for unused permissions, Purple Nickel for the privacy policy). The lesson from
-that round is in `rejection-history.md`:
+that round, from `rejection-history.md`:
 
 > the review surface is the *union* of policy + in-product disclosure + listing copy + what's
 > actually in the ZIP.
 
-So a reviewer's question is not "is this permission justified in the abstract." It is **"do these
-four surfaces tell the same story."** They currently do not — the live listing describes an
-upload-only product, and the live single-purpose sentence says nothing about reading web pages.
-Shipping the manifest without §2 and §3 below reproduces the 0.7.0 rejection exactly.
+So the reviewer's question is not "is this permission justified in the abstract." It is **"do these
+four surfaces tell the same story."** Every item below exists to make sure they do.
 
-The argument that carries it: reading the documents a site links to is not scope drift from
-telling people what they agreed to — it **is** that purpose. That only works if the single-purpose
-field says so, which is why §2.1 is the single most important paste on this page.
+The argument that carries it: reading the documents a site links to is not scope drift from telling
+people what they agreed to, it **is** that purpose. That only works if the single-purpose field says
+so, which is why the single-purpose field in §2 was the most important paste on this page.
 
 ---
 
-## 1. Before you open the dashboard
+## 1. Preflight — DONE
 
-- [ ] **Bump the version** in `package.json`. It is `0.7.1`, which is what is live.
-- [ ] **Push `cws/privacy-policy.md` to `main`**, then confirm
-      `.github/workflows/sync-privacy-policy.yml` ran and the
-      [public gist](https://gist.github.com/LuDraGa/782b874f1e7fe0076fb2bf1509937e95) matches the
-      file. **Review reads the gist, not the repo.** A stale gist is a Purple Nickel citation
-      waiting to happen.
-- [ ] **Build the production ZIP and unzip it.** Confirm there is no `refresh.js` and no
-      `content_scripts` key in `manifest.json`. That script is dev-only
-      (`IS_DEV` in `chrome-extension/utils/plugins/make-manifest-plugin.ts`), and every claim
-      below about "no persistent content script" depends on it being absent from what ships.
-      A scraper in the ZIP is precisely what `3657ca0` had to remove.
+- [x] **Version bumped.** `package.json` and `chrome-extension/package.json` both `0.8.0`.
+- [x] **Privacy policy pushed and gist synced.** New §5 "Website content (policy documents only)".
+      Review fetches the [gist](https://gist.github.com/LuDraGa/782b874f1e7fe0076fb2bf1509937e95),
+      not the repo. Re-confirm the two match immediately before hitting submit, since a stale gist
+      is a Purple Nickel citation waiting to happen.
+- [x] **Production ZIP built and audited.** `unshafted-extension.zip`, 32 files, `0.8.0`.
+      Verified: `host_permissions: ["<all_urls>"]` present, **no `content_scripts` key**, no
+      `refresh.js`, no source maps. A scraper in the ZIP is precisely what `3657ca0` had to remove,
+      and every "no persistent content script" claim on the Privacy tab depends on its absence.
+- [x] **Code audited against every justification.** No `registerContentScripts` in source or in the
+      built `background.js`. `fetchDocumentInPage` uses `credentials: 'omit'`. The only network
+      hosts in the bundles are `accounts.google.com`, `www.googleapis.com`, the Supabase project,
+      `api.openai.com` and `openrouter.ai`. `CEB_POLICY_CDN_URL` is unset and absent from the
+      bundles, so the "no network request" claim under `tabs` holds for this build.
 
----
+## 2. Privacy tab — DONE (entered in draft)
 
-## 2. Privacy tab
+- [x] **Single purpose** replaced. Text in `privacy-form-snapshot.md`.
+- [x] **Seven permission justifications** entered: `storage`, `identity`, `host_permissions`,
+      `tabs`, `activeTab`, `scripting`, `sidePanel`. Every permission in the manifest gets a
+      required box; none may be blank. Full text and per-field character counts in
+      `privacy-form-snapshot.md`.
+- [x] **Data usage grid** set. One change from 0.7.1: `Website content` now checked.
+      `Web history` deliberately left unchecked, with the prepared answer recorded in the snapshot.
+- [x] Remote code (**No**), the three certifications, and the privacy policy URL unchanged.
 
-### 2.1 Single purpose — replace the existing text
+## 3. Store listing tab — description DONE, assets outstanding
 
-```
-Show a user the risk in the agreements they are asked to accept. Unshafted analyzes contracts the user uploads, and reads the legal documents a website links to — terms of service, privacy policy, cookie policy — so it can tell the user what that site makes them agree to. Both produce the same structured findings: unfavorable clauses, missing protections, and what the user can still do about them.
-```
+- [x] **Description** pasted. Restructured from upload-first into a balanced two-column form so the
+      listing carries the same emphasis as the rewritten single purpose. Text and rationale in
+      `store-listing-snapshot.md`.
+- [x] **Summary** ships with the build via `_locales/en/messages.json`. Nothing to paste.
+- [ ] **Screenshots — the remaining blocker.** The two live ones show the upload flow only. A
+      reviewer weighing `<all_urls>` benefits enormously from seeing the panel open on a real site
+      with its documents listed. Not strictly required; cheap, and it makes the permission
+      self-evident.
 
-### 2.2 Permission justifications
+      1280×800 or 640×400, JPEG or 24-bit PNG, **no alpha channel**. Order matters, slot 1 is the
+      listing tile.
 
-`storage` and `identity` are already entered and unchanged. The rest are new fields — `tabs`,
-`activeTab` and `scripting` are in the live manifest without justifications because they predate
-this file, so fill them in even though they are not new permissions.
+      - [ ] **1.** Side panel open on a **Very High** covered site (snapchat.com, tiktok.com or
+            coinbase.com), verdict and a named exposure visible.
+      - [ ] **2.** Side panel on an **uncovered** site showing the discovered document list.
+      - [ ] **3.** The `AnalyseConfirm` sheet, with *"runs on your own API key… nothing is sent
+            until you press the button"* legible. This one is aimed at the reviewer as much as the
+            user.
+      - [ ] **4.** Contract upload result (reuse the better of the two live shots).
+      - [ ] **5.** Options / onboarding with the BYO-key field.
 
-**`host_permissions` — the one that decides the review**
+      macOS `screencapture` writes PNG **with** an alpha channel, which CWS rejects. Capture a 16:10
+      region so the downscale does not distort, then flatten:
 
-```
-Unshafted tells a user what the site they are on makes them agree to. To do that it must read that site's own page to find the legal documents it links to — terms of service, privacy policy, cookie policy — and fetch their text. Standing site access is required because Chrome grants activeTab only when the user clicks the toolbar icon and revokes it the moment the tab navigates, which makes automatic detection impossible. The read is a single one-shot script run only while the Unshafted side panel is open on that page. There is no persistent content script. Only links that identify a legal document are kept; all other page content is discarded inside the tab. No page content and no record of visited sites is sent to Unshafted.
-```
+      ```bash
+      sips -s format jpeg -s formatOptions 90 -z 800 1280 shot.png --out shot-1280x800.jpg
+      ```
 
-**`tabs`**
+- [ ] **Small promo tile (440×280)** — optional, worth doing. Does not appear on the listing page
+      itself; it feeds Google's curated and featured placements on the Store homepage. Absent,
+      nothing is substituted and the item is simply never eligible for those slots.
+- [ ] **Marquee promo tile (1400×560)** — optional, low priority. Only used if Google features the
+      item.
 
-```
-Reads the URL of the active tab so the extension can tell whether the site the user is on appears in Unshafted's bundled index of already-analysed policy documents, and show the corresponding risk level. This lookup is local and involves no network request.
-```
+## 4. Submit
 
-**`activeTab`**
+- [ ] Re-confirm the gist matches `cws/privacy-policy.md`.
+- [ ] Upload `unshafted-extension.zip`.
+- [ ] Submit for review.
 
-```
-Retained as the fallback path for reading the current page when a user has restricted the extension's site access from chrome://extensions. Used for the same one-shot policy-document read described under host_permissions.
-```
-
-**`scripting`**
-
-```
-Runs the one-shot script that collects the current page's legal-document links and fetches the text of a policy document, in the page's own session. No script is registered to run persistently on any page.
-```
-
-**`sidePanel`**
-
-```
-Renders the policy analysis in Chrome's side panel beside the page, so the extension never injects UI into the page itself.
-```
-
-### 2.3 Data usage grid — one change
-
-- [ ] **Check `Website content`** — text, images, sounds, videos, hyperlinks.
-
-It is narrow collection, but the category names hyperlinks and text and the read is real. Claiming
-otherwise while shipping `<all_urls>` is the contradiction that gets items rejected. Everything
-else stays as it is; in particular **leave `Web history` unchecked** — the extension reads the page
-in the moment and never records where the user has been.
-
-### 2.4 Unchanged
-
-Remote code (**No**), the three certifications, and the privacy policy URL all stay as they are.
-
----
-
-## 3. Store listing tab
-
-- [ ] **Description** — paste the block from `store-listing-snapshot.md`. It now opens with the
-      site-policy paragraph and adds the page-reading line under *Privacy at a glance*. The live
-      copy describes an upload-only product; leaving it is the 0.7.0 mistake verbatim.
-- [ ] **Summary** — comes from `chrome-extension/public/_locales/en/messages.json` and ships with
-      the build, so it updates itself once the new ZIP is uploaded. Nothing to paste. New text:
-      *"Spot risky clauses before you sign — and see what the sites you already use make you agree to."*
-- [ ] **Screenshots** — the two live ones show the upload flow only. A reviewer assessing
-      `<all_urls>` benefits from seeing the side panel open on a real site with its documents
-      listed. Not required; cheap, and it makes the permission self-evident.
-
----
-
-## 4. After submitting
+## 5. After submitting
 
 - [ ] Expect a longer review than 0.7.1's. `<all_urls>` draws scrutiny that `storage`+`identity`
-      did not.
-- [ ] If it is rejected, **do not** reach for per-site permission prompting — one Chrome dialog
-      per site is the same defect wearing a hat. The prepared retreat is a one-time all-sites
+      did not, and this item has two rejections on its record. Budget for one round of questions.
+- [ ] **If a question comes back on `Web history`,** the prepared answer is in
+      `privacy-form-snapshot.md` under that heading. Do not improvise it.
+- [ ] **If `<all_urls>` is refused, do not reach for per-site permission prompting** — one Chrome
+      dialog per site is the same defect wearing a hat. The prepared retreat is a one-time all-sites
       `optional_host_permissions` request at onboarding: same end state, no install-time warning,
       and it needs a decline path. See D1 in
       `execution-docs/site-policy-part7-page-access.md`.
 - [ ] Whatever happens, append the outcome to `rejection-history.md` — violation ID, root cause,
       and the diff that resolved it.
 
----
-
-## 5. Once it is approved
+## 6. Once approved
 
 - [ ] Update the **Version live** and **Snapshot date** headers in `privacy-form-snapshot.md` and
-      `store-listing-snapshot.md`, and drop their "not yet entered" warnings.
+      `store-listing-snapshot.md`, and drop their "not yet submitted" warnings.
+- [ ] Append the approval to `rejection-history.md`.
 - [ ] Delete this file. It is a work order, not a mirror.
+
+---
+
+## Standing hazard, outliving this submission
+
+`packages/shared/lib/utils/policy-cdn.ts` will fetch `/d/{sha256(domain)}.json` on popup open the
+moment `CEB_POLICY_CDN_URL` is set. It is unset today, which is the only reason the `tabs`
+justification can say these lookups never touch the network. **Wiring up the CDN invalidates that
+justification, needs a privacy-policy change, and reopens the `Web history` checkbox.** Recorded in
+full in `privacy-form-snapshot.md`; repeated here because this file is what someone reads before a
+resubmission.
