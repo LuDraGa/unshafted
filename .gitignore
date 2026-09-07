@@ -41,3 +41,11 @@ corpus/*
 # Per-machine session state: local tool permissions and the browser-preview launch entry.
 # Nothing in here describes the project, so it stays out of the repo.
 .claude/
+
+# CWS capture originals containing personal data
+# The redacted derivatives in cws/store-assets/ are what ships. These three originals hold a real
+# email address, client document names, and account handles; git history is permanent, so they stay
+# on the machine that took them. Same posture as corpus/ above.
+cws/store-assets/raw/window-covered-chesscom.png
+cws/store-assets/raw/popup-account-drive-disclosure.png
+cws/store-assets/raw/popup-history-reports.png
