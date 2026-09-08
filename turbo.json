@@ -21,7 +21,28 @@
       "outputs": ["../../dist/**", "dist/**"],
       "cache": false
     },
+    // No `^ready`, and that was checked rather than assumed. Both workspace packages point `types`
+    // at their source entry (`index.mts`, `index.ts`), so TypeScript reads them without a build;
+    // `pnpm type-check` passes 12/12 on a tree with every `dist/` deleted. Nothing here executes a
+    // workspace package the way `lint` executes `tailwind.config.ts`, which is what forced `^ready`
+    // there.
     "type-check": {
+      "cache": false
+    },
+    /*
+     * `^ready` because `@extension/storage`'s suite imports `@extension/unshafted-core` at RUNTIME,
+     * and that resolves through `main: dist/index.mjs` — built output, not source. On a tree with
+     * no `dist/` the import throws before any test registers, so the run reports *1 failing test*
+     * rather than 13, which reads like one broken case instead of a suite that never executed.
+     * `unshafted-core`'s own suite imports source and passes either way, so the need is invisible
+     * unless you look at storage specifically.
+     *
+     * `cache: false` matches `lint` and `type-check`. There is no remote cache configured, so
+     * caching would buy nothing in CI while making a stale green possible if inputs were ever
+     * declared wrong.
+     */
+    "test": {
+      "dependsOn": ["^ready"],
       "cache": false
     },
     // `^ready` for the same reason `build` needs it. `@extension/ui` resolves through its built
