@@ -2,8 +2,9 @@
 
 **Item:** Unshafted: AI Contract Risk Analyzer
 **Item ID:** `fpjjdlffjfkdiibljglmgfkbpkkibpia`
-**Snapshot date:** 2026-09-07 — **entered in the draft listing, not yet submitted for review.**
-The published listing is still the 0.7.1 copy, which describes an upload-only product.
+**Version live:** 0.8.0 — approved and published on or before 2026-09-08
+**Snapshot date:** 2026-09-09 — **this is the published listing.** The copy below went out with
+0.8.0 and replaced the 0.7.1 upload-only description.
 **Source:** Chrome Web Store Developer Dashboard → Store listing
 
 Companion to `privacy-form-snapshot.md`. Captures the public-facing listing copy so the source of truth is in git.

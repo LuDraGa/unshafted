@@ -40,8 +40,10 @@ const manifest = {
   permissions: ['storage', 'identity', 'tabs', 'activeTab', 'scripting', 'sidePanel'],
   /**
    * Standing read access to the page, added 2026-09-07 for site policy awareness (see
-   * execution-docs/site-policy-part7-page-access.md). NOT YET SUBMITTED — the live listing is
-   * 0.7.1, which has no host permissions.
+   * execution-docs/site-policy-part7-page-access.md). Submitted and APPROVED as part of 0.8.0,
+   * which is live; the justification review accepted is the one mirrored in
+   * cws/privacy-form-snapshot.md, so it is now the baseline a resubmission must stay consistent
+   * with rather than an argument still to be made.
    *
    * WHY THIS REOPENS WHAT 3657ca0 CLOSED, AND WHY THAT IS NOT A REGRESSION.
    *

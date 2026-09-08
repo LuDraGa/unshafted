@@ -1,123 +1,122 @@
-# CWS Submission Checklist — 0.8.0, adding `<all_urls>`
+# CWS Submission Checklist — 0.8.1, maintenance
 
-**Prepared:** 2026-09-07 · **Last updated:** 2026-09-07
-**Status:** dashboard draft filled in. **Screenshots outstanding, then submit.**
-**Applies to:** the site-policy release (adds `host_permissions: ['<all_urls>']`)
-**Live item:** `fpjjdlffjfkdiibljglmgfkbpkkibpia`, version `0.7.1`, no host permissions
+**Prepared:** 2026-09-09
+**Status:** ZIP built and audited. **Ready to submit.**
+**Applies to:** a maintenance release — dependency sweep, pdf.js 4→6, a ReDoS fix, and CI work
+**Live item:** `fpjjdlffjfkdiibljglmgfkbpkkibpia`, version `0.8.0`, `<all_urls>` already granted
 
 This is the working order for a single submission. The other files in `cws/` are the standing
-mirrors. Delete this one once the release is approved.
+mirrors. Delete this one once the release is approved — and unlike last time, actually do §5.
 
 ---
 
-## What review is actually looking at
+## What makes this one different from 0.8.0's
 
-`<all_urls>` is the broadest permission Chrome grants, and this item has two rejections on record
-(Purple Potassium for unused permissions, Purple Nickel for the privacy policy). The lesson from
-that round, from `rejection-history.md`:
+0.8.0 was the hard submission: it added the broadest permission Chrome grants to an item with two
+rejections on record, and it needed all four review surfaces moved together to carry it.
 
-> the review surface is the *union* of policy + in-product disclosure + listing copy + what's
-> actually in the ZIP.
+**0.8.1 moves none of them.** Verified against `main`, which is what users have installed:
 
-So the reviewer's question is not "is this permission justified in the abstract." It is **"do these
-four surfaces tell the same story."** Every item below exists to make sure they do.
+| Surface | Change |
+|---|---|
+| `chrome-extension/manifest.ts` | **none** — permissions and `host_permissions` byte-identical |
+| `cws/privacy-policy.md` | **none** — no data-flow change, gist already matches the repo |
+| `cws/privacy-form-snapshot.md` | header only (0.7.1 → 0.8.0 live); no form field changes |
+| `cws/store-listing-snapshot.md` | header only; listing copy unchanged |
+| ZIP contents | same 32 entries, same worker bytes |
 
-The argument that carries it: reading the documents a site links to is not scope drift from telling
-people what they agreed to, it **is** that purpose. That only works if the single-purpose field says
-so, which is why the single-purpose field in §2 was the most important paste on this page.
+So the reviewer sees the permission story they already approved, with a new build behind it. The
+argument that carried 0.8.0 does not need making again; it needs *not contradicting*.
+
+## What actually ships
+
+Nine commits, of which these change what a user runs:
+
+- **Dependency sweep (#10)** — seven Dependabot PRs taken as one deliberate change. Mostly
+  formatting churn downstream of a Prettier bump, but the dependency versions are real.
+- **pdf.js 4→6 (#21)** — the API and the vendored worker moved together. This is the one with real
+  user-visible risk: a version handshake failure would break PDF analysis on the first document.
+- **ReDoS fix in `json.ts` (#29)** — model-output parsing no longer backtracks quadratically on an
+  unterminated code fence.
+- **pdf.js worker now emitted from the package (#22)** — build-time change; the shipped bytes are
+  identical, which is the point.
+
+The rest (#19, #20, #24, #26, #15) is repo and CI only and reaches no user.
 
 ---
 
-## 1. Preflight — DONE
+## 1. Preflight
 
-- [x] **Version bumped.** `package.json` and `chrome-extension/package.json` both `0.8.0`.
-- [x] **Privacy policy pushed and gist synced.** New §5 "Website content (policy documents only)".
-      Review fetches the [gist](https://gist.github.com/LuDraGa/782b874f1e7fe0076fb2bf1509937e95),
-      not the repo. Re-confirm the two match immediately before hitting submit, since a stale gist
-      is a Purple Nickel citation waiting to happen.
-- [x] **Production ZIP built and audited.** `unshafted-extension.zip`, 32 files, `0.8.0`.
-      Verified: `host_permissions: ["<all_urls>"]` present, **no `content_scripts` key**, no
-      `refresh.js`, no source maps. A scraper in the ZIP is precisely what `3657ca0` had to remove,
-      and every "no persistent content script" claim on the Privacy tab depends on its absence.
-- [x] **Code audited against every justification.** No `registerContentScripts` in source or in the
-      built `background.js`. `fetchDocumentInPage` uses `credentials: 'omit'`. The only network
-      hosts in the bundles are `accounts.google.com`, `www.googleapis.com`, the Supabase project,
-      `api.openai.com` and `openrouter.ai`. `CEB_POLICY_CDN_URL` is unset and absent from the
-      bundles, so the "no network request" claim under `tabs` holds for this build.
+- [x] **Version bumped.** All 15 `package.json` files at `0.8.1`; the manifest reads it from
+      `packageJson.version`, so there is nothing separate to bump.
+- [x] **Lockfile still frozen-installable.** `pnpm install --frozen-lockfile` succeeds, which is
+      what `build-zip` and the new `test` / `type-check` jobs run.
+- [x] **Gist matches `cws/privacy-policy.md`.** Diffed against the live
+      [gist](https://gist.github.com/LuDraGa/782b874f1e7fe0076fb2bf1509937e95) rather than assumed.
+      The policy is unchanged this round, so pushing `release` re-syncs identical content — but
+      **re-confirm immediately before submitting anyway.** A stale gist is a Purple Nickel citation
+      waiting to happen, and it is the cheapest check on this page.
+- [x] **Production ZIP built and audited.** `unshafted-extension.zip`, **32 files**, `0.8.1`.
+      Verified: `host_permissions: ['<all_urls>']` present, **no `content_scripts` key**, no
+      `refresh.js`, no source maps, `pdf.worker.min.mjs` present at 1,317,034 bytes.
+- [x] **Worker/API version handshake.** `pdfjs-dist` 6.3.289 for both halves, emitted from one
+      install by the popup's build plugin. The vendored copy that could drift is gone (#22).
+- [ ] **Open one PDF in the unpacked build before submitting.** The handshake failure only shows up
+      in a real browser at `getDocument()` time — Node falls back to a fake worker and never
+      performs it, so no test in the suite can catch a mismatch. The bytes are identical to the
+      0.8.0 build that was verified this way, so this is confirmation rather than discovery, but it
+      is the one manual check worth keeping.
 
-## 2. Privacy tab — DONE (entered in draft)
+## 2. Privacy tab
 
-- [x] **Single purpose** replaced. Text in `privacy-form-snapshot.md`.
-- [x] **Seven permission justifications** entered: `storage`, `identity`, `host_permissions`,
-      `tabs`, `activeTab`, `scripting`, `sidePanel`. Every permission in the manifest gets a
-      required box; none may be blank. Full text and per-field character counts in
-      `privacy-form-snapshot.md`.
-- [x] **Data usage grid** set. One change from 0.7.1: `Website content` now checked.
-      `Web history` deliberately left unchecked, with the prepared answer recorded in the snapshot.
-- [x] Remote code (**No**), the three certifications, and the privacy policy URL unchanged.
+- [ ] **Nothing to change.** Single purpose, all seven permission justifications, the data-usage
+      grid, remote code (**No**), the three certifications and the policy URL are all as approved
+      for 0.8.0 and mirrored in `privacy-form-snapshot.md`.
+- [ ] Open the tab and confirm it still reads that way — the mirror was a day stale before this
+      release, so verify rather than trust it.
 
-## 3. Store listing tab — description DONE, assets outstanding
+## 3. Store listing tab
 
-- [x] **Description** pasted. Restructured from upload-first into a balanced two-column form so the
-      listing carries the same emphasis as the rewritten single purpose. Text and rationale in
-      `store-listing-snapshot.md`.
-- [x] **Summary** ships with the build via `_locales/en/messages.json`. Nothing to paste.
-- [ ] **Screenshots — the remaining blocker.** The two live ones show the upload flow only. A
-      reviewer weighing `<all_urls>` benefits enormously from seeing the panel open on a real site
-      with its documents listed. Not strictly required; cheap, and it makes the permission
-      self-evident.
-
-      1280×800 or 640×400, JPEG or 24-bit PNG, **no alpha channel**. Order matters, slot 1 is the
-      listing tile.
-
-      - [ ] **1.** Side panel open on a **Very High** covered site (snapchat.com, tiktok.com or
-            coinbase.com), verdict and a named exposure visible.
-      - [ ] **2.** Side panel on an **uncovered** site showing the discovered document list.
-      - [ ] **3.** The `AnalyseConfirm` sheet, with *"runs on your own API key… nothing is sent
-            until you press the button"* legible. This one is aimed at the reviewer as much as the
-            user.
-      - [ ] **4.** Contract upload result (reuse the better of the two live shots).
-      - [ ] **5.** Options / onboarding with the BYO-key field.
-
-      macOS `screencapture` writes PNG **with** an alpha channel, which CWS rejects. Capture a 16:10
-      region so the downscale does not distort, then flatten:
-
-      ```bash
-      sips -s format jpeg -s formatOptions 90 -z 800 1280 shot.png --out shot-1280x800.jpg
-      ```
-
-- [ ] **Small promo tile (440×280)** — optional, worth doing. Does not appear on the listing page
-      itself; it feeds Google's curated and featured placements on the Store homepage. Absent,
-      nothing is substituted and the item is simply never eligible for those slots.
-- [ ] **Marquee promo tile (1400×560)** — optional, low priority. Only used if Google features the
-      item.
+- [ ] **Nothing to change.** No user-visible feature moved, so the description, summary and
+      screenshots all stand.
+- [ ] The optional promo tiles (440×280 small, 1400×560 marquee) are still unfilled. They feed
+      Google's curated placements, not the listing page. Still optional, still cheap, still nobody's
+      priority.
 
 ## 4. Submit
 
 - [ ] Re-confirm the gist matches `cws/privacy-policy.md`.
-- [ ] Upload `unshafted-extension.zip`.
+- [ ] Upload `unshafted-extension.zip` (0.8.1, 32 files).
 - [ ] Submit for review.
+- [ ] Tag what was actually sent: `git tag submitted/v0.8.1-r1 && git push origin submitted/v0.8.1-r1`.
 
-## 5. After submitting
+Expect a **shorter review than 0.8.0's**. No permission change, no policy change, no listing change
+— the things that draw scrutiny are all static. If it is slow anyway, that is queue depth, not a
+signal.
 
-- [ ] Expect a longer review than 0.7.1's. `<all_urls>` draws scrutiny that `storage`+`identity`
-      did not, and this item has two rejections on its record. Budget for one round of questions.
-- [ ] **If a question comes back on `Web history`,** the prepared answer is in
-      `privacy-form-snapshot.md` under that heading. Do not improvise it.
-- [ ] **If `<all_urls>` is refused, do not reach for per-site permission prompting** — one Chrome
-      dialog per site is the same defect wearing a hat. The prepared retreat is a one-time all-sites
-      `optional_host_permissions` request at onboarding: same end state, no install-time warning,
-      and it needs a decline path. See D1 in
-      `execution-docs/site-policy-part7-page-access.md`.
-- [ ] Whatever happens, append the outcome to `rejection-history.md` — violation ID, root cause,
-      and the diff that resolved it.
+## 5. Once approved — the part that was skipped last time
 
-## 6. Once approved
+All three of these were missed when 0.8.0 went live, which left `cws/` claiming 0.7.1 was published
+for a day. Nothing in CI reads these files; only a person notices.
 
-- [ ] Update the **Version live** and **Snapshot date** headers in `privacy-form-snapshot.md` and
-      `store-listing-snapshot.md`, and drop their "not yet submitted" warnings.
-- [ ] Append the approval to `rejection-history.md`.
+- [ ] Update **Version live** and **Snapshot date** in `privacy-form-snapshot.md` and
+      `store-listing-snapshot.md`, and replace the inferred 0.8.0 approval date with the real one
+      from the dashboard while signed in.
+- [ ] Append the outcome to `rejection-history.md` — approval or citation, either way.
+- [ ] Merge `release` → `main` with `--no-ff`, tag `v0.8.1`. **This is the step that finally moves
+      `main`**, and it also clears the ghost `pull_request_target` checks and CodeQL alerts 4 and 8,
+      all of which resolve from the default branch.
 - [ ] Delete this file. It is a work order, not a mirror.
+
+## 6. If review comes back with a question
+
+- **On `Web history`** — the prepared answer is in `privacy-form-snapshot.md` under that heading.
+  Do not improvise it.
+- **On `<all_urls>`** — do not reach for per-site permission prompting; the prepared retreat is a
+  one-time all-sites `optional_host_permissions` request at onboarding. See D1 in
+  `execution-docs/site-policy-part7-page-access.md`.
+- Either way it lands on a `releasefix/*` branch squash-merged into `release`, then a resubmission
+  tagged `submitted/v0.8.1-r2`.
 
 ---
 
