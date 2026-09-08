@@ -24,10 +24,19 @@
     "type-check": {
       "cache": false
     },
+    // `^ready` for the same reason `build` needs it. `@extension/ui` resolves through its built
+    // `dist/`, and every `pages/*/tailwind.config.ts` imports `withUI` from it — so on a tree that
+    // has not been built the Tailwind config fails to load, prettier-plugin-tailwindcss falls back
+    // to a parser that cannot read JSX, and eslint exits 2 with a ParseError instead of reporting
+    // lint errors. Only `@extension/shared` builds itself on postinstall, so this passed for anyone
+    // who had run a build and failed on every clean checkout — invisibly, until the PR checks
+    // started reading the repository (#25).
     "lint": {
+      "dependsOn": ["^ready"],
       "cache": false
     },
     "lint:fix": {
+      "dependsOn": ["^ready"],
       "cache": false
     },
     "format": {
