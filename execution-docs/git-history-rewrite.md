@@ -1,7 +1,7 @@
-# Git history rewrite — `clean_main`
+# Git history rewrite and branch model
 
-**Status:** complete — live on `main`
-**Started:** 2026-09-08
+**Status:** complete — both live
+**Date:** 2026-09-08
 **Result:** the rewritten history is `main`; the old history is preserved as `main_backup`
 **Backup:** tag `backup/pre-rewrite-main` → `8f3ac27f`
 
@@ -63,12 +63,93 @@ Note: `origin/main` was three commits behind local when this ran (it sat at `050
 those three. None of them touched `cws/privacy-policy.md`, so the gist workflow's path
 filter kept it from firing on the force-push.
 
-## Still open
-
-The three other remote branches — `UX_Rework`, `feat/site-policy-corpus-capture`,
-`feature/onboarding-wizard` — still sit on the old history and now share no ancestry with
-`main`. They are reachable through `main_backup`. Each needs its unique commits replayed
-onto the new trunk, or deleting if dead.
+Three stale branches — `UX_Rework`, `feat/site-policy-corpus-capture`,
+`feature/onboarding-wizard` — were all fully merged into the old `main` before the rewrite,
+so their work is in the new history too. Deleted, local and remote; the tips
+(`c86623e`, `ccb3a76`, `205ffda`) stay reachable through `main_backup`. A local-only
+`consolidation` branch (`4a52216`) was merged as well and went the same way.
 
 Anyone else holding a clone of this repo has a history that no longer matches the remote
 and has to re-clone.
+
+---
+
+# Part 2 — the branch model
+
+The rewrite cleaned up the past. This settles how the repo moves forward. The full rules
+live in `CLAUDE.md`; this records what changed and why.
+
+## Why `dev` had to go
+
+The old flow used `dev` as a marker for "the tree currently in front of CWS review". Two
+problems, one of them armed:
+
+1. **The name needed a disclaimer.** `CLAUDE.md` had to spend a sentence saying "`dev` is
+   never worked on directly", because every reader's instinct is that `dev` is a git-flow
+   integration branch. A name that needs a warning label is the wrong name.
+2. **Leftover boilerplate automation believed the other definition.** Three inherited files
+   still treated `dev` as the integration branch, and `.github/workflows/auto-change-prs-branch.yml`
+   was the dangerous one: on any PR opened against `main` it rewrote the base to `dev`. Under
+   this flow that silently hijacks the publish PR. It ran on `pull_request_target`, which
+   executes the workflow file from the **base** branch — so deleting it anywhere but `main`
+   would have left it live on exactly the branch it hurt.
+
+## The model
+
+| Branch | Means |
+|---|---|
+| `main` | published versions only — one merge commit per version, branch-protected |
+| `release` | what is, or is about to be, in front of CWS review |
+| `dev/vX.Y.Z` | the version trunk; transient, deleted after merge |
+| `fix/*`, `hotfix/*`, `releasefix/*` | transient work branches |
+| `main_backup` | pre-rewrite history, archived, never merged |
+
+Everything branches from `release`. Between cycles it equals `main`; during a cycle it is
+correctly ahead. One rule, no exceptions.
+
+## Merges on the trunk, squashes on the leaves
+
+The goal was two things at once: `main` readable as one block per version, without losing
+the per-change reasoning underneath. Squashing gives the first and destroys the second, and
+because a squash shares no ancestry with its source, `release` and `main` would drift
+further apart every cycle.
+
+So `dev/vX.Y.Z` → `release` and `release` → `main` both merge with `--no-ff`, and
+`vX.Y.Z` is tagged on `main` at publish. That gives:
+
+- `git log main --first-parent` — one commit per version, the blocks view
+- `git log main` — every underlying commit, reasoning intact
+- `git diff v0.8.0 v0.9.0` — version-to-version comparison straight off the tags
+
+`fix/*`, `hotfix/*` and `releasefix/*` squash into `release`; their internal history is
+noise. Submissions are tagged `submitted/vX.Y.Z-rN`, one per review round — the branch says
+what is *intended* for review, the tag says what was actually sent.
+
+## Config changed
+
+| File | Change |
+|---|---|
+| `.github/workflows/auto-change-prs-branch.yml` | **deleted** — rewrote PRs targeting `main` to `dev` |
+| `.github/workflows/sync-privacy-policy.yml` | triggers on `[main, release]` |
+| `.github/workflows/codeql.yml` | runs on `[main, release]` |
+| `.github/dependabot.yml` | `target-branch` → `release` |
+| `.github/pull_request_template.md` | PRs target `release`; only the publish merge targets `main` |
+| `CLAUDE.md` | release-flow section rewritten |
+
+Repo settings: `main` protected (PR required, 0 approvals since this is a solo repo, no
+direct or force pushes, admins included). `required_linear_history` is deliberately **off** —
+GitHub's linear-history rule would reject the `--no-ff` merges the model depends on.
+Merge-commit is the primary merge button, squash kept for the leaf branches, rebase off,
+head branches auto-delete on merge.
+
+## Known state, accepted
+
+`main` currently holds 0.8.0, which is still in CWS review — so `main` is ahead of what is
+published, which is the one thing the model exists to prevent. Rolling it back to the 0.7.1
+boundary (`bb15830`, 2026-05-19) was considered and declined: the model starts fresh at
+0.9.0 instead.
+
+Two consequences to expect. There will be no `v0.8.0` merge block in the `--first-parent`
+view, because `release` already equals `main` — the blocks view genuinely begins at 0.9.0.
+And the `v0.8.0` tag on `ad43546` anticipates the publish rather than recording it; if review
+forces changes, move it to whatever actually ships.
