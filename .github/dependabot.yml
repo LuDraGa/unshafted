@@ -1,3 +1,19 @@
+# Dependabot raises PRs against `release`, which under the branch model in CLAUDE.md is the tree
+# that goes in front of Chrome Web Store review — not a staging area. Two things follow from that,
+# and both are deliberate:
+#
+# 1. Nothing here merges itself. A `dependencies-auto-merge.yml` workflow used to approve and
+#    auto-merge non-major Dependabot PRs; it was written when these updates targeted `dev`, where
+#    that was reasonable. The retarget to `release` changed what it meant without changing what it
+#    did, and it survived only because GitHub Actions happens to lack approval rights in this repo
+#    — one settings flip from merging into an open submission. It was deleted (#14). Dependency
+#    updates land the same way everything else does: a human squash-merges them into `release`.
+#
+# 2. The PR cap is stated rather than inherited. The default is also 5, but leaving it implicit is
+#    how `actions/setup-node` sat three majors behind unnoticed (#13) — five github-actions slots
+#    were occupied, so Dependabot simply never raised it and never said so. Written down, the next
+#    person at least knows there is a queue behind what they can see. Sweeping the open PRs empties
+#    it; if updates start feeling overdue, that is the number to look at.
 version: 2
 updates:
   - package-ecosystem: "npm"
@@ -5,6 +21,7 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
+    open-pull-requests-limit: 5
     labels:
       - "dependencies"
       - "npm"
@@ -20,6 +37,7 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
+    open-pull-requests-limit: 5
     labels:
       - "dependencies"
       - "github-actions"
