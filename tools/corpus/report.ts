@@ -19,6 +19,16 @@ import type { SiteTag } from './sites.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
+/**
+ * Escape a crawled string for a Markdown table cell.
+ *
+ * The backslash has to go first: escaping `|` alone turns a cell containing `\` into `\\|`, which
+ * Markdown reads as an escaped backslash followed by a live pipe — so the column count shifts and
+ * the rest of the row lands in the wrong headings. Anchor text and matched snippets come from
+ * whatever site was crawled, so neither character is hypothetical.
+ */
+const mdCell = (value: string): string => value.replace(/\\/g, '\\\\').replace(/\|/g, '\\|');
+
 const pct = (part: number, whole: number) => (whole === 0 ? '—' : `${Math.round((part / whole) * 100)}%`);
 
 const countBy = <T>(items: T[], key: (item: T) => string): [string, number][] => {
@@ -126,7 +136,7 @@ const main = async () => {
     line('| Anchor text | URL |');
     line('|---|---|');
     for (const doc of untyped.slice(0, 20)) {
-      line(`| ${doc.anchorText.replace(/\|/g, '\\|') || '—'} | \`${doc.chosenUrl.slice(0, 70)}\` |`);
+      line(`| ${mdCell(doc.anchorText) || '—'} | \`${doc.chosenUrl.slice(0, 70)}\` |`);
     }
     line();
   }
@@ -156,9 +166,7 @@ const main = async () => {
     const byTerm = countBy(missed, item => item.matchedTerm);
     for (const [term, count] of byTerm.slice(0, 20)) {
       const example = missed.find(item => item.matchedTerm === term);
-      line(
-        `| \`${term}\` | ${count} | ${(example?.text ?? '').replace(/\|/g, '\\|').slice(0, 50)} (${example?.domain}) |`,
-      );
+      line(`| \`${term}\` | ${count} | ${mdCell(example?.text ?? '').slice(0, 50)} (${example?.domain}) |`);
     }
     line();
   }
