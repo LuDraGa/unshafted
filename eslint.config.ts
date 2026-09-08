@@ -35,8 +35,13 @@ export default config(
       sourceType: 'module',
       parserOptions: {
         ecmaFeatures: { jsx: true },
+        // `allowDefaultProject` accepts at most 8 files, and unshafted-core's suite reached that
+        // ceiling — the ninth test file failed to parse rather than failing to lint, which reads
+        // like a broken config rather than a full one. That suite has its own tsconfig now, so it
+        // is a real project and does not consume the allowance. `packages/storage/test` still
+        // does; give it the same treatment before adding an eighth file there.
         projectService: {
-          allowDefaultProject: ['packages/unshafted-core/test/*.ts', 'packages/storage/test/*.ts'],
+          allowDefaultProject: ['packages/storage/test/*.ts'],
         },
       },
       globals: {
