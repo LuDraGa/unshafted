@@ -93,6 +93,28 @@ test('normalizer survives unclosed tags', () => {
   assert.match(text, /Clause two\./);
 });
 
+/**
+ * Pins the premise behind dismissing CodeQL alert 9 (`js/incomplete-multi-character-sanitization`
+ * on the `stripByAttribute` loop). That rule assumes the loop is a sanitizer whose output becomes
+ * HTML again. It is not: it selects a content region, and `tagsToText` afterwards drops every
+ * remaining tag unconditionally. Nesting a container inside itself is the shape the rule looks for,
+ * so if a future edit ever lets an element out of that loop intact, this is where it shows up.
+ */
+test('normalizer lets no element survive nested-container stripping', () => {
+  const nested = [
+    '<main><p>Clause.</p><div class="cookie-banner"><div class="cookie-banner">chrome</div></div></main>',
+    '<main><p>Clause.</p><div role="navigation"><div role="navigation">chrome</div></div></main>',
+    // A tag deliberately split across the element the loop removes, so the seam could re-form it.
+    '<main><p>Clause.</p><scr<div class="cookie-banner">x</div>ipt>alert(1)</scr' + 'ipt></main>',
+  ];
+
+  for (const html of nested) {
+    const { text } = normalizePolicyHtml(html);
+    assert.doesNotMatch(text, /<\s*\/?[a-zA-Z][^>]*>/, `an element survived normalization of: ${html}`);
+    assert.match(text, /Clause\./);
+  }
+});
+
 test('content hash is a 64-char hex digest of the normalized text', async () => {
   const { hash } = await computePolicyHash('<main><p>Hello</p></main>');
   assert.match(hash, /^[0-9a-f]{64}$/);
