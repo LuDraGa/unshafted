@@ -31,7 +31,14 @@ type PolicyTextDiff = {
   hasChanges: boolean;
 };
 
-const HEADING_PATTERN = /^#{1,6}\s+(.*)$/;
+/*
+ * `(\S.*)?` rather than `(.*)`: with a plain `.*` the whitespace run and the capture can both
+ * match spaces, so the engine can split them in many ways and backtracks quadratically on a line
+ * of mostly spaces. Policy text is fetched from the site being analysed, so that input is not ours
+ * to trust. Forcing the capture to begin at a non-space makes the split unambiguous. Behaviour is
+ * unchanged — the capture was already `.trim()`ed.
+ */
+const HEADING_PATTERN = /^#{1,6}\s+(\S.*)?$/;
 
 const splitPolicyBlocks = (text: string): PolicyBlock[] => {
   const blocks: PolicyBlock[] = [];
@@ -43,7 +50,7 @@ const splitPolicyBlocks = (text: string): PolicyBlock[] => {
 
     const headingMatch = HEADING_PATTERN.exec(trimmed.split('\n')[0] ?? '');
     if (headingMatch) {
-      heading = headingMatch[1]!.trim();
+      heading = (headingMatch[1] ?? '').trim();
       // A heading is itself content: if it is reworded, that is a change worth reporting.
       blocks.push({ heading, text: trimmed });
       continue;
