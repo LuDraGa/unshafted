@@ -269,10 +269,14 @@ const extractTextFromPdf = async (fileBuffer: ArrayBuffer): Promise<PdfExtractio
 
   let pdf: pdfjsLib.PDFDocumentProxy;
   try {
+    // No `isEvalSupported: false` — pdf.js dropped the option in v5 along with the
+    // eval-based font compiler it gated, so there is no longer an eval path to turn
+    // off. Passing it now is a type error. `wasmUrl`/`iccUrl` are deliberately unset:
+    // the JPEG 2000 and ICC decoders they point at are reached only from the render
+    // path, and this never renders — it reads text.
     pdf = await pdfjsLib.getDocument({
       data: new Uint8Array(fileBuffer),
       useWorkerFetch: false,
-      isEvalSupported: false,
       useSystemFonts: false,
     }).promise;
   } catch (err: unknown) {
