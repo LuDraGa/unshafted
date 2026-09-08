@@ -20,20 +20,20 @@ import type { PolicyDocType } from './types.js';
  * reachable this way — we degrade rather than ask for host permissions.
  */
 
-export type PolicyCandidate = {
+type PolicyCandidate = {
   href: string;
   text: string;
   inFooterRegion: boolean;
 };
 
-export type ChosenPolicyUrl = {
+type ChosenPolicyUrl = {
   url: string;
   docType: PolicyDocType;
   source: 'link' | 'path-guess';
 };
 
 /** One discovered document, resolved to an absolute URL and ready to list for a reader. */
-export type RankedPolicyCandidate = {
+type RankedPolicyCandidate = {
   url: string;
   /** The anchor text as the site wrote it. Empty when the link carried none. */
   label: string;
@@ -43,7 +43,7 @@ export type RankedPolicyCandidate = {
   sameOrigin: boolean;
 };
 
-export type InPageFetchResult = {
+type InPageFetchResult = {
   ok: boolean;
   status: number;
   html: string;
@@ -58,7 +58,7 @@ export type InPageFetchResult = {
  * collected, because the pattern had no word for the most common one. "Content Policy",
  * "Cancellation Policy" and "Regulatory disclosure section" were all invisible.
  */
-export const POLICY_LINK_PATTERN =
+const POLICY_LINK_PATTERN =
   /privacy|terms|cookie|legal|eula|conditions|policy|policies|disclosure|consent|do\s*not\s*sell/i;
 
 /**
@@ -87,7 +87,7 @@ const DOC_TYPE_PATTERNS: [PolicyDocType, RegExp][] = [
   ['terms', /terms|conditions|\btos\b|user\s*agreement/i],
 ];
 
-export const guessDocType = (href: string, text = ''): PolicyDocType | null => {
+const guessDocType = (href: string, text = ''): PolicyDocType | null => {
   const haystack = `${text} ${href}`;
   for (const [docType, pattern] of DOC_TYPE_PATTERNS) {
     if (pattern.test(haystack)) return docType;
@@ -99,7 +99,7 @@ export const guessDocType = (href: string, text = ''): PolicyDocType | null => {
  * Fallback when footer scraping finds nothing. `sitemap.xml` is a distant third resort and is
  * out of scope; `robots.txt` is a dead end — it is disallow rules and never points at policies.
  */
-export const wellKnownPolicyPaths = (docType: PolicyDocType): string[] => {
+const wellKnownPolicyPaths = (docType: PolicyDocType): string[] => {
   const paths: Record<PolicyDocType, string[]> = {
     privacy: ['/privacy', '/privacy-policy', '/legal/privacy', '/policies/privacy', '/privacy.html'],
     terms: ['/terms', '/terms-of-service', '/terms-of-use', '/legal/terms', '/policies/terms', '/tos'],
@@ -139,7 +139,7 @@ const scoreCandidate = (candidate: PolicyCandidate, wanted: PolicyDocType, pageU
   return score;
 };
 
-export const choosePolicyUrl = (
+const choosePolicyUrl = (
   candidates: PolicyCandidate[],
   options: { docType: PolicyDocType; pageUrl: string },
 ): ChosenPolicyUrl | null => {
@@ -180,7 +180,7 @@ export const choosePolicyUrl = (
  * Same-origin first because AD-4 means only those are actually fetchable from the page context;
  * a cross-origin policy host is listed (the user can still open it in a tab) but never leads.
  */
-export const rankPolicyCandidates = (
+const rankPolicyCandidates = (
   candidates: PolicyCandidate[],
   options: { pageUrl: string; limit?: number },
 ): RankedPolicyCandidate[] => {
@@ -236,7 +236,7 @@ export const rankPolicyCandidates = (
 /**
  * INJECTED INTO THE PAGE — must stay entirely self-contained. See the module comment.
  */
-export const collectPolicyCandidatesInPage = (): PolicyCandidate[] => {
+const collectPolicyCandidatesInPage = (): PolicyCandidate[] => {
   const pattern = /privacy|terms|cookie|legal|eula|conditions|do\s*not\s*sell/i;
   const anchors = Array.from(document.querySelectorAll('a[href]')).slice(0, 2000);
   const documentHeight = Math.max(document.body?.scrollHeight ?? 0, 1);
@@ -270,7 +270,7 @@ export const collectPolicyCandidatesInPage = (): PolicyCandidate[] => {
  * Runs in the content-script isolated world, which shares the page's origin, so this is a
  * same-origin request and needs no host permission.
  */
-export const fetchDocumentInPage = async (url: string): Promise<InPageFetchResult> => {
+const fetchDocumentInPage = async (url: string): Promise<InPageFetchResult> => {
   try {
     const response = await fetch(url, { credentials: 'omit', redirect: 'follow' });
     const html = await response.text();
@@ -290,3 +290,14 @@ export const fetchDocumentInPage = async (url: string): Promise<InPageFetchResul
     };
   }
 };
+
+export {
+  POLICY_LINK_PATTERN,
+  guessDocType,
+  wellKnownPolicyPaths,
+  choosePolicyUrl,
+  rankPolicyCandidates,
+  collectPolicyCandidatesInPage,
+  fetchDocumentInPage,
+};
+export type { PolicyCandidate, ChosenPolicyUrl, RankedPolicyCandidate, InPageFetchResult };

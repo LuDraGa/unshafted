@@ -44,7 +44,7 @@ const MAX_CONFIRMATION_FETCHES = 4;
 const MIN_VISIBLE_DISCOVERY_MS = 450;
 
 /** Per bundled document, and deliberately per DOCUMENT rather than per site (D3). */
-export type DocumentFreshness =
+type DocumentFreshness =
   /** The live check has not finished — or has not been able to start. */
   | 'pending'
   /** The live page hashes to exactly what we read. */
@@ -54,9 +54,9 @@ export type DocumentFreshness =
   /** We could not read the live page. Says nothing about the document either way. */
   | 'unconfirmed';
 
-export type ReaderEntry = { state: 'loading' } | { state: 'done'; capture: PolicyDocumentCapture };
+type ReaderEntry = { state: 'loading' } | { state: 'done'; capture: PolicyDocumentCapture };
 
-export type LivePolicyCheck = {
+type LivePolicyCheck = {
   /** Null until discovery has run. `documents` inside it is what the reader lists. */
   discovery: PolicyDiscoveryResult | null;
   /** True while the page is being looked at. The reader owes the user this; see the floor above. */
@@ -120,7 +120,7 @@ const confirmationTargets = (
   return [...picked.values()];
 };
 
-export const useLivePolicyCheck = (
+const useLivePolicyCheck = (
   tabId: number | null,
   pageUrl: string | null,
   analyses: readonly SitePolicyAnalysis[],
@@ -264,3 +264,6 @@ export const useLivePolicyCheck = (
     rediscover,
   };
 };
+
+export { useLivePolicyCheck };
+export type { DocumentFreshness, ReaderEntry, LivePolicyCheck };

@@ -16,13 +16,13 @@ import type { Exposure } from './types.js';
  * needed here.
  */
 
-export type PolicyBlock = {
+type PolicyBlock = {
   /** Nearest preceding heading, so a changed block can be named rather than just counted. */
   heading: string | null;
   text: string;
 };
 
-export type PolicyTextDiff = {
+type PolicyTextDiff = {
   added: PolicyBlock[];
   removed: PolicyBlock[];
   unchangedCount: number;
@@ -33,7 +33,7 @@ export type PolicyTextDiff = {
 
 const HEADING_PATTERN = /^#{1,6}\s+(.*)$/;
 
-export const splitPolicyBlocks = (text: string): PolicyBlock[] => {
+const splitPolicyBlocks = (text: string): PolicyBlock[] => {
   const blocks: PolicyBlock[] = [];
   let heading: string | null = null;
 
@@ -55,7 +55,7 @@ export const splitPolicyBlocks = (text: string): PolicyBlock[] => {
   return blocks;
 };
 
-export const diffPolicyText = (previousText: string, currentText: string): PolicyTextDiff => {
+const diffPolicyText = (previousText: string, currentText: string): PolicyTextDiff => {
   const previous = splitPolicyBlocks(previousText);
   const current = splitPolicyBlocks(currentText);
 
@@ -90,7 +90,7 @@ const normalizeForMatch = (value: string) => value.toLowerCase().replace(/\s+/g,
  * section label. A `false` result means "we could not tie this exposure to a changed block",
  * not "this exposure is definitely unaffected"; the UI should not claim more than that.
  */
-export const findAffectedExposures = (diff: PolicyTextDiff, exposures: Exposure[]): Exposure[] => {
+const findAffectedExposures = (diff: PolicyTextDiff, exposures: Exposure[]): Exposure[] => {
   if (!diff.hasChanges) return [];
 
   const changedBlocks = [...diff.added, ...diff.removed];
@@ -115,3 +115,6 @@ export const findAffectedExposures = (diff: PolicyTextDiff, exposures: Exposure[
     return false;
   });
 };
+
+export { splitPolicyBlocks, diffPolicyText, findAffectedExposures };
+export type { PolicyBlock, PolicyTextDiff };

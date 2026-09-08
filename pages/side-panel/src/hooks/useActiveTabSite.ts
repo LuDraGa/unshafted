@@ -18,7 +18,7 @@ import type { PolicyIndexEntry } from '@extension/unshafted-core';
  * current tab navigating underneath it.
  */
 
-export type ActiveTabSite = {
+type ActiveTabSite = {
   /** `loading` covers the first resolve and every re-resolve; the previous site stays visible. */
   status: 'loading' | 'ready';
   tabId: number | null;
@@ -68,7 +68,7 @@ const resolveActiveTab = async (): Promise<ActiveTabSite> => {
   return { ...base, domain: resolution.domain, entry: resolution.entry, isCovered: true };
 };
 
-export const useActiveTabSite = (): ActiveTabSite => {
+const useActiveTabSite = (): ActiveTabSite => {
   const [site, setSite] = useState<ActiveTabSite>({ ...EMPTY, status: 'loading' });
 
   useEffect(() => {
@@ -119,3 +119,6 @@ export const useActiveTabSite = (): ActiveTabSite => {
 
   return site;
 };
+
+export { useActiveTabSite };
+export type { ActiveTabSite };

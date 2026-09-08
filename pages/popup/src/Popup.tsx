@@ -32,7 +32,6 @@ import {
   createCurrentAnalysis,
   createHistoryRecord,
   createReportMarkdown,
-  createSampleAnalysis,
   getActiveProviderConfig,
   getOnboardingKeyHash,
   PRIORITY_OPTIONS,
@@ -734,19 +733,6 @@ const Popup = () => {
     setLaunchError('');
     setSelectedHistory(null);
     fileInputRef.current?.click();
-  }, []);
-
-  const handleDemo = useCallback(async () => {
-    setLaunchError('');
-    setUploading(true);
-    try {
-      setSelectedHistory(null);
-      await currentAnalysisStorage.set(await createSampleAnalysis());
-    } catch (error) {
-      setLaunchError(error instanceof Error ? error.message : 'Unable to load the sample analysis.');
-    } finally {
-      setUploading(false);
-    }
   }, []);
 
   const dismissWizard = useCallback(async () => {

@@ -71,7 +71,7 @@ const evictToBudget = async (entries: PolicyCacheEntry[]): Promise<PolicyCacheEn
   return ordered;
 };
 
-export const sitePolicyCacheStorage = {
+const sitePolicyCacheStorage = {
   /** Returns the cached analysis and refreshes its LRU position. */
   get: async (hash: string): Promise<SitePolicyAnalysis | null> => {
     const analysis = await readEntry(hash);
@@ -119,8 +119,6 @@ export const sitePolicyCacheStorage = {
   },
 };
 
-export { CACHE_BUDGET_BYTES as POLICY_CACHE_BUDGET_BYTES };
-
 // ── Per-domain freshness cache (M1d) ──
 
 /**
@@ -141,7 +139,7 @@ const domainCacheStorage = createStorage<PolicyDomainCacheEntry[]>('unshafted-po
   },
 });
 
-export const sitePolicyDomainCacheStorage = {
+const sitePolicyDomainCacheStorage = {
   get: async (domainHash: string): Promise<PolicyDomainCacheEntry | null> => {
     const entries = await domainCacheStorage.get();
     return entries.find(entry => entry.domainHash === domainHash) ?? null;
@@ -165,3 +163,6 @@ export const sitePolicyDomainCacheStorage = {
     await domainCacheStorage.set([]);
   },
 };
+
+export { sitePolicyCacheStorage, sitePolicyDomainCacheStorage };
+export { CACHE_BUDGET_BYTES as POLICY_CACHE_BUDGET_BYTES };

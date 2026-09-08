@@ -54,6 +54,13 @@ export default config(
     rules: {
       'react/react-in-jsx-scope': 'off',
       'react/prop-types': 'off',
+      // A leading underscore is how this codebase says "deliberately unused" — a prop kept for
+      // call-site compatibility, a destructured value skipped over. Honour that rather than
+      // making every such site carry a disable comment.
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
+      ],
       'prefer-const': 'error',
       'no-var': 'error',
       'func-style': ['error', 'expression', { allowArrowFunctions: true }],
@@ -85,6 +92,16 @@ export default config(
       'import-x/consistent-type-specifier-style': 'error',
       'import-x/exports-last': 'error',
       'import-x/first': 'error',
+      /*
+       * eslint-plugin-react-hooks v7 added React Compiler rules that v5 did not have. They fire on
+       * code this project never changed — 11 `set-state-in-effect`, 2 `refs`, 1 memoization — and
+       * every fix is a restructured effect, i.e. a behaviour change. Adopted as warnings so they
+       * stay visible without turning the whole check red; tracked in
+       * https://github.com/LuDraGa/unshafted/issues/16 and to be paid down after v0.8.0 ships.
+       */
+      'react-hooks/set-state-in-effect': 'warn',
+      'react-hooks/refs': 'warn',
+      'react-hooks/preserve-manual-memoization': 'warn',
     },
     linterOptions: {
       reportUnusedDisableDirectives: 'error',

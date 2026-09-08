@@ -19,7 +19,7 @@ import type { RiskLevel } from '../types.js';
  * domain and hash lookup tables below are derived at load, never baked into the file.
  */
 
-export const POLICY_CORPUS_FORMAT_VERSION = 1 as const;
+const POLICY_CORPUS_FORMAT_VERSION = 1 as const;
 
 /**
  * Build fails above this. The bundle is an explicitly temporary delivery channel (D4) — Part 2's
@@ -29,31 +29,30 @@ export const POLICY_CORPUS_FORMAT_VERSION = 1 as const;
  * Gzipped rather than raw because gzip is what a CRX actually ships and what a user actually
  * downloads; the raw number is four times larger and means nothing to anybody.
  */
-export const POLICY_CORPUS_MAX_GZIP_BYTES = 1024 * 1024;
+const POLICY_CORPUS_MAX_GZIP_BYTES = 1024 * 1024;
 
 /** The bundled asset's filename, shared by the build step and the runtime loader. */
-export const POLICY_CORPUS_ASSET = 'policy-corpus.json';
+const POLICY_CORPUS_ASSET = 'policy-corpus.json';
 
-export const PolicyCorpusBundleSchema = z.object({
+const PolicyCorpusBundleSchema = z.object({
   formatVersion: z.literal(POLICY_CORPUS_FORMAT_VERSION),
   generatedAt: z.string().datetime(),
   analyses: z.array(SitePolicyAnalysisSchema),
 });
 
-export type PolicyCorpusBundle = z.infer<typeof PolicyCorpusBundleSchema>;
+type PolicyCorpusBundle = z.infer<typeof PolicyCorpusBundleSchema>;
 
 /**
  * Ascending severity. Coincides with the 2-bit payload encoding in `index-format.ts` by
  * construction — that one is a wire format pinned to bit values and must never be reordered,
  * this one is a comparison order. A test asserts they still agree.
  */
-export const RISK_LEVEL_ORDER = ['Low', 'Medium', 'High', 'Very High'] as const satisfies readonly RiskLevel[];
+const RISK_LEVEL_ORDER = ['Low', 'Medium', 'High', 'Very High'] as const satisfies readonly RiskLevel[];
 
 const severityOf = (level: RiskLevel): number => RISK_LEVEL_ORDER.indexOf(level as (typeof RISK_LEVEL_ORDER)[number]);
 
 /** Descending-severity comparator, for "worst document first" ordering. */
-export const compareRiskLevelDescending = (left: RiskLevel, right: RiskLevel): number =>
-  severityOf(right) - severityOf(left);
+const compareRiskLevelDescending = (left: RiskLevel, right: RiskLevel): number => severityOf(right) - severityOf(left);
 
 /**
  * The per-domain badge byte is the WORST of that domain's documents, not an average (D1).
@@ -62,7 +61,7 @@ export const compareRiskLevelDescending = (left: RiskLevel, right: RiskLevel): n
  * broker's liability at INR 100 while its privacy policy is unremarkable, and 19 of 37 domains
  * have documents that disagree at all. A mean of a contradiction describes neither document.
  */
-export const worstRiskLevel = (levels: readonly RiskLevel[]): RiskLevel | null => {
+const worstRiskLevel = (levels: readonly RiskLevel[]): RiskLevel | null => {
   let worst = -1;
   for (const level of levels) {
     const rank = severityOf(level);
@@ -78,7 +77,7 @@ export const worstRiskLevel = (levels: readonly RiskLevel[]): RiskLevel | null =
  * `domain` is the primary and `domains` the full set; one Disney terms document covers both
  * `disneyplus.com` and `hotstar.com`, and seeding only the primary leaves the other uncovered.
  */
-export const analysisDomains = (analysis: SitePolicyAnalysis): string[] => [
+const analysisDomains = (analysis: SitePolicyAnalysis): string[] => [
   ...new Set([analysis.domain, ...analysis.domains]),
 ];
 
@@ -89,10 +88,10 @@ export const analysisDomains = (analysis: SitePolicyAnalysis): string[] => [
  * `kind: 'none'` exists for actions that carry a described-but-unbounded deadline, so the kind,
  * not the presence of the object, is the test.
  */
-export const hasTimeSensitiveAction = (analysis: SitePolicyAnalysis): boolean =>
+const hasTimeSensitiveAction = (analysis: SitePolicyAnalysis): boolean =>
   analysis.availableActions.some(action => action.deadline !== undefined && action.deadline.kind !== 'none');
 
-export type PolicyCorpus = {
+type PolicyCorpus = {
   generatedAt: string;
   analyses: SitePolicyAnalysis[];
   /** Derived at load, not baked into the file (D12). Values are worst-first. */
@@ -101,7 +100,7 @@ export type PolicyCorpus = {
 };
 
 /** Build the lookup tables. Split from parsing so tests can index a hand-built bundle. */
-export const indexPolicyCorpus = (bundle: PolicyCorpusBundle): PolicyCorpus => {
+const indexPolicyCorpus = (bundle: PolicyCorpusBundle): PolicyCorpus => {
   const byDomain = new Map<string, SitePolicyAnalysis[]>();
   const byHash = new Map<string, SitePolicyAnalysis>();
 
@@ -130,16 +129,16 @@ export const indexPolicyCorpus = (bundle: PolicyCorpusBundle): PolicyCorpus => {
   return { generatedAt: bundle.generatedAt, analyses: bundle.analyses, byDomain, byHash };
 };
 
-export const parsePolicyCorpus = (raw: unknown): PolicyCorpus => indexPolicyCorpus(PolicyCorpusBundleSchema.parse(raw));
+const parsePolicyCorpus = (raw: unknown): PolicyCorpus => indexPolicyCorpus(PolicyCorpusBundleSchema.parse(raw));
 
-export const analysesForDomain = (corpus: PolicyCorpus, domain: string): SitePolicyAnalysis[] =>
+const analysesForDomain = (corpus: PolicyCorpus, domain: string): SitePolicyAnalysis[] =>
   corpus.byDomain.get(domain.trim().toLowerCase()) ?? [];
 
 /**
  * Resolve a hostname the same way the badge did, so the panel cannot disagree with the icon that
  * opened it: suffix walk, most specific match wins, no Public Suffix List (AD-7).
  */
-export const analysesForHostname = (
+const analysesForHostname = (
   corpus: PolicyCorpus,
   hostname: string,
 ): { domain: string; analyses: SitePolicyAnalysis[] } | null => {
@@ -154,11 +153,11 @@ export const analysesForHostname = (
  * The hash lookup from AD-2 — "is this exact document version the one we read?". A miss is a real
  * answer (D6's "changed since we read it"), never an error.
  */
-export const analysisForHash = (corpus: PolicyCorpus, contentHash: string): SitePolicyAnalysis | null =>
+const analysisForHash = (corpus: PolicyCorpus, contentHash: string): SitePolicyAnalysis | null =>
   corpus.byHash.get(contentHash) ?? null;
 
 /** The badge byte for a domain, derived from the same objects the panel renders. */
-export const domainRiskSummary = (
+const domainRiskSummary = (
   analyses: readonly SitePolicyAnalysis[],
 ): { riskLevel: RiskLevel; hasTimeSensitiveAction: boolean; documentCount: number } | null => {
   const riskLevel = worstRiskLevel(analyses.map(analysis => analysis.riskLevel));
@@ -169,3 +168,22 @@ export const domainRiskSummary = (
     documentCount: analyses.length,
   };
 };
+
+export {
+  POLICY_CORPUS_FORMAT_VERSION,
+  POLICY_CORPUS_MAX_GZIP_BYTES,
+  POLICY_CORPUS_ASSET,
+  PolicyCorpusBundleSchema,
+  RISK_LEVEL_ORDER,
+  compareRiskLevelDescending,
+  worstRiskLevel,
+  analysisDomains,
+  hasTimeSensitiveAction,
+  indexPolicyCorpus,
+  parsePolicyCorpus,
+  analysesForDomain,
+  analysesForHostname,
+  analysisForHash,
+  domainRiskSummary,
+};
+export type { PolicyCorpusBundle, PolicyCorpus };
