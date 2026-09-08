@@ -27,6 +27,12 @@ cycle it is correctly ahead. One rule, no exceptions.
    merges. `chore/*` is for maintenance that belongs to no version — dependency sweeps,
    tooling, CI — and it is deliberately not version-numbered, because naming it `dev/vX.Y.Z`
    would claim it is the next release when it is not.
+
+   Dependabot PRs are work branches like any other, and a human merges them. There is no
+   auto-merge and there should not be: an automatic merge into `release` changes what is in
+   front of review without anyone deciding to, and it re-syncs the privacy-policy gist while
+   doing it. The reasoning is kept in `.github/dependabot.yml`, next to the config that would
+   have to change for it to matter.
 3. **Merge the version.** Once the version is feature-complete, merge `dev/vX.Y.Z` into
    `release` with `--no-ff`, then delete the branch. Pushing `release` is what refreshes the
    privacy-policy gist that CWS review actually reads (see below).
