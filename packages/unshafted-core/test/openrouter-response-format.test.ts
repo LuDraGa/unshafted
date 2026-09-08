@@ -96,3 +96,70 @@ test('the site policy response schema carries no draft-4 exclusive bounds', asyn
   // passes for the wrong reason.
   assert.ok(AvailableActionSchema.shape.deadline);
 });
+
+/**
+ * The bound tests above pin one keyword. This one pins that there is a schema at all.
+ *
+ * `zodToJsonSchema` dispatches on `_def.typeName`, which zod 4 removed in favour of `_def.type`.
+ * Under zod 4 it therefore recognises nothing and falls through to its permissive branch, emitting
+ * a single `OpenAiAnyType` union — `{ type: ['string','number','integer','boolean','array','null'] }`
+ * — in place of the whole contract. It does not throw. The request still carries a well-formed
+ * `response_format` with `strict: true`, and the model is simply asked for anything at all.
+ *
+ * The two structural properties below are also what OpenAI's strict mode actually requires, and
+ * are the load-bearing work the `openAi` target does: every object closed, and every property
+ * named in `required` (optionality is expressed as a union with `null`, never by omission).
+ */
+const collectObjectDefects = (node: unknown, path = '$'): string[] => {
+  if (Array.isArray(node)) return node.flatMap((item, i) => collectObjectDefects(item, `${path}[${i}]`));
+  if (!node || typeof node !== 'object') return [];
+
+  const schema = node as Record<string, unknown>;
+  const defects: string[] = [];
+
+  if (Array.isArray(schema.type)) defects.push(`${path}.type is a wildcard union: ${JSON.stringify(schema.type)}`);
+
+  if (schema.type === 'object' && schema.properties && typeof schema.properties === 'object') {
+    const names = Object.keys(schema.properties as Record<string, unknown>);
+    if (schema.additionalProperties !== false) defects.push(`${path} is not closed (additionalProperties !== false)`);
+    const required = new Set(Array.isArray(schema.required) ? (schema.required as string[]) : []);
+    const missing = names.filter(n => !required.has(n));
+    if (missing.length > 0) defects.push(`${path} omits from required: ${missing.join(', ')}`);
+  }
+
+  return [...defects, ...Object.entries(schema).flatMap(([k, v]) => collectObjectDefects(v, `${path}.${k}`))];
+};
+
+test('the response schema is a closed object contract, not a permissive fallback', async () => {
+  const body = await captureRequestBody(
+    SitePolicyAnalysisSchema.pick({
+      summary: true,
+      riskLevel: true,
+      confidence: true,
+      exposures: true,
+      availableActions: true,
+      requiredDisclosures: true,
+    }),
+    {
+      summary: 'ok',
+      riskLevel: 'Medium',
+      confidence: 'medium',
+      exposures: [],
+      availableActions: [],
+      requiredDisclosures: [],
+    },
+  );
+
+  const schema = (body.response_format as { json_schema: { schema: Record<string, unknown> } }).json_schema.schema;
+
+  assert.equal(schema.type, 'object', 'the contract collapsed to something that is not an object schema');
+  assert.deepEqual(Object.keys(schema.properties as Record<string, unknown>).sort(), [
+    'availableActions',
+    'confidence',
+    'exposures',
+    'requiredDisclosures',
+    'riskLevel',
+    'summary',
+  ]);
+  assert.deepEqual(collectObjectDefects(schema), []);
+});

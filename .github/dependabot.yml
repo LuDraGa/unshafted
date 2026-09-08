@@ -31,6 +31,16 @@ updates:
       dependencies:
         dependency-type: production
     versioning-strategy: increase
+    ignore:
+      # zod 4 cannot be adopted as a dependency bump, and fails quietly if it is.
+      # `zod-to-json-schema` dispatches on `_def.typeName`, which zod 4 renamed to `_def.type`,
+      # so it recognises nothing and emits a permissive `OpenAiAnyType` wildcard in place of the
+      # entire OpenAI structured-output contract — no throw, a well-formed request, and a model
+      # asked for anything at all. Adopting v4 means replacing the schema emitter first, which
+      # changes what we ask the model for and is a product decision. Tracked in #23; lift this
+      # entry when that lands.
+      - dependency-name: "zod"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "github-actions"
     target-branch: 'release'
