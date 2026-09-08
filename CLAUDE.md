@@ -82,7 +82,13 @@ A change reaching `main` outside the publish merge also rewrites the live gist i
 
 - **Execution docs.** Significant or long-tail work gets a doc in `execution-docs/`, named for the
   version or the feature (`v0.9-ux-revamp-execution.md`, `site-policy-part4-analysis.md`), kept
-  current with completion status as the work proceeds.
+  current with completion status as the work proceeds. An execution doc tracks *work in progress* —
+  what is being done, and how far along it is.
+- **Tickets are GitHub issues, not files.** Anything deferred, held back, or noticed-in-passing goes
+  to `gh issue create` — not a `*-ticket.md` in `execution-docs/`. A ticket is a thing someone picks
+  up later, so it belongs where the backlog is visible, assignable and closable. Execution docs link
+  out to the issues they raised; they do not restate them. (Two `*-ticket.md` files predate this
+  convention and are left alone.)
 - **`cws/` is the source of truth** for the store dashboard, which is not diffable. A dashboard
   change and its snapshot update belong in the same commit. See `cws/README.md`.
 - **Commit messages** name the goal, not the files. One holistic message per change, written like a

@@ -7,8 +7,8 @@ import {
 } from '../index.mts';
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 
 const FIXTURE_ROOT = fileURLToPath(new URL('./fixtures/site-policy/', import.meta.url));
 

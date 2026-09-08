@@ -130,9 +130,7 @@ export type PolicySubmissionPayload = {
 };
 
 export type PolicySubmissionResult =
-  | { status: 'queued' }
-  | { status: 'unconfigured' }
-  | { status: 'error'; message: string };
+  { status: 'queued' } | { status: 'unconfigured' } | { status: 'error'; message: string };
 
 export const getPolicySubmitUrl = (): string | null => {
   const raw = process.env['CEB_POLICY_SUBMIT_URL']?.trim();

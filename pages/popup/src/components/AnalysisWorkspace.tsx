@@ -346,9 +346,7 @@ export const AnalysisWorkspace = ({
           ) : null}
           <p className="popup-cta-scope" title={scopeSummary}>
             <span className="popup-cta-scope-strong">{selectedRole}</span>
-            {priorityCount > 0
-              ? ` · ${priorityCount} ${priorityCount === 1 ? 'priority' : 'priorities'}`
-              : null}
+            {priorityCount > 0 ? ` · ${priorityCount} ${priorityCount === 1 ? 'priority' : 'priorities'}` : null}
           </p>
           <button
             type="button"
@@ -372,10 +370,7 @@ export const AnalysisWorkspace = ({
             </svg>
           </button>
           {session ? (
-            <button
-              type="button"
-              className="popup-cta-action"
-              onClick={() => void startDeepAnalysis()}>
+            <button type="button" className="popup-cta-action" onClick={() => void startDeepAnalysis()}>
               Run analysis
             </button>
           ) : (

@@ -1,9 +1,5 @@
 import { createStorage, StorageEnum } from '../base/index.js';
-import {
-  PolicyCacheIndexSchema,
-  PolicyDomainCacheSchema,
-  SitePolicyAnalysisSchema,
-} from '@extension/unshafted-core';
+import { PolicyCacheIndexSchema, PolicyDomainCacheSchema, SitePolicyAnalysisSchema } from '@extension/unshafted-core';
 import type { PolicyCacheEntry, PolicyDomainCacheEntry, SitePolicyAnalysis } from '@extension/unshafted-core';
 
 /**

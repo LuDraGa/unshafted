@@ -60,10 +60,10 @@ patch within existing ranges.
 Two production bumps in PR #8 are not dependency bumps. Each is a behaviour change with real work
 attached, and neither belongs in a tree that is mid-review. Both are ticketed:
 
-- **`pdfjs-dist` 4.10.38 → 6.3.289** — [`pdfjs-dist-v6-upgrade-ticket.md`](pdfjs-dist-v6-upgrade-ticket.md).
+- **`pdfjs-dist` 4.10.38 → 6.3.289** — [#11](https://github.com/LuDraGa/unshafted/issues/11).
   The worker is vendored and version-locked; taking the bump alone ships a build that is green in CI
   and broken on every PDF.
-- **`zod` 3.25.76 → 4.5.4** — [`zod-v4-upgrade-ticket.md`](zod-v4-upgrade-ticket.md). It changes the
+- **`zod` 3.25.76 → 4.5.4** — [#12](https://github.com/LuDraGa/unshafted/issues/12). It changes the
   JSON Schema handed to OpenRouter, and the test that would catch a regression does not run in CI.
 
 ## Adjacent work, ticketed rather than folded in
@@ -71,14 +71,16 @@ attached, and neither belongs in a tree that is mid-review. Both are ticketed:
 Three things surfaced while reading the workflows. None is a dependency bump, so none is in this
 sweep:
 
-- [`setup-node-v7-ticket.md`](setup-node-v7-ticket.md) — `actions/setup-node@v4` is three majors
+- [#13](https://github.com/LuDraGa/unshafted/issues/13) — `actions/setup-node@v4` is three majors
   behind and is queued behind Dependabot's 5-PR cap.
-- [`dependabot-auto-merge-ticket.md`](dependabot-auto-merge-ticket.md) — the auto-merge workflow is
+- [#14](https://github.com/LuDraGa/unshafted/issues/14) — the auto-merge workflow is
   armed against `release` and inert only by accident.
-- [`ci-test-task-ticket.md`](ci-test-task-ticket.md) — two packages have test suites that no
+- [#15](https://github.com/LuDraGa/unshafted/issues/15) — two packages have test suites that no
   workflow runs.
-- [`zip-stale-assets-ticket.md`](zip-stale-assets-ticket.md) — found during verification; the build
-  ships the previous build's dead bundles.
+- [#16](https://github.com/LuDraGa/unshafted/issues/16) — `eslint-plugin-react-hooks` v7 flags 16
+  findings in code that was never previously checked.
+- [#17](https://github.com/LuDraGa/unshafted/issues/17) — the build shipped the previous build's
+  dead bundles. **Fixed in this sweep.**
 
 ## What the bumps actually broke
 
@@ -128,20 +130,34 @@ bare checkout those runs lint the *base branch*, not the PR.
 
 Of the +27: **11 are auto-fixable formatting** from prettier 3.6→3.9 and
 `prettier-plugin-tailwindcss` 0.6→0.8, and **16 are new diagnostics** from
-`eslint-plugin-react-hooks` v7's React Compiler rules, which do not exist in v5. Those 16 flag
-pre-existing patterns that were never previously checked — real findings, but code changes, and not
-something a dependency sweep should be quietly making in a tree that is in front of review.
+`eslint-plugin-react-hooks` v7's React Compiler rules, which do not exist in v5.
 
-Neither is fixed here. Running `pnpm format` would reformat well beyond the sweep's files, and the
-compiler-rule findings want their own pass. Both are worth doing once 0.8.0 is out.
+`pnpm lint:fix` clears everything mechanical — all 43 prettier violations plus the import-order and
+type-specifier ones — touching 16 files, and type-check and the build stay clean afterwards. That
+takes the total from 110 to **60**: 44 pre-existing (41 `import-x/exports-last`, 2 unused vars, 1
+`exhaustive-deps`) and the 16 new react-hooks findings.
 
-## One more thing the sweep found
+Those 16 are not fixed here. `set-state-in-effect` usually means a real render-loop or stale-state
+hazard, and fixing it means restructuring effects — a behaviour change, and this branch targets the
+tree in front of review. Raised as [#16](https://github.com/LuDraGa/unshafted/issues/16), together
+with the broader question the 41 pre-existing errors pose: lint here is a check that always fails,
+which means it tells nobody anything.
 
-Building revealed that `pnpm build` zips into the *existing* archive, so every rebuild ships the
-previous build's orphaned bundles — ~1.67 MB of them in this case. Pre-existing, unrelated to any
-dependency, and directly relevant to what CWS review opens. Ticketed:
-[`zip-stale-assets-ticket.md`](zip-stale-assets-ticket.md). The comparison above was made against a
-clean rebuild, so it is not distorted by this.
+## Two more things the sweep found, and fixed
+
+**`pnpm build` was shipping the previous build's dead bundles.** It zips into the *existing*
+archive, and Vite's content-hashed filenames mean a changed bundle lands at a new path while the
+old one is never replaced — ~1.67 MB of orphaned JS/CSS in this case. `clean:bundle` now removes
+the archive as well as `dist/`, verified by two consecutive builds both producing 32 entries. The
+**v0.8.0 ZIP was checked and was clean** (exactly six asset files, one build's worth), so nothing
+stale reached review. [#17](https://github.com/LuDraGa/unshafted/issues/17), closed.
+
+**Nineteen CI jobs had never once passed.** `e2e.yml` and `e2e-modular.yml` invoke `pnpm e2e`,
+`pnpm e2e:firefox` and `pnpm module-manager` — none of which exist — and the modular matrix names
+`content`, `content-ui`, `content-runtime`, `devtools` and `new-tab` pages this repo does not have.
+Leftovers from the boilerplate the project started from. They failed on every branch, including
+docs-only ones, and drowned out the checks that do work. Both are deleted.
+
 
 ## Status
 
@@ -149,14 +165,17 @@ clean rebuild, so it is not distorted by this.
 - [x] Five GitHub Actions bumps applied
 - [x] `package.json` floors raised (8 dev, 2 production)
 - [x] `CLAUDE.md` branch table extended with `chore/*`
-- [x] Six tickets written for held-back, adjacent and newly-found work
+- [x] Seven issues raised on GitHub (#11–#17) for held-back, adjacent and newly-found work
 - [x] `pnpm-lock.yaml` regenerated; `--frozen-lockfile` install verified
 - [x] Three type breakages fixed
 - [x] `pnpm type-check` clean, 12/12
 - [x] `pnpm build` clean, ZIP structurally unchanged
-- [x] `pnpm lint` measured against baseline — pre-existing failure, +27 documented above
-- [ ] Dependabot PRs #2–#8 closed with a pointer to the sweep PR
-- [ ] Sweep PR opened against `release` — **held unmerged until v0.8.0 clears CWS review**
+- [x] `pnpm lint:fix` applied — 110 → 60 problems; sweep adds nothing mechanical
+- [x] Stale-ZIP build bug fixed; v0.8.0 ZIP confirmed clean
+- [x] Dead `e2e.yml` / `e2e-modular.yml` removed — 19 jobs that had never passed
+- [x] Dependabot PRs #2–#8 closed with a pointer to the sweep PR
+- [x] Sweep PR [#10](https://github.com/LuDraGa/unshafted/pull/10) opened against `release`
+- [ ] **Held unmerged until v0.8.0 clears CWS review**
 
 ## Merge condition
 
