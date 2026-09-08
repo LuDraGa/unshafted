@@ -32,7 +32,6 @@ import {
   createCurrentAnalysis,
   createHistoryRecord,
   createReportMarkdown,
-  createSampleAnalysis,
   getActiveProviderConfig,
   getOnboardingKeyHash,
   PRIORITY_OPTIONS,
@@ -231,7 +230,11 @@ const ProfileMenu = ({
               When on, your uploaded contract file and analysis JSON go to an &ldquo;Unshafted&rdquo; folder in your own
               Google Drive (<code className="rounded bg-stone-200/60 px-1 py-px text-[10px]">drive.file</code> scope —
               we cannot read other Drive files).{' '}
-              <a className="font-semibold text-amber-700 underline" href={PRIVACY_POLICY_URL} target="_blank" rel="noreferrer">
+              <a
+                className="font-semibold text-amber-700 underline"
+                href={PRIVACY_POLICY_URL}
+                target="_blank"
+                rel="noreferrer">
                 Privacy policy
               </a>
             </p>
@@ -333,10 +336,10 @@ const Popup = () => {
   const hasActiveApiKey = Boolean(activeProviderConfig.apiKey);
   const hasTestedActiveKey = Boolean(
     hasActiveApiKey &&
-      activeKeyHash &&
-      onboarding.testedProvider === activeProviderConfig.provider &&
-      onboarding.testedKeyHash === activeKeyHash &&
-      onboarding.testedModel === activeProviderConfig.model,
+    activeKeyHash &&
+    onboarding.testedProvider === activeProviderConfig.provider &&
+    onboarding.testedKeyHash === activeKeyHash &&
+    onboarding.testedModel === activeProviderConfig.model,
   );
   const hasQuickScan = Boolean(currentAnalysis?.quickScan);
   const recentHistory = history.slice(0, 5);
@@ -732,19 +735,6 @@ const Popup = () => {
     fileInputRef.current?.click();
   }, []);
 
-  const handleDemo = useCallback(async () => {
-    setLaunchError('');
-    setUploading(true);
-    try {
-      setSelectedHistory(null);
-      await currentAnalysisStorage.set(await createSampleAnalysis());
-    } catch (error) {
-      setLaunchError(error instanceof Error ? error.message : 'Unable to load the sample analysis.');
-    } finally {
-      setUploading(false);
-    }
-  }, []);
-
   const dismissWizard = useCallback(async () => {
     await unshaftedOnboardingStorage.set(current => ({
       ...current,
@@ -819,10 +809,10 @@ const Popup = () => {
 
   const canGoBackInSpotlight = Boolean(
     spotlightStep &&
-      (spotlightStep.id === 'flags' ||
-        spotlightStep.id === 'customize' ||
-        spotlightStep.id === 'cta' ||
-        onboardingSteps.indexOf(spotlightStep.id as OnboardingStep) > 0),
+    (spotlightStep.id === 'flags' ||
+      spotlightStep.id === 'customize' ||
+      spotlightStep.id === 'cta' ||
+      onboardingSteps.indexOf(spotlightStep.id as OnboardingStep) > 0),
   );
 
   const handleFileChosen = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -1348,11 +1338,7 @@ const Popup = () => {
           </div>
         </div>
         {consentPromptOpen ? (
-          <div
-            className="popup-consent-overlay"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="popup-consent-title">
+          <div className="popup-consent-overlay" role="dialog" aria-modal="true" aria-labelledby="popup-consent-title">
             <div className="popup-consent-card">
               <p id="popup-consent-title" className="popup-consent-title">
                 Before you sign in
@@ -1369,8 +1355,8 @@ const Popup = () => {
                 </li>
                 <li>A Supabase session token, kept locally to keep you signed in</li>
                 <li>
-                  A Google Drive token (<code>drive.file</code> scope) — used only if you turn on Drive backup. We can&apos;t
-                  read other Drive files
+                  A Google Drive token (<code>drive.file</code> scope) — used only if you turn on Drive backup. We
+                  can&apos;t read other Drive files
                 </li>
               </ul>
               <p className="popup-consent-body">

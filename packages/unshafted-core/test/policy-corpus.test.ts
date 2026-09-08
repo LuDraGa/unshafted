@@ -14,14 +14,13 @@ import {
   parsePolicySeed,
   RISK_LEVEL_ORDER,
   worstRiskLevel,
-  type PolicyCorpus,
-  type SitePolicyAnalysis,
 } from '../index.mts';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
+import type { PolicyCorpus, SitePolicyAnalysis } from '../index.mts';
 
 const REPO_ROOT = fileURLToPath(new URL('../../../', import.meta.url));
 const BUNDLE_FILE = `${REPO_ROOT}chrome-extension/public/policy-corpus.json`;

@@ -24,7 +24,7 @@
   },
   "dependencies": {
     "@extension/unshafted-core": "workspace:*",
-    "react-error-boundary": "^6.0.0"
+    "react-error-boundary": "^6.1.5"
   },
   "devDependencies": {
     "@extension/storage": "workspace:*",

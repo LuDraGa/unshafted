@@ -22,7 +22,7 @@ import type { SitePolicyRunState } from '@extension/unshafted-core';
 
 const formatBytes = (bytes: number) => `${Math.round(bytes / 1024).toLocaleString()} KB`;
 
-export const RunProgress = ({ runState }: { runState: SitePolicyRunState }) => {
+const RunProgress = ({ runState }: { runState: SitePolicyRunState }) => {
   const position = runState.currentUrl ? runState.completed + 1 : runState.completed;
 
   return (
@@ -95,13 +95,7 @@ const StorageRelief = ({ onChanged }: { onChanged: () => void }) => {
   );
 };
 
-export const RunOutcome = ({
-  runState,
-  onStorageChanged,
-}: {
-  runState: SitePolicyRunState;
-  onStorageChanged: () => void;
-}) => {
+const RunOutcome = ({ runState, onStorageChanged }: { runState: SitePolicyRunState; onStorageChanged: () => void }) => {
   const [managing, setManaging] = useState(false);
 
   if (runState.failures.length === 0 && !runState.overBudget) return null;
@@ -150,3 +144,5 @@ export const RunOutcome = ({
     </section>
   );
 };
+
+export { RunProgress, RunOutcome };

@@ -452,7 +452,11 @@ const Options = () => {
               <p className="text-[11px] leading-5 text-stone-500">
                 Your key never leaves your device except to authorize requests directly with the provider you chose.
                 Contract text is sent only to that provider.{' '}
-                <a className="font-semibold text-amber-700 underline" href={PRIVACY_POLICY_URL} target="_blank" rel="noreferrer">
+                <a
+                  className="font-semibold text-amber-700 underline"
+                  href={PRIVACY_POLICY_URL}
+                  target="_blank"
+                  rel="noreferrer">
                   Privacy policy
                 </a>
               </p>

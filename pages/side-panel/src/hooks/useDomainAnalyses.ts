@@ -14,7 +14,7 @@ import type { SitePolicyAnalysis } from '@extension/unshafted-core';
  * `status` starts at `loading` only for the corpus parse (~1 MB, once per panel instance).
  */
 
-export type DomainAnalyses = {
+type DomainAnalyses = {
   status: 'loading' | 'ready';
   domain: string | null;
   /** Worst document first, as `indexPolicyCorpus` sorted them. Empty when uncovered. */
@@ -23,7 +23,7 @@ export type DomainAnalyses = {
 
 const EMPTY_ANALYSES: SitePolicyAnalysis[] = [];
 
-export const useDomainAnalyses = (hostname: string | null): DomainAnalyses => {
+const useDomainAnalyses = (hostname: string | null): DomainAnalyses => {
   const [resolved, setResolved] = useState<DomainAnalyses>({
     status: 'loading',
     domain: null,
@@ -64,3 +64,6 @@ export const useDomainAnalyses = (hostname: string | null): DomainAnalyses => {
 
   return resolved;
 };
+
+export { useDomainAnalyses };
+export type { DomainAnalyses };

@@ -18,7 +18,7 @@ import type { LocalPolicyAnalysis, SitePolicyRunState } from '@extension/unshaft
  * every stored analysis several times to show a progress line that does not depend on them.
  */
 
-export type LocalAnalyses = {
+type LocalAnalyses = {
   status: 'loading' | 'ready';
   analyses: LocalPolicyAnalysis[];
   /** Idle until a run starts. A run on a DIFFERENT domain is still reported; callers filter. */
@@ -29,7 +29,7 @@ export type LocalAnalyses = {
 
 const EMPTY: LocalPolicyAnalysis[] = [];
 
-export const useLocalAnalyses = (domain: string | null): LocalAnalyses => {
+const useLocalAnalyses = (domain: string | null): LocalAnalyses => {
   const runState = useStorageValue(sitePolicyRunStorage) ?? IDLE_SITE_POLICY_RUN;
   const [analyses, setAnalyses] = useState<LocalPolicyAnalysis[]>(EMPTY);
   const [status, setStatus] = useState<'loading' | 'ready'>('loading');
@@ -75,3 +75,6 @@ export const useLocalAnalyses = (domain: string | null): LocalAnalyses => {
 
   return { status, analyses, runState, reload };
 };
+
+export { useLocalAnalyses };
+export type { LocalAnalyses };

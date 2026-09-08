@@ -18,7 +18,7 @@ import type { PolicyIndexEntry } from '@extension/unshafted-core';
  * current tab navigating underneath it.
  */
 
-export type ActiveTabSite = {
+type ActiveTabSite = {
   /** `loading` covers the first resolve and every re-resolve; the previous site stays visible. */
   status: 'loading' | 'ready';
   tabId: number | null;
@@ -68,7 +68,7 @@ const resolveActiveTab = async (): Promise<ActiveTabSite> => {
   return { ...base, domain: resolution.domain, entry: resolution.entry, isCovered: true };
 };
 
-export const useActiveTabSite = (): ActiveTabSite => {
+const useActiveTabSite = (): ActiveTabSite => {
   const [site, setSite] = useState<ActiveTabSite>({ ...EMPTY, status: 'loading' });
 
   useEffect(() => {
@@ -99,7 +99,7 @@ export const useActiveTabSite = (): ActiveTabSite => {
      */
     const onActivated = () => refresh();
 
-    const onUpdated = (tabId: number, changeInfo: chrome.tabs.TabChangeInfo, tab: chrome.tabs.Tab) => {
+    const onUpdated = (tabId: number, changeInfo: chrome.tabs.OnUpdatedInfo, tab: chrome.tabs.Tab) => {
       // SPA route changes and redirects both surface as a `url` change without a fresh load.
       if (!changeInfo.url && changeInfo.status !== 'complete') return;
       if (!tab.active) return;
@@ -119,3 +119,6 @@ export const useActiveTabSite = (): ActiveTabSite => {
 
   return site;
 };
+
+export { useActiveTabSite };
+export type { ActiveTabSite };

@@ -32,7 +32,7 @@ type Resolution = Awaited<ReturnType<typeof resolveCoveredHostname>>;
  * two ever disagree, a tab gets a badge with no panel behind it (or the reverse), which reads as
  * a broken feature rather than a coverage boundary.
  */
-export const hostnameFor = (url: string | undefined): string | null => {
+const hostnameFor = (url: string | undefined): string | null => {
   if (!url) return null;
   try {
     const parsed = new URL(url);
@@ -100,7 +100,7 @@ const refreshTab = async (tabId: number, url: string | undefined) => {
   else await clearBadge(tabId);
 };
 
-export const registerSitePolicyBadge = () => {
+const registerSitePolicyBadge = () => {
   // Badges are per-tab; a global badge is wrong the moment two tabs are open.
   chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     if (!changeInfo.url && changeInfo.status !== 'complete') return;
@@ -114,3 +114,5 @@ export const registerSitePolicyBadge = () => {
       .catch(() => undefined);
   });
 };
+
+export { hostnameFor, registerSitePolicyBadge };

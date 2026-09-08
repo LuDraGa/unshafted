@@ -43,22 +43,80 @@ const CONSENT_CONTAINER_PATTERN =
   /\b(?:id|class)\s*=\s*["'][^"']*(?:onetrust|optanon|truste|cookie-?banner|cookie-?notice|cookie-?consent|consent-?banner|cmpbox|gdpr-?banner)[^"']*["']/i;
 
 const BLOCK_ELEMENTS = [
-  'p', 'div', 'section', 'article', 'main', 'ul', 'ol', 'dl', 'dt', 'dd',
-  'table', 'thead', 'tbody', 'tr', 'blockquote', 'pre', 'figure', 'address', 'fieldset',
+  'p',
+  'div',
+  'section',
+  'article',
+  'main',
+  'ul',
+  'ol',
+  'dl',
+  'dt',
+  'dd',
+  'table',
+  'thead',
+  'tbody',
+  'tr',
+  'blockquote',
+  'pre',
+  'figure',
+  'address',
+  'fieldset',
 ] as const;
 
 const VOID_ELEMENTS = new Set([
-  'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link',
-  'meta', 'param', 'source', 'track', 'wbr',
+  'area',
+  'base',
+  'br',
+  'col',
+  'embed',
+  'hr',
+  'img',
+  'input',
+  'link',
+  'meta',
+  'param',
+  'source',
+  'track',
+  'wbr',
 ]);
 
 const NAMED_ENTITIES: Record<string, string> = {
-  amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', ensp: ' ', emsp: ' ', thinsp: ' ',
-  mdash: '—', ndash: '–', hellip: '…', bull: '•', middot: '·',
-  lsquo: '‘', rsquo: '’', ldquo: '“', rdquo: '”',
-  copy: '©', reg: '®', trade: '™', deg: '°', sect: '§', para: '¶',
-  laquo: '«', raquo: '»', times: '×', divide: '÷', plusmn: '±',
-  frac12: '½', frac14: '¼', frac34: '¾', euro: '€', pound: '£', yen: '¥',
+  amp: '&',
+  lt: '<',
+  gt: '>',
+  quot: '"',
+  apos: "'",
+  nbsp: ' ',
+  ensp: ' ',
+  emsp: ' ',
+  thinsp: ' ',
+  mdash: '—',
+  ndash: '–',
+  hellip: '…',
+  bull: '•',
+  middot: '·',
+  lsquo: '‘',
+  rsquo: '’',
+  ldquo: '“',
+  rdquo: '”',
+  copy: '©',
+  reg: '®',
+  trade: '™',
+  deg: '°',
+  sect: '§',
+  para: '¶',
+  laquo: '«',
+  raquo: '»',
+  times: '×',
+  divide: '÷',
+  plusmn: '±',
+  frac12: '½',
+  frac14: '¼',
+  frac34: '¾',
+  euro: '€',
+  pound: '£',
+  yen: '¥',
 };
 
 /** Guard against a pathological document spinning a strip loop forever. */
@@ -80,7 +138,7 @@ const MAX_STRIP_ITERATIONS = 10_000;
 const PARA_BREAK = '\u0000';
 const LINE_BREAK = '\u0001';
 
-export type NormalizedPolicy = {
+type NormalizedPolicy = {
   /** Normalized, hashable policy text. */
   text: string;
   /** Character count — a cheap "did we over-strip?" signal for the capture flow. */
@@ -286,7 +344,7 @@ const stripChrome = (region: string, usedMainContainer: boolean): string => {
 };
 
 /** HTML → stable, hashable policy text. */
-export const normalizePolicyHtml = (html: string): NormalizedPolicy => {
+const normalizePolicyHtml = (html: string): NormalizedPolicy => {
   if (!html || !html.trim()) {
     return { text: '', length: 0, usedMainContainer: false };
   }
@@ -316,10 +374,10 @@ export const normalizePolicyHtml = (html: string): NormalizedPolicy => {
  * alongside a plan to re-hash what is already published, and carry it on every submission so
  * the server can tell which normalizer produced a hash before trusting it (Part 2 §Q4).
  */
-export const POLICY_NORMALIZER_VERSION = 'normalizer-v1';
+const POLICY_NORMALIZER_VERSION = 'normalizer-v1';
 
 /** SHA-256 of a string, hex encoded. */
-export const sha256Hex = async (input: string): Promise<string> => {
+const sha256Hex = async (input: string): Promise<string> => {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(input));
   return Array.from(new Uint8Array(digest))
     .map(byte => byte.toString(16).padStart(2, '0'))
@@ -330,7 +388,10 @@ export const sha256Hex = async (input: string): Promise<string> => {
  * SHA-256 of the NORMALIZED text, hex encoded. This value is the document's identity —
  * see AD-1. Never hash raw HTML.
  */
-export const computePolicyHash = async (html: string): Promise<{ hash: string; normalized: NormalizedPolicy }> => {
+const computePolicyHash = async (html: string): Promise<{ hash: string; normalized: NormalizedPolicy }> => {
   const normalized = normalizePolicyHtml(html);
   return { hash: await sha256Hex(normalized.text), normalized };
 };
+
+export { normalizePolicyHtml, POLICY_NORMALIZER_VERSION, sha256Hex, computePolicyHash };
+export type { NormalizedPolicy };

@@ -16,13 +16,13 @@ import type { Exposure } from './types.js';
  * needed here.
  */
 
-export type PolicyBlock = {
+type PolicyBlock = {
   /** Nearest preceding heading, so a changed block can be named rather than just counted. */
   heading: string | null;
   text: string;
 };
 
-export type PolicyTextDiff = {
+type PolicyTextDiff = {
   added: PolicyBlock[];
   removed: PolicyBlock[];
   unchangedCount: number;
@@ -31,9 +31,16 @@ export type PolicyTextDiff = {
   hasChanges: boolean;
 };
 
-const HEADING_PATTERN = /^#{1,6}\s+(.*)$/;
+/*
+ * `(\S.*)?` rather than `(.*)`: with a plain `.*` the whitespace run and the capture can both
+ * match spaces, so the engine can split them in many ways and backtracks quadratically on a line
+ * of mostly spaces. Policy text is fetched from the site being analysed, so that input is not ours
+ * to trust. Forcing the capture to begin at a non-space makes the split unambiguous. Behaviour is
+ * unchanged — the capture was already `.trim()`ed.
+ */
+const HEADING_PATTERN = /^#{1,6}\s+(\S.*)?$/;
 
-export const splitPolicyBlocks = (text: string): PolicyBlock[] => {
+const splitPolicyBlocks = (text: string): PolicyBlock[] => {
   const blocks: PolicyBlock[] = [];
   let heading: string | null = null;
 
@@ -43,7 +50,7 @@ export const splitPolicyBlocks = (text: string): PolicyBlock[] => {
 
     const headingMatch = HEADING_PATTERN.exec(trimmed.split('\n')[0] ?? '');
     if (headingMatch) {
-      heading = headingMatch[1]!.trim();
+      heading = (headingMatch[1] ?? '').trim();
       // A heading is itself content: if it is reworded, that is a change worth reporting.
       blocks.push({ heading, text: trimmed });
       continue;
@@ -55,7 +62,7 @@ export const splitPolicyBlocks = (text: string): PolicyBlock[] => {
   return blocks;
 };
 
-export const diffPolicyText = (previousText: string, currentText: string): PolicyTextDiff => {
+const diffPolicyText = (previousText: string, currentText: string): PolicyTextDiff => {
   const previous = splitPolicyBlocks(previousText);
   const current = splitPolicyBlocks(currentText);
 
@@ -90,7 +97,7 @@ const normalizeForMatch = (value: string) => value.toLowerCase().replace(/\s+/g,
  * section label. A `false` result means "we could not tie this exposure to a changed block",
  * not "this exposure is definitely unaffected"; the UI should not claim more than that.
  */
-export const findAffectedExposures = (diff: PolicyTextDiff, exposures: Exposure[]): Exposure[] => {
+const findAffectedExposures = (diff: PolicyTextDiff, exposures: Exposure[]): Exposure[] => {
   if (!diff.hasChanges) return [];
 
   const changedBlocks = [...diff.added, ...diff.removed];
@@ -115,3 +122,6 @@ export const findAffectedExposures = (diff: PolicyTextDiff, exposures: Exposure[
     return false;
   });
 };
+
+export { splitPolicyBlocks, diffPolicyText, findAffectedExposures };
+export type { PolicyBlock, PolicyTextDiff };
