@@ -1,4 +1,4 @@
-<!-- Note: Please ensure your PR is targeting the `dev` branch -->
+<!-- Note: PRs target `release`. The only PR that targets `main` is the publish merge from `release`. -->
 
 <!-- Describe what this PR is for in the title. -->
 
