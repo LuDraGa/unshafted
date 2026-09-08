@@ -1,8 +1,13 @@
 name: Sync Privacy Policy to Gist
 
+# CWS review fetches the gist, not the repo, so the gist has to be current at submission time —
+# which is while the release branch is still unmerged. `dev` is the publish staging branch: pushing
+# the release branch there before submitting refreshes the gist without touching `main`. `main` stays
+# on the list as a backstop for the post-approval squash-merge. Last push wins, and `dev` is always
+# at or ahead of `main` for this file, so the merge re-syncs identical content.
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
     paths: [cws/privacy-policy.md]
 
 jobs:
