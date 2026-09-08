@@ -48,7 +48,9 @@ const OFFERED_TABS_KEY = 'side-panel-offered-tabs';
 
 const readOfferedTabs = async (): Promise<Set<number>> => {
   try {
-    const stored = await chrome.storage.session.get(OFFERED_TABS_KEY);
+    // `get` is typed as returning opaque values — session storage is untyped JSON, so state the
+    // shape we wrote in `rememberOfferedTab` rather than trusting an index signature.
+    const stored = (await chrome.storage.session.get(OFFERED_TABS_KEY)) as Record<string, number[] | undefined>;
     return new Set<number>(stored[OFFERED_TABS_KEY] ?? []);
   } catch {
     return new Set<number>();

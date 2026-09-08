@@ -99,7 +99,7 @@ export const useActiveTabSite = (): ActiveTabSite => {
      */
     const onActivated = () => refresh();
 
-    const onUpdated = (tabId: number, changeInfo: chrome.tabs.TabChangeInfo, tab: chrome.tabs.Tab) => {
+    const onUpdated = (tabId: number, changeInfo: chrome.tabs.OnUpdatedInfo, tab: chrome.tabs.Tab) => {
       // SPA route changes and redirects both surface as a `url` change without a fresh load.
       if (!changeInfo.url && changeInfo.status !== 'complete') return;
       if (!tab.active) return;

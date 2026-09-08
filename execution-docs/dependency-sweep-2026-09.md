@@ -77,6 +77,71 @@ sweep:
   armed against `release` and inert only by accident.
 - [`ci-test-task-ticket.md`](ci-test-task-ticket.md) — two packages have test suites that no
   workflow runs.
+- [`zip-stale-assets-ticket.md`](zip-stale-assets-ticket.md) — found during verification; the build
+  ships the previous build's dead bundles.
+
+## What the bumps actually broke
+
+Two type errors, both from `@types/chrome` 0.0.323 → 0.2.8, and one from `react-error-boundary`
+6.0.0 → 6.1.5. All three are fixed on this branch:
+
+- **`packages/ui/.../ErrorDisplay.tsx`** — `FallbackProps.error` is now `unknown` rather than
+  `Error`, which is the honest type for a thrown value. The component annotated it `error?: Error`.
+  Narrowed at the top of the component instead; a thrown string now renders its own text rather than
+  "Unknown error".
+- **`pages/side-panel/.../useActiveTabSite.ts`** — `chrome.tabs.TabChangeInfo` was renamed
+  `chrome.tabs.OnUpdatedInfo`.
+- **`chrome-extension/src/background/side-panel.ts`** — `chrome.storage.session.get()` no longer
+  yields `any` per key, so `new Set<number>(stored[KEY] ?? [])` stopped compiling. The read is now
+  typed to the shape `rememberOfferedTab` writes.
+
+## Verification
+
+**`pnpm type-check` — clean, 12/12 packages.**
+
+**`pnpm build` — clean. ZIP structurally identical to the 0.8.0 baseline:** same 32 entries, same
+paths, only content hashes differ. Bundle growth is +56 KB uncompressed (+3.4%), +27 KB in the
+compressed ZIP (+1.5%), which is consistent with react 19.1.1→19.2.8 plus the Vite/SWC plugin
+majors. No new files, none missing, `popup/pdf.worker.min.mjs` unchanged — as it must be, since
+`pdfjs-dist` was held.
+
+**`pnpm lint` — still failing, but it was already failing before this sweep.** Measured against a
+worktree of `release` with the old dependency set:
+
+| Rule | `release` | after sweep | delta |
+|---|---:|---:|---:|
+| `import-x/exports-last` | 41 | 41 | — |
+| `prettier/prettier` | 32 | 43 | **+11** |
+| `import-x/order` | 6 | 6 | — |
+| `import-x/consistent-type-specifier-style` | 3 | 3 | — |
+| `@typescript-eslint/no-unused-vars` | 2 | 2 | — |
+| `react-hooks/exhaustive-deps` | 1 | 1 | — |
+| `react-hooks/set-state-in-effect` | 0 | 11 | **+11** |
+| `react/use` | 0 | 2 | **+2** |
+| `react-hooks/refs` | 0 | 2 | **+2** |
+| `react-hooks/preserve-manual-memoization` | 0 | 1 | **+1** |
+| **total** | **83** | **110** | **+27** |
+
+The Lint Check workflow has been red on `release` for some time — the giveaway is that a docs-only
+branch and the YAML-only Dependabot branches all failed it, and under `pull_request_target` with a
+bare checkout those runs lint the *base branch*, not the PR.
+
+Of the +27: **11 are auto-fixable formatting** from prettier 3.6→3.9 and
+`prettier-plugin-tailwindcss` 0.6→0.8, and **16 are new diagnostics** from
+`eslint-plugin-react-hooks` v7's React Compiler rules, which do not exist in v5. Those 16 flag
+pre-existing patterns that were never previously checked — real findings, but code changes, and not
+something a dependency sweep should be quietly making in a tree that is in front of review.
+
+Neither is fixed here. Running `pnpm format` would reformat well beyond the sweep's files, and the
+compiler-rule findings want their own pass. Both are worth doing once 0.8.0 is out.
+
+## One more thing the sweep found
+
+Building revealed that `pnpm build` zips into the *existing* archive, so every rebuild ships the
+previous build's orphaned bundles — ~1.67 MB of them in this case. Pre-existing, unrelated to any
+dependency, and directly relevant to what CWS review opens. Ticketed:
+[`zip-stale-assets-ticket.md`](zip-stale-assets-ticket.md). The comparison above was made against a
+clean rebuild, so it is not distorted by this.
 
 ## Status
 
@@ -84,11 +149,12 @@ sweep:
 - [x] Five GitHub Actions bumps applied
 - [x] `package.json` floors raised (8 dev, 2 production)
 - [x] `CLAUDE.md` branch table extended with `chore/*`
-- [x] Five tickets written for held-back and adjacent work
-- [ ] `pnpm-lock.yaml` regenerated for the sweep's package set
-- [ ] `pnpm type-check` clean
-- [ ] `pnpm lint` clean
-- [ ] `pnpm build` clean, ZIP shape unchanged against the 0.8.0 baseline
+- [x] Six tickets written for held-back, adjacent and newly-found work
+- [x] `pnpm-lock.yaml` regenerated; `--frozen-lockfile` install verified
+- [x] Three type breakages fixed
+- [x] `pnpm type-check` clean, 12/12
+- [x] `pnpm build` clean, ZIP structurally unchanged
+- [x] `pnpm lint` measured against baseline — pre-existing failure, +27 documented above
 - [ ] Dependabot PRs #2–#8 closed with a pointer to the sweep PR
 - [ ] Sweep PR opened against `release` — **held unmerged until v0.8.0 clears CWS review**
 
