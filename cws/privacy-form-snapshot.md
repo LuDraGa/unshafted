@@ -2,11 +2,14 @@
 
 **Item:** Unshafted: AI Contract Risk Analyzer
 **Item ID:** `fpjjdlffjfkdiibljglmgfkbpkkibpia`
-**Version live:** 0.7.1 — approved and published 2026-05-11
-**Snapshot date:** 2026-09-07 — **entered in the draft, not yet submitted for review.** The
-published form is still the 0.7.1 state: single purpose names uploads only, `Website content`
-unchecked, and no justifications for `host_permissions`, `tabs`, `activeTab`, `scripting` or
-`sidePanel`. See `cws/submission-checklist.md`.
+**Version live:** 0.8.0 — approved and published on or before 2026-09-08
+**Snapshot date:** 2026-09-09 — **this form is the published state.** Everything below was
+submitted with 0.8.0 and accepted: the rewritten single purpose, `Website content` checked, and
+justifications for all seven permissions including `host_permissions: ['<all_urls>']`.
+
+> The 0.8.0 approval date is inferred from the publish merge `90e5f73` (2026-09-08) — under the
+> branch model in `CLAUDE.md`, `main` moves only after CWS publishes. Worth replacing with the exact
+> dashboard date next time someone is signed in.
 **Source:** Chrome Web Store Developer Dashboard → Privacy tab
 
 This file mirrors the values entered in the CWS dashboard's Privacy tab so the source of truth lives in git alongside `privacy-policy.md`. Update this file whenever the dashboard form is changed.

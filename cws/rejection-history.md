@@ -132,3 +132,40 @@ listing copy + what's actually in the ZIP. Audit all four before assuming the
 policy text is the gap.
 
 Full detail: [`execution-docs/v0.7.1-purple-nickel-disclosure-pass.md`](../execution-docs/v0.7.1-purple-nickel-disclosure-pass.md).
+
+---
+
+## Resolution — v0.8.0 approved (on or before 2026-09-08)
+
+**No rejection.** Recorded here because this file is the running log of what review has
+accepted, and an approval is as load-bearing as a refusal — the next submission's baseline is
+whatever review last said yes to.
+
+v0.8.0 is the site-policy release: it added `host_permissions: ['<all_urls>']`, rewrote the single
+purpose so page reading is stated as the product's purpose rather than an accessory to uploads,
+checked `Website content` in the data-usage grid, and supplied justifications for all seven
+permissions. It **passed on the first round**, with no questions on `Web history` and no challenge
+to `<all_urls>`.
+
+That is the interesting part. Two rejections sit above this entry, one of them (Purple Potassium)
+specifically for permissions — and the broadest permission Chrome grants went through unchallenged.
+What changed was not the strength of the argument for the permission but the *consistency of the
+four surfaces*: the single purpose, the privacy policy, the listing copy and the ZIP were all moved
+in the same commit range, so a reviewer comparing them found one story. That is the takeaway from
+the v0.7.1 round applied deliberately rather than learned again.
+
+**Retreat position, unused but still prepared.** If `<all_urls>` is ever challenged on a later
+submission, the answer is *not* per-site permission prompting — one Chrome dialog per site is the
+same defect wearing a hat. It is a one-time all-sites `optional_host_permissions` request at
+onboarding, with a decline path. See D1 in
+[`execution-docs/site-policy-part7-page-access.md`](../execution-docs/site-policy-part7-page-access.md).
+
+**Bookkeeping note.** The three post-approval steps this round called for — refresh the two snapshot
+headers, log the outcome here, delete the transient checklist — were all missed when 0.8.0 went
+live, so `cws/` claimed 0.7.1 was the published version for a day. Caught and corrected while
+preparing 0.8.1. The lesson is that the standing mirrors go stale silently: nothing in CI reads
+them, and only a person opening the dashboard would notice.
+
+**Approval date is inferred**, from the publish merge `90e5f73` (2026-09-08) — under `CLAUDE.md`'s
+branch model `main` moves only after CWS publishes. Replace with the exact dashboard date when
+someone is next signed in.
