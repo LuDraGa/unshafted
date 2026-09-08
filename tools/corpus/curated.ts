@@ -37,9 +37,17 @@ export const CURATED: Record<string, CuratedDoc[]> = {
   ],
   'americanexpress.com': [
     { hash8: '1a6484c7', docType: 'privacy' },
-    { hash8: '88622777', docType: 'terms', note: 'Website Rules and Regulations — the closest thing Amex India publishes to site terms.' },
+    {
+      hash8: '88622777',
+      docType: 'terms',
+      note: 'Website Rules and Regulations — the closest thing Amex India publishes to site terms.',
+    },
     { hash8: 'a75dfac1', docType: 'regulatory_disclosure', note: 'Know Your Customer disclosure — RBI-mandated.' },
-    { hash8: '887b98bf', docType: 'regulatory_disclosure', note: 'Customer Complaint / Grievance Redressal Policy — statutory in India.' },
+    {
+      hash8: '887b98bf',
+      docType: 'regulatory_disclosure',
+      note: 'Customer Complaint / Grievance Redressal Policy — statutory in India.',
+    },
   ],
   'apple.com': [
     { hash8: '1cd58c45', docType: 'terms' },
@@ -49,7 +57,11 @@ export const CURATED: Record<string, CuratedDoc[]> = {
     // the footer scrape. Second false positive found only by reading; see also zomato.com.
   ],
   'bankofamerica.com': [
-    { hash8: '8d8c3508', docType: 'privacy', note: 'The main Online Privacy Notice. The chooser picked the CHILDREN’S notice instead.' },
+    {
+      hash8: '8d8c3508',
+      docType: 'privacy',
+      note: 'The main Online Privacy Notice. The chooser picked the CHILDREN’S notice instead.',
+    },
     { hash8: '20993aec', docType: 'regulatory_disclosure', note: 'CCPA disclosure.' },
   ],
   'booking.com': [
@@ -67,12 +79,20 @@ export const CURATED: Record<string, CuratedDoc[]> = {
   'coinbase.com': [
     { hash8: '60c77d35', docType: 'privacy', note: 'The real privacy policy. The chooser picked a legal index page.' },
     { hash8: '71f60eed', docType: 'cookie' },
-    { hash8: 'dee82681', docType: 'regulatory_disclosure', note: 'Digital Asset Disclosures — crypto-specific risk disclosure.' },
+    {
+      hash8: 'dee82681',
+      docType: 'regulatory_disclosure',
+      note: 'Digital Asset Disclosures — crypto-specific risk disclosure.',
+    },
   ],
   'ebay.com': [
     { hash8: '530c8a6d', docType: 'privacy' },
     { hash8: '63c24cb2', docType: 'cookie' },
-    { hash8: 'e33c29e5', docType: 'terms', note: 'eBay Payments terms. The general User Agreement was not among the discovered links.' },
+    {
+      hash8: 'e33c29e5',
+      docType: 'terms',
+      note: 'eBay Payments terms. The general User Agreement was not among the discovered links.',
+    },
     { hash8: '3df9b323', docType: 'regulatory_disclosure', note: 'US state privacy disclosures.' },
   ],
   'facebook.com': [
@@ -88,11 +108,23 @@ export const CURATED: Record<string, CuratedDoc[]> = {
     { hash8: 'b7688f54', docType: 'privacy' },
   ],
   'hdfcbank.com': [
-    { hash8: 'b48d44d5', docType: 'privacy', note: 'Typed `cookie` by the shipped classifier; it is the privacy policy.' },
-    { hash8: '32af9957', docType: 'terms', note: 'Website usage terms. The chooser picked a 1.5M-character page that is the whole site.' },
+    {
+      hash8: 'b48d44d5',
+      docType: 'privacy',
+      note: 'Typed `cookie` by the shipped classifier; it is the privacy policy.',
+    },
+    {
+      hash8: '32af9957',
+      docType: 'terms',
+      note: 'Website usage terms. The chooser picked a 1.5M-character page that is the whole site.',
+    },
   ],
   'hotstar.com': [
-    { hash8: '24580b81', docType: 'terms', note: 'Also serves disneyplus.com from an Indian egress — one document, two sites.' },
+    {
+      hash8: '24580b81',
+      docType: 'terms',
+      note: 'Also serves disneyplus.com from an Indian egress — one document, two sites.',
+    },
     { hash8: '63e632c5', docType: 'privacy', note: 'Also serves disneyplus.com from an Indian egress.' },
   ],
   'instagram.com': [{ hash8: 'ab642cdd', docType: 'privacy' }],
@@ -109,7 +141,11 @@ export const CURATED: Record<string, CuratedDoc[]> = {
     { hash8: 'cf76ce9c', docType: 'cookie' },
   ],
   'microsoft.com': [
-    { hash8: 'afedc4d1', docType: 'privacy', note: 'The full Privacy Statement. The chooser picked the Canadian landing page.' },
+    {
+      hash8: 'afedc4d1',
+      docType: 'privacy',
+      note: 'The full Privacy Statement. The chooser picked the Canadian landing page.',
+    },
   ],
   'netflix.com': [
     { hash8: 'e14eef68', docType: 'terms' },
@@ -132,17 +168,29 @@ export const CURATED: Record<string, CuratedDoc[]> = {
   'reddit.com': [{ hash8: '573a08ca', docType: 'privacy' }],
   'robinhood.com': [
     { hash8: '71e23909', docType: 'privacy' },
-    { hash8: '5de52f53', docType: 'privacy', note: 'Robinhood Markets US WEB VISITOR statement — expressly does NOT cover customers who hold financial products. The customer-facing statement is a different document.' },
+    {
+      hash8: '5de52f53',
+      docType: 'privacy',
+      note: 'Robinhood Markets US WEB VISITOR statement — expressly does NOT cover customers who hold financial products. The customer-facing statement is a different document.',
+    },
   ],
   'snapchat.com': [
     { hash8: '01af0ece', docType: 'terms', note: 'The real Terms of Service. The chooser picked the geofilter terms.' },
-    { hash8: '7dcf6330', docType: 'privacy', note: 'The real Privacy Policy. The chooser picked the children’s policy.' },
+    {
+      hash8: '7dcf6330',
+      docType: 'privacy',
+      note: 'The real Privacy Policy. The chooser picked the children’s policy.',
+    },
     { hash8: 'd1b14d20', docType: 'cookie' },
   ],
   'stripe.com': [
     { hash8: 'fd42eb7f', docType: 'privacy' },
     { hash8: '665e157e', docType: 'cookie' },
-    { hash8: '9379c60e', docType: 'acceptable_use', note: 'Restricted businesses list — functions as an acceptable-use policy.' },
+    {
+      hash8: '9379c60e',
+      docType: 'acceptable_use',
+      note: 'Restricted businesses list — functions as an acceptable-use policy.',
+    },
   ],
   'tiktok.com': [
     { hash8: '90d6bf47', docType: 'terms' },
@@ -190,7 +238,11 @@ export const CURATED: Record<string, CuratedDoc[]> = {
   //   youtube.com     — never captured
   'doordash.com': [{ hash8: '51e9b28e', docType: 'terms' }],
   'dropbox.com': [
-    { hash8: '57d58481', docType: 'terms', note: 'Typed `privacy` by the shipped classifier; the URL and content are the terms.' },
+    {
+      hash8: '57d58481',
+      docType: 'terms',
+      note: 'Typed `privacy` by the shipped classifier; the URL and content are the terms.',
+    },
     { hash8: 'a9dbfa29', docType: 'cookie' },
   ],
 };

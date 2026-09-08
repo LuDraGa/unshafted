@@ -65,6 +65,11 @@ rather than one keyword inside it. Migration split out to #23.
   the base rather than the PR. The `eslint` job logs `git checkout -B main refs/remotes/origin/main`
   and then lints `main`. **No check on a PR into `release` has ever tested that PR**, CodeQL aside.
   This is the largest finding of the sweep and it is not one of the four tickets.
+  **Fixed afterwards:** the three testing workflows moved to `pull_request`. Turning the check on
+  surfaced the debt it had been hiding — eight `tools/corpus/*.ts` files prettier had never seen,
+  now formatted, and four generated corpus artefacts added to `.prettierignore` because their shape
+  is the generator's business. The `e2e` and `dependabot` ghosts remain until `release` reaches
+  `main`; they are noise, and nothing gates on them.
 
 ## Notes
 

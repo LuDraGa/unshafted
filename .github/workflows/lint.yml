@@ -1,6 +1,19 @@
 name: Lint Check
 
-on: [ pull_request_target ]
+# `pull_request`, deliberately — not `pull_request_target`.
+#
+# `pull_request_target` runs with a writable token and repository secrets, and for that reason
+# refuses to check out the pull request's code; it checks out the base instead. A workflow that
+# tests code must therefore never use it, or it reports on a tree nobody proposed. This one did,
+# for long enough that a red tick here meant nothing and a green one meant less (#25).
+#
+# Privileged automation *about* a PR — greeting a first-time contributor, cancelling runs on close
+# — still needs `pull_request_target`. Testing a PR does not: `pull_request` checks out the merge
+# commit and needs no secrets, which is why the permissions below are read-only.
+on: [ pull_request ]
+
+permissions:
+  contents: read
 
 jobs:
   eslint:
