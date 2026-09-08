@@ -129,7 +129,22 @@ sweep took to 110. The path to zero errors:
   front of review. They stay visible as warnings and are tracked in
   [#16](https://github.com/LuDraGa/unshafted/issues/16) to be paid down after v0.8.0 ships.
 
-`react-hooks/exhaustive-deps` has one remaining warning, pre-existing and unchanged.
+`react-hooks/exhaustive-deps` has one remaining warning, pre-existing and unchanged. The end state
+is **0 errors, 13 warnings** across 11 packages.
+
+**The eslint check on the PR will stay red until merge, and that is not a code problem.** `lint.yml`
+runs on `pull_request_target` with a bare `actions/checkout`, so it checks out the *base* branch and
+lints `release` — the CI run still reports the 41 `exports-last` errors that no longer exist on this
+branch. The same mechanism is why deleting `e2e.yml` did not stop the e2e jobs firing. Both resolve
+on merge. The underlying fix — moving code-running workflows to `pull_request` so they test the PR
+— is a change to CI's trust model and is left as a decision, noted on
+[#15](https://github.com/LuDraGa/unshafted/issues/15).
+
+**CodeQL v4 raised one high-severity alert**, a polynomial-backtracking regex in
+`site-policy/diff.ts`. The code is byte-identical to `release`; it surfaced because the newer query
+set ran and because this sweep touched the file. Fixed anyway — the parsed text comes from whatever
+site is being analysed, so it is genuinely untrusted input. Behaviour verified identical across
+edge cases and all 76 core tests pass.
 
 The Lint Check workflow had been red on `release` for some time — the giveaway is that a docs-only
 branch and the YAML-only Dependabot branches all failed it, and under `pull_request_target` with a
