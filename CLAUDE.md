@@ -10,7 +10,7 @@ Store, never before, and never by a direct push.
 | `main` | what users actually have installed — one merge commit per published version |
 | `release` | what is, or is about to be, in front of Chrome Web Store review |
 | `dev/vX.Y.Z` | the version trunk; transient, deleted after merge |
-| `fix/*`, `hotfix/*`, `releasefix/*` | transient work branches |
+| `fix/*`, `hotfix/*`, `releasefix/*`, `chore/*` | transient work branches |
 | `main_backup` | pre-rewrite history, archived, never merged |
 
 **Everything branches from `release`.** Between cycles `release` equals `main`; during a
@@ -22,8 +22,11 @@ cycle it is correctly ahead. One rule, no exceptions.
    that version goes there — code, `cws/` snapshots, `execution-docs/`, version bumps. Push
    consistently; it is the working trunk for the version, not a holding pen for a finished
    one.
-2. **Work branches squash.** `fix/*`, `hotfix/*` and dependabot PRs branch from `release`
-   and squash-merge back into it — one tidy commit each. Only the trunk path uses merges.
+2. **Work branches squash.** `fix/*`, `hotfix/*`, `chore/*` and dependabot PRs branch from
+   `release` and squash-merge back into it — one tidy commit each. Only the trunk path uses
+   merges. `chore/*` is for maintenance that belongs to no version — dependency sweeps,
+   tooling, CI — and it is deliberately not version-numbered, because naming it `dev/vX.Y.Z`
+   would claim it is the next release when it is not.
 3. **Merge the version.** Once the version is feature-complete, merge `dev/vX.Y.Z` into
    `release` with `--no-ff`, then delete the branch. Pushing `release` is what refreshes the
    privacy-policy gist that CWS review actually reads (see below).
@@ -50,8 +53,8 @@ squash shares no ancestry with its source, so `release` and `main` would diverge
 further every cycle. Merges keep them on one line of history — no reset step, no drift to
 manage.
 
-Squash is still right for `fix/*`, `hotfix/*` and `releasefix/*`, whose internal history is
-noise.
+Squash is still right for `fix/*`, `hotfix/*`, `releasefix/*` and `chore/*`, whose internal
+history is noise.
 
 ### Why `release` exists: the privacy-policy gist
 
