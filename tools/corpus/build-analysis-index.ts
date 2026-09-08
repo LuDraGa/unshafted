@@ -45,7 +45,11 @@ const main = async () => {
   }
 
   rows.sort((left, right) => left.domain.localeCompare(right.domain) || left.docType.localeCompare(right.docType));
-  await writeFile(path.join(ROOT, 'corpus/analysis-index.json'), JSON.stringify({ analysed: rows.length, rows }, null, 2), 'utf8');
+  await writeFile(
+    path.join(ROOT, 'corpus/analysis-index.json'),
+    JSON.stringify({ analysed: rows.length, rows }, null, 2),
+    'utf8',
+  );
   console.log(`[index] ${rows.length} analyses indexed`);
 };
 

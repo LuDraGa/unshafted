@@ -78,20 +78,36 @@ const main = async () => {
   }
 
   entries.sort((left, right) => left.domain.localeCompare(right.domain) || left.docType.localeCompare(right.docType));
-  await writeFile(path.join(ROOT, 'corpus/curated.json'), JSON.stringify({
-    captureId: manifest.captureId,
-    normalizerVersion: manifest.normalizerVersion,
-    egress: manifest.egress,
-    entries,
-  }, null, 2), 'utf8');
+  await writeFile(
+    path.join(ROOT, 'corpus/curated.json'),
+    JSON.stringify(
+      {
+        captureId: manifest.captureId,
+        normalizerVersion: manifest.normalizerVersion,
+        egress: manifest.egress,
+        entries,
+      },
+      null,
+      2,
+    ),
+    'utf8',
+  );
 
   const domains = new Set(entries.map(entry => entry.domain));
   const chars = entries.reduce((total, entry) => total + entry.normalizedLength, 0);
   console.log(`[curate] ${entries.length} documents across ${domains.size} domains`);
   console.log(`[curate] ${chars.toLocaleString()} normalized characters`);
-  console.log('[curate] by type:', Object.entries(
-    entries.reduce<Record<string, number>>((acc, entry) => ({ ...acc, [entry.docType]: (acc[entry.docType] ?? 0) + 1 }), {}),
-  ).map(([type, count]) => `${type} ${count}`).join(', '));
+  console.log(
+    '[curate] by type:',
+    Object.entries(
+      entries.reduce<Record<string, number>>(
+        (acc, entry) => ({ ...acc, [entry.docType]: (acc[entry.docType] ?? 0) + 1 }),
+        {},
+      ),
+    )
+      .map(([type, count]) => `${type} ${count}`)
+      .join(', '),
+  );
 };
 
 void main();

@@ -1,2 +1,15 @@
 dist
 *.md
+
+# Generated corpus artefacts. Every one of these is written by a script in `tools/corpus/` — the
+# shape is the generator's business, and reformatting them here only guarantees the next
+# regeneration undoes it. `policy-corpus.json` is the one that actually matters: `build-bundle.ts`
+# emits it minified on purpose because it ships inside the extension, so pretty-printing it would
+# inflate the CWS upload for no reader's benefit.
+#
+# They surfaced when the prettier check was switched from `pull_request_target` to `pull_request`
+# and began reading the repository for the first time (#25).
+corpus/manifest.json
+corpus/curated.json
+corpus/analysis-index.json
+chrome-extension/public/policy-corpus.json
