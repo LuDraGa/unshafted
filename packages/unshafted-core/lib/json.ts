@@ -1,4 +1,4 @@
-import type { ZodSchema } from 'zod';
+import type { ZodType } from 'zod';
 
 /*
  * No `\s*` between the fence and the capture. `\s` is a subset of `[\s\S]`, so with both present
@@ -60,7 +60,7 @@ export const extractJsonFromText = (input: string): string => {
   return candidate;
 };
 
-export const parseStructuredJson = <T>(schema: ZodSchema<T>, raw: string): T => {
+export const parseStructuredJson = <T>(schema: ZodType<T>, raw: string): T => {
   const extracted = extractJsonFromText(raw);
   const parsed = JSON.parse(extracted);
   return schema.parse(parsed);
