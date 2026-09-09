@@ -323,8 +323,29 @@ const Popup = () => {
   const [pendingDriveBackupId, setPendingDriveBackupId] = useState<string | null>(null);
   const [pendingDeleteReportId, setPendingDeleteReportId] = useState<string | null>(null);
   const [syncNotice, setSyncNotice] = useState('');
-  const [resultGuidanceStep, setResultGuidanceStep] = useState<ResultGuideStep>('summary');
-  const [activeKeyHash, setActiveKeyHash] = useState<string | null>(null);
+  /**
+   * Where the results walkthrough has got to, tagged with what it is a walkthrough of.
+   *
+   * Keyed rather than held as a bare value because both effects this replaced existed only to
+   * reset it — one put the walkthrough back to `summary` on reaching the results step or on a new
+   * analysis, the other skipped `flags` when the analysis raised none. An effect runs after the
+   * render that scheduled it, so each was correcting a frame the user had already been shown.
+   */
+  const [guidance, setGuidance] = useState<{
+    analysisId: string | null;
+    onboardingStep: OnboardingStep | null;
+    step: ResultGuideStep;
+  }>({ analysisId: null, onboardingStep: null, step: 'summary' });
+  /**
+   * The hash of the key currently configured, tagged with the key it is the hash of.
+   *
+   * Tagged rather than bare because the effect below used to clear it synchronously before
+   * recomputing — twice, once for each branch. That is a reset in an effect, so it landed a render
+   * after the key changed, and for that render the popup held the OLD key's hash against the NEW
+   * key. `hasTestedActiveKey` is computed from exactly that comparison, so the frame claimed a key
+   * had been tested when it had not.
+   */
+  const [keyHash, setKeyHash] = useState<{ forKey: string; hash: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const selectedReportRef = useRef<HTMLElement | null>(null);
   const profilePreferenceUserRef = useRef<string | null>(null);
@@ -333,6 +354,15 @@ const Popup = () => {
   const activeProvider = activeProviderConfig.provider;
   const activeProviderApiKey = activeProviderConfig.apiKey;
   const activeProviderModel = activeProviderConfig.model;
+
+  /** Exactly what `getOnboardingKeyHash` is asked about, so a stored hash can be matched to it. */
+  const keyHashSubject = `${activeProvider}\u0000${activeProviderApiKey}\u0000${activeProviderModel}`;
+
+  /*
+   * Derived. No key means no hash, and a hash computed for a different provider, key or model is
+   * not this one's — either way `null`, in the same render rather than the one after.
+   */
+  const activeKeyHash = activeProviderApiKey && keyHash?.forKey === keyHashSubject ? keyHash.hash : null;
   const hasActiveApiKey = Boolean(activeProviderConfig.apiKey);
   const hasTestedActiveKey = Boolean(
     hasActiveApiKey &&
@@ -352,6 +382,32 @@ const Popup = () => {
     session,
   });
   const hasFlags = Boolean(currentAnalysis?.quickScan?.redFlags.length);
+  const guidanceAnalysisId = currentAnalysis?.id ?? null;
+
+  /*
+   * `summary` unless the walkthrough was explicitly advanced for this analysis on this step. That
+   * is the reset the first effect performed, computed instead of applied a render late.
+   *
+   * The old condition also tested `!onboarding.seenResultGuidance`, which was already implied:
+   * `getActiveOnboardingStep` only returns `results` while that flag is false.
+   */
+  const startedGuidanceStep: ResultGuideStep =
+    guidance.analysisId === guidanceAnalysisId && guidance.onboardingStep === activeOnboardingStep
+      ? guidance.step
+      : 'summary';
+
+  /*
+   * `flags` is not a step that exists when the analysis raised none. The second effect noticed
+   * that after the fact; deriving it means the empty step never renders at all.
+   */
+  const resultGuidanceStep: ResultGuideStep =
+    startedGuidanceStep === 'flags' && !hasFlags ? 'customize' : startedGuidanceStep;
+
+  const setResultGuidanceStep = useCallback(
+    (step: ResultGuideStep) =>
+      setGuidance({ analysisId: guidanceAnalysisId, onboardingStep: activeOnboardingStep, step }),
+    [activeOnboardingStep, guidanceAnalysisId],
+  );
   const openedHistoryReport = useMemo(() => {
     if (!selectedHistory) return null;
     if (hasReportDetails(selectedHistory)) return selectedHistory;
@@ -459,28 +515,24 @@ const Popup = () => {
   }, []);
 
   useEffect(() => {
+    if (!activeProviderApiKey) return;
+
     let cancelled = false;
 
-    if (!activeProviderApiKey) {
-      setActiveKeyHash(null);
-      return;
-    }
-
-    setActiveKeyHash(null);
     void getOnboardingKeyHash({
       provider: activeProvider,
       apiKey: activeProviderApiKey,
       model: activeProviderModel,
     }).then(hash => {
       if (!cancelled) {
-        setActiveKeyHash(hash);
+        setKeyHash({ forKey: keyHashSubject, hash });
       }
     });
 
     return () => {
       cancelled = true;
     };
-  }, [activeProvider, activeProviderApiKey, activeProviderModel]);
+  }, [activeProvider, activeProviderApiKey, activeProviderModel, keyHashSubject]);
 
   // Load auth state on mount
   useEffect(() => {
@@ -579,18 +631,6 @@ const Popup = () => {
   ]);
 
   useEffect(() => {
-    if (activeOnboardingStep === 'results' && !onboarding.seenResultGuidance) {
-      setResultGuidanceStep('summary');
-    }
-  }, [activeOnboardingStep, onboarding.seenResultGuidance, currentAnalysis?.id]);
-
-  useEffect(() => {
-    if (activeOnboardingStep === 'results' && resultGuidanceStep === 'flags' && !hasFlags) {
-      setResultGuidanceStep('customize');
-    }
-  }, [activeOnboardingStep, hasFlags, resultGuidanceStep]);
-
-  useEffect(() => {
     if (!selectedHistory) return;
 
     window.requestAnimationFrame(() => {
@@ -599,81 +639,95 @@ const Popup = () => {
     });
   }, [selectedHistory]);
 
-  const hydrateHistoryFromDrive = useCallback(
-    async ({ onlyWhenEmpty = false }: { onlyWhenEmpty?: boolean } = {}) => {
-      if (!session) return;
+  /**
+   * Pull the signed-in user's reports out of Drive and into local history.
+   *
+   * Unconditional. It used to take `onlyWhenEmpty`, which existed for exactly one of its three
+   * callers — the mount effect — and cost the other two a history read they did nothing with. That
+   * precondition now sits with the caller that has it, which also means the syncing indicator is
+   * only ever raised for a sync that is actually going to happen.
+   */
+  const hydrateHistoryFromDrive = useCallback(async () => {
+    if (!session) return;
 
-      setHistorySyncing(true);
-      try {
-        const localHistory = await analysisHistoryStorage.get();
-        if (onlyWhenEmpty && localHistory.length > 0) return;
+    setHistorySyncing(true);
+    try {
+      const driveFiles = await loadHistoryFromDrive();
+      if (driveFiles.length === 0) return;
 
-        const driveFiles = await loadHistoryFromDrive();
-        if (driveFiles.length === 0) return;
-
-        const byHash = new Map<string, typeof driveFiles>();
-        for (const file of driveFiles) {
-          const existing = byHash.get(file.contentHash) ?? [];
-          existing.push(file);
-          byHash.set(file.contentHash, existing);
-        }
-
-        const prioritySet = new Set<string>(PRIORITY_OPTIONS);
-
-        for (const [, files] of byHash) {
-          try {
-            const quickFile = files.find(f => f.analysisType === 'quick-scan');
-            const deepFile = files.find(f => f.analysisType === 'deep-analysis');
-
-            if (!quickFile) continue;
-
-            const rawPriorities = deepFile && 'priorities' in deepFile ? deepFile.priorities : [];
-            const validPriorities = rawPriorities.filter(priority => prioritySet.has(priority));
-
-            const record = {
-              id: crypto.randomUUID(),
-              createdAt: quickFile.createdAt,
-              source: {
-                kind: 'file' as const,
-                name: quickFile.documentName,
-                slug:
-                  quickFile.documentName
-                    .toLowerCase()
-                    .replace(/[^a-z0-9]+/g, '-')
-                    .slice(0, 60) || 'unnamed-document',
-                contentHash: quickFile.contentHash,
-                charCount: quickFile.charCount || 0,
-                estimatedTokens: quickFile.estimatedTokens || 0,
-                preview: `Restored from Google Drive: ${quickFile.documentName}`,
-                quality: 'good' as const,
-                warnings: [],
-                capturedAt: quickFile.createdAt,
-              },
-              quickScan: quickFile.result,
-              deepAnalysis: deepFile ? deepFile.result : undefined,
-              selectedRole: quickFile.role,
-              priorities: validPriorities,
-              storageState: 'restored-from-drive' as const,
-            };
-
-            await analysisHistoryStorage.push(record as Parameters<typeof analysisHistoryStorage.push>[0]);
-          } catch {
-            // Best-effort hydration only.
-          }
-        }
-      } catch {
-        // Drive hydration is best-effort.
-      } finally {
-        setHistorySyncing(false);
+      const byHash = new Map<string, typeof driveFiles>();
+      for (const file of driveFiles) {
+        const existing = byHash.get(file.contentHash) ?? [];
+        existing.push(file);
+        byHash.set(file.contentHash, existing);
       }
-    },
-    [session],
-  );
 
-  // Hydrate local history from Drive when signed in + history is empty.
+      const prioritySet = new Set<string>(PRIORITY_OPTIONS);
+
+      for (const [, files] of byHash) {
+        try {
+          const quickFile = files.find(f => f.analysisType === 'quick-scan');
+          const deepFile = files.find(f => f.analysisType === 'deep-analysis');
+
+          if (!quickFile) continue;
+
+          const rawPriorities = deepFile && 'priorities' in deepFile ? deepFile.priorities : [];
+          const validPriorities = rawPriorities.filter(priority => prioritySet.has(priority));
+
+          const record = {
+            id: crypto.randomUUID(),
+            createdAt: quickFile.createdAt,
+            source: {
+              kind: 'file' as const,
+              name: quickFile.documentName,
+              slug:
+                quickFile.documentName
+                  .toLowerCase()
+                  .replace(/[^a-z0-9]+/g, '-')
+                  .slice(0, 60) || 'unnamed-document',
+              contentHash: quickFile.contentHash,
+              charCount: quickFile.charCount || 0,
+              estimatedTokens: quickFile.estimatedTokens || 0,
+              preview: `Restored from Google Drive: ${quickFile.documentName}`,
+              quality: 'good' as const,
+              warnings: [],
+              capturedAt: quickFile.createdAt,
+            },
+            quickScan: quickFile.result,
+            deepAnalysis: deepFile ? deepFile.result : undefined,
+            selectedRole: quickFile.role,
+            priorities: validPriorities,
+            storageState: 'restored-from-drive' as const,
+          };
+
+          await analysisHistoryStorage.push(record as Parameters<typeof analysisHistoryStorage.push>[0]);
+        } catch {
+          // Best-effort hydration only.
+        }
+      }
+    } catch {
+      // Drive hydration is best-effort.
+    } finally {
+      setHistorySyncing(false);
+    }
+  }, [session]);
+
+  // Hydrate local history from Drive on a signed-in popup that has nothing local yet.
   useEffect(() => {
-    void hydrateHistoryFromDrive({ onlyWhenEmpty: true });
-  }, [hydrateHistoryFromDrive]);
+    if (!session) return;
+
+    let cancelled = false;
+
+    void analysisHistoryStorage.get().then(local => {
+      // The precondition belongs here: the two manual callers mean "hydrate now" unconditionally.
+      if (cancelled || local.length > 0) return;
+      return hydrateHistoryFromDrive();
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [session, hydrateHistoryFromDrive]);
 
   const openUrlInTab = useCallback(async (url: string) => {
     try {
@@ -782,7 +836,7 @@ const Popup = () => {
       default:
         return;
     }
-  }, [completeOnboarding, handleSignIn, handleUploadFlow, hasFlags, openOptions, spotlightStep]);
+  }, [completeOnboarding, handleSignIn, handleUploadFlow, hasFlags, openOptions, setResultGuidanceStep, spotlightStep]);
 
   const previousSpotlight = useCallback(async () => {
     if (!spotlightStep) return;
@@ -805,7 +859,7 @@ const Popup = () => {
         await unshaftedOnboardingStorage.set(current => ({ ...current, currentStep: previous }));
       }
     }
-  }, [hasFlags, spotlightStep]);
+  }, [hasFlags, setResultGuidanceStep, spotlightStep]);
 
   const canGoBackInSpotlight = Boolean(
     spotlightStep &&
@@ -878,7 +932,14 @@ const Popup = () => {
     if (profileUpdate.ok) {
       setSyncNotice('Drive backup is enabled. Choose whether to back up the current visible analysis.');
     }
-  }, [currentAnalysis?.id, currentAnalysis?.quickScan, handleSignIn, session, settings.driveBackupEnabled]);
+    /*
+     * `currentAnalysis` whole, not two of its fields. React Compiler infers the object as the
+     * dependency and refuses to optimize a component whose manual list is narrower than what it
+     * inferred, because a narrower list can hold a stale value. The object comes from
+     * `useStorage(currentAnalysisStorage)`, so its identity only changes when the store is
+     * written — depending on all of it costs a callback recreation per write, not per render.
+     */
+  }, [currentAnalysis, handleSignIn, session, settings.driveBackupEnabled]);
 
   const backUpCurrentAnalysisToDrive = useCallback(async () => {
     if (!currentAnalysis?.quickScan) return;

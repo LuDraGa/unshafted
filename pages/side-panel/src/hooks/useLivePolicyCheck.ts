@@ -1,5 +1,5 @@
 import { capturePolicyDocument, discoverActiveTabPolicies } from '@extension/shared';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { PolicyDiscoveryResult, PolicyDocumentCapture } from '@extension/shared';
 import type { PolicyDocType, RankedPolicyCandidate, SitePolicyAnalysis } from '@extension/unshafted-core';
 
@@ -43,6 +43,9 @@ const MAX_CONFIRMATION_FETCHES = 4;
  */
 const MIN_VISIBLE_DISCOVERY_MS = 450;
 
+/** Stable identity for "nothing fetched yet", so a render cannot churn a consumer's dependencies. */
+const NO_READS: Record<string, ReaderEntry> = {};
+
 /** Per bundled document, and deliberately per DOCUMENT rather than per site (D3). */
 type DocumentFreshness =
   /** The live check has not finished — or has not been able to start. */
@@ -55,6 +58,34 @@ type DocumentFreshness =
   | 'unconfirmed';
 
 type ReaderEntry = { state: 'loading' } | { state: 'done'; capture: PolicyDocumentCapture };
+
+/** What a run answers for. Two runs are the same run when all four match. */
+type RunIdentity = {
+  tabId: number | null;
+  origin: string | null;
+  attemptCount: number;
+  analyses: readonly SitePolicyAnalysis[];
+};
+
+/** One run's accumulated output, tagged with the identity it answers for. */
+type Run = RunIdentity & {
+  discovery: PolicyDiscoveryResult | null;
+  discovering: boolean;
+  freshness: Record<string, DocumentFreshness>;
+  reads: Record<string, ReaderEntry>;
+};
+
+/**
+ * `analyses` compares by reference deliberately. `useDomainAnalyses` returns the array straight out
+ * of the corpus's `byDomain` map, so it is stable for a given domain and a re-resolve after an
+ * in-site navigation is correctly NOT a new run.
+ */
+const isSameRun = (run: Run | null, identity: RunIdentity): run is Run =>
+  run !== null &&
+  run.tabId === identity.tabId &&
+  run.origin === identity.origin &&
+  run.attemptCount === identity.attemptCount &&
+  run.analyses === identity.analyses;
 
 type LivePolicyCheck = {
   /** Null until discovery has run. `documents` inside it is what the reader lists. */
@@ -125,9 +156,18 @@ const useLivePolicyCheck = (
   pageUrl: string | null,
   analyses: readonly SitePolicyAnalysis[],
 ): LivePolicyCheck => {
-  const [discovery, setDiscovery] = useState<PolicyDiscoveryResult | null>(null);
-  const [freshness, setFreshness] = useState<Record<string, DocumentFreshness>>({});
-  const [reads, setReads] = useState<Record<string, ReaderEntry>>({});
+  /**
+   * Everything one run produces, or null before the first result lands.
+   *
+   * One record rather than four `useState`s because all four reset together, and resetting them
+   * used to be the first thing the effect below did. An effect runs after the render that
+   * scheduled it, so that left one committed render showing the PREVIOUS page's discovery,
+   * freshness and reads against the new tab — the panel briefly claiming to have read a page it
+   * had not looked at yet. The record carries the identity of the run it belongs to and the
+   * derivation at the bottom ignores it once that identity no longer matches, which removes the
+   * frame instead of shortening it.
+   */
+  const [run, setRun] = useState<Run | null>(null);
   /**
    * Bumped by `rediscover`, so a user's click re-enters the effect below.
    *
@@ -136,7 +176,6 @@ const useLivePolicyCheck = (
    * copy onto every site the user browsed to afterwards.
    */
   const [attempt, setAttempt] = useState({ key: '', count: 0 });
-  const [discovering, setDiscovering] = useState(false);
 
   // The reader fetches against the tab discovery ran on, never a re-query of "the active tab".
   const readTabId = useRef<number | null>(null);
@@ -145,13 +184,17 @@ const useLivePolicyCheck = (
   const origin = originOf(pageUrl);
   const attemptKey = `${tabId}:${origin}`;
 
-  useEffect(() => {
-    setDiscovery(null);
-    setReads({});
-    setFreshness(Object.fromEntries(analyses.map(analysis => [analysis.contentHash, 'pending' as const])));
+  /** What the run in flight, or the next one, answers for. */
+  const identity: RunIdentity = { tabId, origin, attemptCount: attempt.count, analyses };
 
+  /** Every document pending, which is where a run starts and where a run that cannot start stays. */
+  const pendingFreshness = useMemo(
+    () => Object.fromEntries(analyses.map(analysis => [analysis.contentHash, 'pending' as const])),
+    [analyses],
+  );
+
+  useEffect(() => {
     requested.current = new Set();
-    setDiscovering(tabId !== null && origin !== null);
 
     /*
      * Coverage is NOT a precondition (D15). This used to bail on an empty analysis set, which is
@@ -165,7 +208,31 @@ const useLivePolicyCheck = (
     let disposed = false;
     readTabId.current = tabId;
 
-    const run = async () => {
+    /** What this run's record looks like before it has learned anything. */
+    const started: Run = {
+      tabId,
+      origin,
+      attemptCount: attempt.count,
+      analyses,
+      discovery: null,
+      discovering: true,
+      freshness: pendingFreshness,
+      reads: {},
+    };
+
+    /*
+     * Every write goes through here so a result can only ever land on its own run's record. The
+     * `disposed` flag below already stops a superseded closure, and this is the belt to its
+     * braces: if a record for some other run is in state, this run starts a fresh one rather than
+     * merging into it.
+     */
+    const update = (change: (current: Run) => Partial<Run>) =>
+      setRun(previous => {
+        const current = isSameRun(previous, started) ? previous : started;
+        return { ...current, ...change(current) };
+      });
+
+    const execute = async () => {
       const startedAt = Date.now();
       const found = await discoverActiveTabPolicies();
 
@@ -175,12 +242,13 @@ const useLivePolicyCheck = (
       if (remaining > 0) await new Promise(resolve => setTimeout(resolve, remaining));
 
       if (disposed) return;
-      setDiscovery(found);
-      setDiscovering(false);
+      update(() => ({ discovery: found, discovering: false }));
 
       // Nothing readable here. Every document keeps its "as we read it" label and no error shows.
       if (found.status !== 'discovered') {
-        setFreshness(Object.fromEntries(analyses.map(analysis => [analysis.contentHash, 'unconfirmed' as const])));
+        update(() => ({
+          freshness: Object.fromEntries(analyses.map(analysis => [analysis.contentHash, 'unconfirmed' as const])),
+        }));
         return;
       }
 
@@ -197,12 +265,12 @@ const useLivePolicyCheck = (
         const capture = await capturePolicyDocument(found.tabId, target.url);
         if (disposed) return;
 
-        setReads(previous => ({ ...previous, [target.url]: { state: 'done', capture } }));
+        update(current => ({ reads: { ...current.reads, [target.url]: { state: 'done', capture } } }));
         if (capture.status !== 'captured') continue;
 
         const matched = byHash.get(capture.hash);
         if (matched) {
-          setFreshness(previous => ({ ...previous, [matched.contentHash]: 'current' }));
+          update(current => ({ freshness: { ...current.freshness, [matched.contentHash]: 'current' } }));
           continue;
         }
 
@@ -214,28 +282,28 @@ const useLivePolicyCheck = (
          */
         const sameType = target.docType ? (byDocType.get(target.docType) ?? []) : [];
         if (sameType.length === 1) {
-          setFreshness(previous => ({ ...previous, [sameType[0]!.contentHash]: 'changed' }));
+          update(current => ({ freshness: { ...current.freshness, [sameType[0]!.contentHash]: 'changed' } }));
         }
       }
 
       if (disposed) return;
       // Anything the run never reached is unconfirmed, which is the resting state, not a failure.
-      setFreshness(previous =>
-        Object.fromEntries(
-          Object.entries(previous).map(([hash, state]): [string, DocumentFreshness] => [
+      update(current => ({
+        freshness: Object.fromEntries(
+          Object.entries(current.freshness).map(([hash, state]): [string, DocumentFreshness] => [
             hash,
             state === 'pending' ? 'unconfirmed' : state,
           ]),
         ),
-      );
+      }));
     };
 
-    void run();
+    void execute();
 
     return () => {
       disposed = true;
     };
-  }, [tabId, origin, analyses, attempt.count]);
+  }, [tabId, origin, analyses, attempt.count, pendingFreshness]);
 
   const rediscover = useCallback(
     () => setAttempt(current => ({ key: attemptKey, count: current.count + 1 })),
@@ -247,19 +315,35 @@ const useLivePolicyCheck = (
     if (tab === null || requested.current.has(url)) return;
 
     requested.current.add(url);
-    setReads(previous => ({ ...previous, [url]: { state: 'loading' } }));
+    /*
+     * Merges into whichever run record is in state, and does nothing if there is none. The reader
+     * lists documents out of `discovery`, so a record always exists by the time this is reachable —
+     * and if one somehow is not there, there is no discovery to read against either.
+     */
+    const merge = (entry: ReaderEntry) =>
+      setRun(previous => (previous ? { ...previous, reads: { ...previous.reads, [url]: entry } } : previous));
+
+    merge({ state: 'loading' });
 
     void capturePolicyDocument(tab, url).then(capture => {
-      setReads(current => ({ ...current, [url]: { state: 'done', capture } }));
+      merge({ state: 'done', capture });
     });
   }, []);
 
+  /*
+   * Derived, not reset in the effect. A record that answers for a different tab, origin, attempt
+   * or analysis set is not this run's, so it is ignored rather than overwritten later — which is
+   * what removes the frame of another page's results described on `run` above.
+   */
+  const current = isSameRun(run, identity) ? run : null;
+
   return {
-    discovery,
-    discovering,
+    discovery: current?.discovery ?? null,
+    // A run that cannot start is not looking, and that distinction is the whole of the retry copy.
+    discovering: current?.discovering ?? (tabId !== null && origin !== null),
     retried: attempt.key === attemptKey && attempt.count > 0,
-    freshness,
-    reads,
+    freshness: current?.freshness ?? pendingFreshness,
+    reads: current?.reads ?? NO_READS,
     readDocument,
     rediscover,
   };

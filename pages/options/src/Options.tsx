@@ -46,20 +46,37 @@ const optionsSetupSteps = new Set<OnboardingStep>(['provider', 'api-key', 'save-
 const optionsStepOrder: OptionsSetupStep[] = ['provider', 'api-key', 'save-settings', 'test-connection'];
 const isOptionsSetupStep = (step: OnboardingStep): step is OptionsSetupStep => optionsSetupSteps.has(step);
 
+/** Stored settings as form fields. One place, so seeding and re-seeding cannot drift apart. */
+const formFromSettings = (settings: AppSettings): FormState => ({
+  provider: settings.provider,
+  apiKey: settings.apiKey,
+  quickModel: settings.quickModel,
+  deepModel: settings.deepModel,
+  openaiApiKey: settings.openaiApiKey,
+  openaiQuickModel: settings.openaiQuickModel,
+  openaiDeepModel: settings.openaiDeepModel,
+  temperature: String(settings.temperature),
+});
+
 const Options = () => {
   const onboarding = useStorage(unshaftedOnboardingStorage);
   const settings = useStorage(unshaftedSettingsStorage);
   const apiKeyInputRef = useRef<HTMLInputElement | null>(null);
 
+  /*
+   * Seeded once. `useStorage` suspends until the first read lands, so `settings` is already real
+   * on the first render and there is no async gap to fill in afterwards.
+   *
+   * There used to be an effect here that re-seeded the form from `settings` — and because an
+   * effect runs after the first render whatever its dependencies say, it overwrote `provider`
+   * with `settings.provider` immediately, discarding the `?provider=` the popup's setup deep link
+   * had just asked for. Nothing outside this page writes any field the form holds: the popup's two
+   * writers touch `driveBackupEnabled` only. So the re-seed had exactly one real job, normalising
+   * the fields after a save, and that now happens in `save` where the save is.
+   */
   const [form, setForm] = useState<FormState>({
+    ...formFromSettings(settings),
     provider: preferredProvider ?? settings.provider,
-    apiKey: settings.apiKey,
-    quickModel: settings.quickModel,
-    deepModel: settings.deepModel,
-    openaiApiKey: settings.openaiApiKey,
-    openaiQuickModel: settings.openaiQuickModel,
-    openaiDeepModel: settings.openaiDeepModel,
-    temperature: String(settings.temperature),
   });
   const [showApiKey, setShowApiKey] = useState(false);
   const [status, setStatus] = useState<{ tone: 'idle' | 'success' | 'error'; message: string }>({
@@ -70,28 +87,6 @@ const Options = () => {
   const [isTesting, setIsTesting] = useState(false);
   const [lastSavedConfig, setLastSavedConfig] = useState<ReturnType<typeof getActiveProviderConfig> | null>(null);
   const [showPopupFallback, setShowPopupFallback] = useState(false);
-
-  useEffect(() => {
-    setForm({
-      provider: settings.provider,
-      apiKey: settings.apiKey,
-      quickModel: settings.quickModel,
-      deepModel: settings.deepModel,
-      openaiApiKey: settings.openaiApiKey,
-      openaiQuickModel: settings.openaiQuickModel,
-      openaiDeepModel: settings.openaiDeepModel,
-      temperature: String(settings.temperature),
-    });
-  }, [
-    settings.provider,
-    settings.apiKey,
-    settings.quickModel,
-    settings.deepModel,
-    settings.openaiApiKey,
-    settings.openaiQuickModel,
-    settings.openaiDeepModel,
-    settings.temperature,
-  ]);
 
   const setField = (field: keyof FormState, value: string) => {
     setForm(current => ({ ...current, [field]: value }));
@@ -172,7 +167,7 @@ const Options = () => {
     setIsSaving(true);
 
     try {
-      await unshaftedSettingsStorage.set({
+      const saved: AppSettings = {
         provider: form.provider,
         apiKey: form.apiKey.trim(),
         quickModel: form.quickModel.trim() || DEFAULT_QUICK_MODEL,
@@ -183,7 +178,11 @@ const Options = () => {
         temperature: form.provider === 'openai' ? DEFAULT_TEMPERATURE : parseTemperature(),
         monthlySoftLimit: settings.monthlySoftLimit,
         driveBackupEnabled: settings.driveBackupEnabled,
-      });
+      };
+
+      await unshaftedSettingsStorage.set(saved);
+      // Show what was actually stored — trimmed, and with defaults filled in for empty fields.
+      setForm(formFromSettings(saved));
 
       setStatus({
         tone: 'success',
