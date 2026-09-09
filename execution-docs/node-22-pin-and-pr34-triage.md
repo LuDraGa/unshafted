@@ -200,6 +200,27 @@ become `@import "tailwindcss"`; the `postcss.plugins.tailwindcss` entries in all
 `packages/vite-config/tailwind.d.ts` declares `tailwindcss/lib/cli/build`, an internal path v4 does
 not have.
 
+### #34's own CI proves nothing about most of #34
+
+Worth recording, because it is a trap. All three failing `[pull_request]` checks on #34 — build,
+lint, tests-and-type-check — fail at the same line, and it is not any of the ten majors:
+
+```
+Run pnpm install --frozen-lockfile --prefer-offline
+ERR_PNPM_UNSUPPORTED_ENGINE  Your Node version is incompatible with "jsdom@30.0.1".
+Expected version: ^22.22.2 || ^24.15.0 || >=26.0.0     Got: v22.15.1
+```
+
+The branch dies at install, so nothing in it was ever compiled, linted or run. A reader glancing at
+three red checks would conclude the PR is broken and be right for entirely the wrong reason: the
+`tailwindcss`, `typescript` and `eslint` problems documented above are all *downstream* of a failure
+that happens first. Move the pin and #34's CI would get further and fail differently — which is the
+argument for landing job A before drawing any conclusion from a Dependabot re-run.
+
+(Separately: the ~20 other red crosses on this PR are `pull_request_target` ghosts testing `main`,
+including entire workflows that no longer exist in this repo — `Modular E2E Tests Matrix`,
+`Run E2E Tests`. Read the `[pull_request]` runs only. This clears when `release` reaches `main`.)
+
 ### What #34 itself should become
 
 Nothing in #34 can be merged as it stands — `tailwindcss` alone guarantees a broken build. Once the
