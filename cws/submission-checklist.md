@@ -1,7 +1,9 @@
 # CWS Submission Checklist — 0.8.1, maintenance
 
 **Prepared:** 2026-09-09
-**Status:** ZIP built and audited. **Ready to submit.**
+**Status:** **Round 1 submitted and REJECTED** on 2026-09-09, Yellow Argon, excessive keywords in
+the description. The build was not cited and does not change. Round 2 is a listing-copy resubmission:
+paste the new description, then resubmit the same ZIP.
 **Applies to:** a maintenance release — dependency sweep, pdf.js 4→6, a ReDoS fix, and CI work
 **Live item:** `fpjjdlffjfkdiibljglmgfkbpkkibpia`, version `0.8.0`, `<all_urls>` already granted
 
@@ -77,8 +79,19 @@ The rest (#19, #20, #24, #26, #15) is repo and CI only and reaches no user.
 
 ## 3. Store listing tab
 
-- [ ] **Nothing to change.** No user-visible feature moved, so the description, summary and
-      screenshots all stand.
+**This is the whole of round 2.** Round 1 assumed there was nothing to change here; the rejection
+came from this tab and nothing else.
+
+- [ ] **Paste the new description** from `store-listing-snapshot.md`, the fenced block under
+      "### Description". 2,137 characters. It names no company whose policies the extension
+      analyses. Do not reintroduce one, and do not replace the category list with a list of examples,
+      which is the same shape wearing a hat.
+- [ ] Confirm after pasting that the dashboard field and the snapshot match. The snapshot is the
+      source of truth and the dashboard is not diffable, so a drift here is invisible until the next
+      rejection.
+- [ ] Summary and screenshots stand. The summary ships in the build via `__MSG_extensionDescription__`
+      and was not cited. The screenshots show real sites in-context, which is functional
+      demonstration rather than a keyword list, and were not cited either.
 - [ ] The optional promo tiles (440×280 small, 1400×560 marquee) are still unfilled. They feed
       Google's curated placements, not the listing page. Still optional, still cheap, still nobody's
       priority.
@@ -88,11 +101,14 @@ The rest (#19, #20, #24, #26, #15) is repo and CI only and reaches no user.
 - [ ] Re-confirm the gist matches `cws/privacy-policy.md`.
 - [ ] Upload `unshafted-extension.zip` (0.8.1, 32 files).
 - [ ] Submit for review.
-- [ ] Tag what was actually sent: `git tag submitted/v0.8.1-r1 && git push origin submitted/v0.8.1-r1`.
+- [x] Tag what was actually sent: `submitted/v0.8.1-r1`. Rejected, Yellow Argon.
+- [ ] Round 2: after the description is pasted and the `releasefix/` branch is squash-merged into
+      `release`, tag `submitted/v0.8.1-r2` and resubmit the **same ZIP**. The build was never cited.
 
-Expect a **shorter review than 0.8.0's**. No permission change, no policy change, no listing change
-— the things that draw scrutiny are all static. If it is slow anyway, that is queue depth, not a
-signal.
+Round 1 expected a shorter review than 0.8.0's on the reasoning that no permission, policy or listing
+change was in flight. Two of those three were right. The listing had not changed either, which turned
+out not to be the protection it was assumed to be: the paragraph that was cited had already been
+approved once, in 0.8.0. See the Yellow Argon entry in `rejection-history.md`.
 
 ## 5. Once approved — the part that was skipped last time
 

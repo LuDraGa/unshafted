@@ -3,8 +3,11 @@
 **Item:** Unshafted: AI Contract Risk Analyzer
 **Item ID:** `fpjjdlffjfkdiibljglmgfkbpkkibpia`
 **Version live:** 0.8.0 — approved and published on or before 2026-09-08
-**Snapshot date:** 2026-09-09 — **this is the published listing.** The copy below went out with
-0.8.0 and replaced the 0.7.1 upload-only description.
+**Snapshot date:** 2026-09-09 — **the copy below is NOT what is live.** It is the corrected draft
+written after the 0.8.1 submission was rejected on Yellow Argon (excessive keywords) the same day.
+The live 0.8.0 listing still carries the rejected brand-list paragraph and will keep carrying it
+until a version publishes behind this text, because the description is a property of the draft.
+Paste it into the dashboard, then submit.
 **Source:** Chrome Web Store Developer Dashboard → Store listing
 
 Companion to `privacy-form-snapshot.md`. Captures the public-facing listing copy so the source of truth is in git.
@@ -38,41 +41,41 @@ is uploaded.
 ### Description — paste this verbatim into the Chrome Web Store Developer Dashboard → Store listing → Description
 
 ```
-Unshafted reads the fine print from your side of the table — the contract you are about to sign, and the terms you already accepted without reading.
+Unshafted helps you understand the fine print before and after you agree to it.
 
 BEFORE YOU SIGN
-Upload a .pdf or .txt — a lease, an offer letter, a freelance contract, a licence — and get a structured read: the clauses that work against you, the protections that are missing, what is worth negotiating, and the questions to ask before you agree.
+Upload a contract and get a clear breakdown of:
+• Risky or one-sided clauses
+• Missing protections
+• Hidden costs and lock-ins
+• What you should negotiate or question
+Works with leases, offer letters, freelance contracts, licences and more.
 
-WHAT YOU ALREADY SIGNED
-Open the side panel on a site you use and Unshafted shows you what its terms and privacy policy actually took: the rights you signed away, what you can still opt out of, and how long you have to do it.
+ON WEBSITES
+Open Unshafted on any site to understand its Terms, Privacy Policy and Cookie Policy. See:
+• What rights you gave away
+• What you can still opt out of, and how much effort each takes
+• Deadlines, where a document sets one
+• Risky or unusual terms
+• A risk grade for the site, based on its worst document
 
-36 sites come already analysed and built into the extension — Netflix, PayPal, Uber, Amazon, LinkedIn, Instagram, TikTok, Chase, Coinbase, Reddit and more. No API key, no account, nothing to configure: install it, open the panel, read.
+36 popular sites are already analysed and available immediately, including major banks, streaming services, social networks and payment apps. No key, no account, nothing to set up.
 
-On any other site, Unshafted finds the terms, privacy policy and cookie policy that site links to and lists them for you. If you want them graded, you can run the analysis on your own API key — and nothing is sent anywhere until you press the button.
+For other sites, Unshafted finds their legal documents and can analyse them using your own OpenAI or OpenRouter API key. Nothing is analysed until you ask.
 
-- What you get:
-  🔍 Risk analysis of contracts you upload, and of the terms sites hold you to
-  ⚖️ Plain-English explanations of complex clauses
-  🚩 Detection of one-sided and hidden risks
-  🛡️ Identification of missing protections
-  ✍️ Negotiation tips and suggested improvements
-  📄 On any site: the legal documents it links to, found for you
-  🗂️ 36 sites analysed in advance — works with no key and no account
-  🔐 Bring your own OpenAI or OpenRouter API key — stored locally in chrome.storage.local
-  💾 Local-first: contracts and analyses live on your device by default
+PRIVACY
+• No ads, no tracking, no analytics
+• No account needed to start. Optional Google Sign-In adds unlimited scans, deep analysis, and backup to your own Google Drive
+• Drive backup uses the limited drive.file scope, so Unshafted cannot read or change anything else in your Drive
+• Sign-in is handled by Supabase. Only your Google email, profile and a backup preference are stored on our side
+• Contract text goes only to the AI provider you configure. Your API key stays on your device, in chrome.storage.local
+• Site policies are read only while the panel is open, to find that site's legal documents. No persistent page script, no record of the sites you visit, and nothing about the page reaches Unshafted
+• Policy documents are fetched without your cookies, so a site cannot see the read as coming from your signed-in session
+• Full details in the privacy policy linked from the Privacy tab below
 
-- Privacy at a glance
-  No analytics, no tracking, no ads
-  No account required to start — sign in is optional
-  Optional Google Sign-In unlocks unlimited quick scans, deep analysis, and Google Drive backup to your own Drive
-  Drive backup uses the limited drive.file scope — Unshafted cannot read or modify other Drive files
-  Authentication is handled by Supabase; only your Google email, profile, and a backup-preference flag are stored on our side
-  Contract text is sent only to the AI provider you configure
-  Site policies are read only while the side panel is open on that page, to find and read that site's legal documents — no persistent page script, no record of the sites you visit, and nothing about the page is ever sent to Unshafted
-  Policy documents are fetched without your cookies, so a site cannot see the read as coming from your signed-in session
-  Full disclosure of data handling: see the privacy policy linked from the Privacy tab below
+Know what you are agreeing to, before it matters.
 
-Disclaimer: Unshafted provides informational insights and does not constitute legal advice. The named sites above are companies whose public terms we have analysed; Unshafted is not affiliated with any of them.
+Unshafted provides informational analysis, not legal advice. For anything high-stakes, talk to a qualified lawyer. Unshafted is not affiliated with any company whose terms it analyses.
 ```
 
 ### Why the description is structured this way
@@ -88,13 +91,48 @@ agree to, with no key and no account, the moment it is installed. The listing ne
 agreements they are asked to accept"*, and the entire `<all_urls>` argument rests on reading a
 site's linked documents **being** that purpose rather than sitting beside it. A listing that
 treated site policy as an addendum would have contradicted the emphasis of the field a reviewer
-maps the permission against. The two-column structure gives both halves equal weight so the
-listing and the single purpose tell the same story.
+maps the permission against. `BEFORE YOU SIGN` and `ON WEBSITES` are the same size and the same
+shape, so the parity is visible without being argued. Do not let a later edit shrink the second
+one back into a footnote.
 
-**On naming brands:** the corpus paragraph names real companies because concrete names make the
-feature legible to both a user and a reviewer in one line. The non-affiliation sentence is folded
-into the closing disclaimer rather than the body, so the paragraph stays clean while the
-affiliation question is still answered.
+**On naming brands: do not.** The paragraph above used to read *"Netflix, PayPal, Uber, Amazon,
+LinkedIn, Instagram, TikTok, Chase, Coinbase, Reddit and more"*, on the reasoning that concrete
+names make the feature legible to a user and a reviewer in one line. That reasoning cost the item a
+Yellow Argon rejection on 2026-09-09, quoted back verbatim as excessive keywords. The corpus is now
+described by category, which is what the rectification asked for and is arguably the better copy
+anyway: a reader learns whether their bank or their streaming service is covered without having to
+pattern-match against a list of ten.
+
+The brand names that remain — OpenAI, OpenRouter, Google, Supabase, Chrome — are functional
+disclosures, not keywords. A user has to know which providers their key is for, and the privacy
+block has to name who holds authentication. Removing those would recreate the Purple Nickel problem
+of a listing that says less than the privacy policy. The distinction that matters is not "is this a
+brand name" but "does the sentence stop being true without it".
+
+**Watch the shape, not just the words.** Two drafts in a row reproduced the shape while removing the
+words. The first swapped the ten company names for a ten-item run of priority keywords in the same
+sentence position; the second described the corpus as seven category fragments in a row. Neither
+names anything, and both are lists sitting where a list was cited. The shipped copy names what the
+sites are to the reader inside a sentence, which is not a list and carries more information than one.
+A reviewer pattern-matching their own finding does not stop to check whether the nouns are companies
+or categories.
+
+**Claims are checked against the shipped corpus, not asserted.** Every number in the copy is
+verifiable from `chrome-extension/public/policy-corpus.json` or from source: 36 domains, 82
+documents, effort ratings, absent disclosures, the four risk levels. Two specific traps, both caught
+in review of the draft rather than by CWS:
+
+- The toolbar badge is a coloured **dot** (`BADGE_TEXT = '•'` in
+  `chrome-extension/src/background/site-policy.ts`); the grade words live in the tooltip. A draft
+  that promised a grade on the icon would have been misleading metadata in the same policy family as
+  the rejection it was fixing.
+- Only 59 of 519 available actions carry a deadline, and `hasTimeSensitiveAction` is absent from all
+  82 analyses. Any deadline claim must stay hedged.
+
+**Say the narrow true thing.** "Nothing leaves your browser until you press the button" was replaced
+by "no document text reaches your AI provider until you ask", because discovery does fetch documents
+before any button is pressed and the privacy block two paragraphs down admits it. A listing
+contradicted by its own privacy block is exactly how Purple Nickel was earned.
 
 **First two lines matter most.** Chrome truncates the description behind a "Read more" control, so
 the opening sentence is doing all the work of covering both halves for anyone who never expands it.
@@ -161,6 +199,38 @@ sips -s format jpeg -s formatOptions 90 -z 800 1280 shot.png --out shot-1280x800
 ---
 
 ## Change log
+
+- **2026-09-09** — **Description rewritten after the Yellow Argon rejection, and cut to roughly half
+  the length of what it replaced.** The bundled-corpus paragraph named ten companies; review quoted
+  all ten back as excessive keywords and rejected the 0.8.1 draft. No company whose policies are
+  analysed is named anywhere in the listing now. The 36 sites are described by what they are to the
+  reader — their bank, their streaming subscriptions, the social networks they use — in one clause
+  rather than a list, because a run of seven category fragments is the same shape as the run of ten
+  brand names, and shape is what the citation was about.
+
+  **2,137 characters, down from the rejected version's 2,881.** The version this replaced was itself a full rewrite that ran
+  to 4,049, and it was too long: it argued the `<all_urls>` case at a reviewer instead of describing
+  the product to a user, which reads as an inability to say plainly what the thing does. The shipped
+  copy leads with a one-line statement of the offering, gives each half of the product a header and a
+  short bullet list, and stops. Length was cut everywhere it was free and spent only where a missing
+  sentence has previously cost a rejection.
+
+  **The privacy block is the part that did not shrink**, and it is worth saying why in the file that
+  future edits will read. A five-bullet draft of it, reading "PRIVACY FIRST / No account required /
+  Contracts and analyses stay local by default", was rejected during drafting for being within a word
+  or two of the copy that earned Purple Nickel twice, while the product has Google Sign-In, Supabase
+  auth and Drive backup. All twelve commitments are present: Sign-In and what it adds, the
+  `drive.file` scope, Supabase and the three fields it holds, where contract text goes, the
+  panel-only read, the absence of a persistent page script, the absence of a browsing record, the
+  cookie-less fetch, the local API key, and the pointer to the policy on the Privacy tab. "PRIVACY
+  FIRST" was reduced to "PRIVACY", because the superlative invites a reviewer to test it against
+  three data flows and the bullets do not need the help.
+
+  Claims are checked against the shipped corpus before they are written. Two were corrected in draft:
+  the toolbar badge is a coloured dot rather than a printed grade, and deadlines exist on a minority
+  of actions, so the listing says "where a document sets one". The site grade is described as
+  covering the site's worst document, which is the in-product tooltip's own wording.
+  **Entered in the draft listing? Not yet — paste before submitting.**
 
 - **2026-09-07** — Description rewritten for the site-policy release, which adds
   `host_permissions: ['<all_urls>']`. Restructured from upload-first into a balanced two-column
