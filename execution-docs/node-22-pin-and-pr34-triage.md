@@ -79,14 +79,14 @@ notes.
 | `globals` 16→17 | safe | this branch |
 | `jsdom` 27→30 | safe, gated on job A | this branch |
 | `lint-staged` 16→17 | safe, gated on job A | this branch |
-| `esbuild` 0.25→0.28 | safe but pointless — nothing imports it | remove instead |
-| `magic-string` 0.30→1.2 | safe but pointless — nothing imports it | remove instead |
+| `esbuild` 0.25→0.28 | safe but pointless — nothing imports it | remove instead, #42 |
+| `magic-string` 0.30→1.2 | safe but pointless — nothing imports it | remove instead, #42 |
 | `@types/node` 22→26 | reject — overshoots the runtime | `dependabot.yml` ignore |
-| `eslint-plugin-tailwindcss` 3→4 | reject — the plugin is dead weight | remove instead |
-| `eslint` 9→10 + `@eslint/js` 9→10 | needs work — 4 new findings, 3 unmet peers | own branch, later |
-| `vite` 6→8 | needs work — one type error, one unmet peer | own branch, later |
-| `typescript` 5→7 | blocked — 17 tsconfigs, and typescript-eslint caps below it | own effort |
-| `tailwindcss` 3→4 | blocked — a real framework migration | own effort |
+| `eslint-plugin-tailwindcss` 3→4 | reject — the plugin is dead weight | remove instead, #42 |
+| `eslint` 9→10 + `@eslint/js` 9→10 | needs work — 4 new findings, 3 unmet peers | #40 |
+| `vite` 6→8 | needs work — one type error, one unmet peer | #41 |
+| `typescript` 5→7 | blocked — 17 tsconfigs, and typescript-eslint caps below it | #44 |
+| `tailwindcss` 3→4 | blocked — a real framework migration | #43 |
 
 ### Safe, and landing
 
@@ -232,7 +232,19 @@ including entire workflows that no longer exist in this repo — `Modular E2E Te
 
 ### What #34 itself should become
 
-Nothing in #34 can be merged as it stands — `tailwindcss` alone guarantees a broken build. Once the
-branches above land, Dependabot will recalculate the group and reopen a much smaller PR. The
-remaining majors want to be closed out deliberately rather than left to accumulate in a rolling
-group PR that nobody can ever say yes to.
+Nothing in #34 can be merged as it stands — `tailwindcss` alone guarantees a broken build. Once #39
+lands, Dependabot recalculates the group and reopens a much smaller PR: `@types/node` is now ignored
+at major, three packages are proposed for deletion in #42, and the three safe bumps are already in.
+What is left is four deliberate pieces of work, and #34 should be closed in favour of them rather
+than left open as a group PR nobody can ever say yes to.
+
+### Issues raised
+
+| Issue | What |
+|---|---|
+| #40 | eslint 10 — four findings to pay down first; typescript-eslint 8 already supports it |
+| #41 | vite 8 — the removed `chokidar` watch option, which only `tsc` catches |
+| #42 | delete `eslint-plugin-tailwindcss`, `esbuild` and `magic-string`, which nothing imports |
+| #43 | Tailwind 4 — CSS-first migration, and what becomes of `withUI` |
+| #44 | TypeScript 7 — 17 tsconfigs, blocked on typescript-eslint upstream |
+| #45 | noticed in passing: the options test fixture keys every help link to `'#'` |
