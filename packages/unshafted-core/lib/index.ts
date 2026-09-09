@@ -4,6 +4,7 @@ export * from './pdf.js';
 export * from './fixtures/sample-contract.js';
 export * from './json.js';
 export * from './onboarding.js';
+export * from './openai-json-schema.js';
 export * from './openrouter.js';
 export * from './prompts.js';
 export * from './runtime.js';

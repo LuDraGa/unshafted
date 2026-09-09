@@ -1,4 +1,9 @@
-import { AvailableActionSchema, callOpenRouterStructured, SitePolicyAnalysisSchema } from '../index.mts';
+import {
+  AvailableActionSchema,
+  callOpenRouterStructured,
+  SitePolicyAnalysisSchema,
+  toOpenAiJsonSchema,
+} from '../index.mts';
 import { z } from 'zod';
 import assert from 'node:assert/strict';
 import test from 'node:test';
@@ -8,10 +13,11 @@ import test from 'node:test';
  * EXCLUSIVE numeric bound (`AvailableActionSchema.deadline.days` is `.positive()`), and that is
  * the whole reason it 400'd where quick scan and deep analysis did not.
  *
- * `zodToJsonSchema`'s `openAi` target speaks the OpenAPI 3 dialect, which spells an exclusive
- * bound as `exclusiveMinimum: true` + `minimum: 0`; OpenAI validates `response_format` as draft
- * 2020-12, where the keyword IS the number. The mismatch is invisible from the Zod side, so it
- * is pinned here on the wire body rather than on the schema.
+ * The bound is now correct by construction: `toOpenAiJsonSchema` asks for `draft-2020-12`, where
+ * the keyword IS the number, rather than `zod-to-json-schema`'s `openAi` target, which inherited
+ * OpenAPI 3's draft-4 spelling (`exclusiveMinimum: true` beside `minimum: 0`) and needed a
+ * rewrite pass afterwards. The rewrite is gone; this stays, because it pins the wire form the
+ * emitter is chosen to produce, not the pass that used to repair it.
  */
 const captureRequestBody = async (schema: z.ZodTypeAny, payload: unknown) => {
   const originalFetch = globalThis.fetch;
@@ -100,15 +106,16 @@ test('the site policy response schema carries no draft-4 exclusive bounds', asyn
 /**
  * The bound tests above pin one keyword. This one pins that there is a schema at all.
  *
- * `zodToJsonSchema` dispatches on `_def.typeName`, which zod 4 removed in favour of `_def.type`.
- * Under zod 4 it therefore recognises nothing and falls through to its permissive branch, emitting
- * a single `OpenAiAnyType` union — `{ type: ['string','number','integer','boolean','array','null'] }`
- * — in place of the whole contract. It does not throw. The request still carries a well-formed
- * `response_format` with `strict: true`, and the model is simply asked for anything at all.
+ * It was written against `zod-to-json-schema`, which dispatched on `_def.typeName` — renamed to
+ * `_def.type` in zod 4 — and so recognised nothing, falling through to a permissive branch that
+ * emitted one `OpenAiAnyType` union in place of the whole contract. It did not throw: the request
+ * still carried a well-formed `response_format` with `strict: true`, and the model was asked for
+ * anything at all. That is what made a silent failure worth a test of its own.
  *
- * The two structural properties below are also what OpenAI's strict mode actually requires, and
- * are the load-bearing work the `openAi` target does: every object closed, and every property
- * named in `required` (optionality is expressed as a union with `null`, never by omission).
+ * The library is gone and `toOpenAiJsonSchema` replaces it, but the test is not — a wildcard is
+ * what ANY future breakage of the emitter degrades to, and the two structural properties below
+ * are exactly what OpenAI's strict mode requires: every object closed, and every property named
+ * in `required` (optionality expressed as a union with `null`, never by omission).
  */
 const collectObjectDefects = (node: unknown, path = '$'): string[] => {
   if (Array.isArray(node)) return node.flatMap((item, i) => collectObjectDefects(item, `${path}[${i}]`));
@@ -162,4 +169,67 @@ test('the response schema is a closed object contract, not a permissive fallback
     'summary',
   ]);
   assert.deepEqual(collectObjectDefects(schema), []);
+});
+
+/**
+ * The emitter's own obligations, on schemas small enough to write the expected output out in
+ * full. The tests above pin the real contract; these say WHICH rule broke when it stops holding.
+ */
+test('an optional property becomes a null union and stays in required', () => {
+  const emitted = toOpenAiJsonSchema(z.object({ label: z.string(), quote: z.string().optional() }));
+
+  assert.deepEqual(emitted, {
+    type: 'object',
+    properties: {
+      label: { type: 'string' },
+      quote: { anyOf: [{ type: 'string' }, { type: 'null' }] },
+    },
+    required: ['label', 'quote'],
+    additionalProperties: false,
+  });
+});
+
+/**
+ * A defaulted property is described to the model exactly as an optional one — which is what the
+ * retired `openAi` target did, and is deliberately preserved here rather than narrowed. See #46.
+ */
+test('a defaulted property keeps its default inside the non-null branch', () => {
+  const emitted = toOpenAiJsonSchema(z.object({ topics: z.array(z.string()).default([]) })) as {
+    properties: { topics: { anyOf: unknown[] } };
+  };
+
+  assert.deepEqual(emitted.properties.topics.anyOf, [
+    { default: [], type: 'array', items: { type: 'string' } },
+    { type: 'null' },
+  ]);
+});
+
+test('nested objects are closed too, not just the root', () => {
+  const emitted = toOpenAiJsonSchema(
+    z.object({ inner: z.object({ deeper: z.object({ value: z.string() }) }) }),
+  ) as Record<string, unknown>;
+
+  assert.deepEqual(collectObjectDefects(emitted), []);
+});
+
+/**
+ * Two artefacts of the native converter that the `openAi` target never emitted, and that say
+ * nothing about the document being analysed: the IEEE 754 ceiling `.int()` picks up, and the
+ * `uri` format from `z.url()`, which is not one of the nine formats OpenAI's validator accepts.
+ */
+test('converter artefacts that would be noise or a 400 are stripped', () => {
+  const emitted = toOpenAiJsonSchema(z.object({ days: z.number().int().positive(), site: z.url() })) as {
+    properties: { days: Record<string, unknown>; site: Record<string, unknown> };
+  };
+
+  assert.deepEqual(emitted.properties.days, { type: 'integer', exclusiveMinimum: 0 });
+  assert.deepEqual(emitted.properties.site, { type: 'string' });
+});
+
+test('a supported format survives', () => {
+  const emitted = toOpenAiJsonSchema(z.object({ at: z.iso.datetime() })) as {
+    properties: { at: { format?: string } };
+  };
+
+  assert.equal(emitted.properties.at.format, 'date-time');
 });
