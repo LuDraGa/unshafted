@@ -541,10 +541,13 @@ const pickInitialLens = (lenses: LensDef[]): LensId => {
 type ResultsViewRecord =
   Pick<CurrentAnalysis, 'quickScan' | 'deepAnalysis' | 'selectedRole' | 'customRole' | 'source'> | HistoryRecord;
 
+/** Stable identity for the no-source case, so it cannot churn a dependency list. */
+const NO_WARNINGS: string[] = [];
+
 const ResultsView = ({ record }: { record: ResultsViewRecord }) => {
   const quick = record.quickScan;
   const deep = record.deepAnalysis;
-  const sourceWarnings = 'source' in record ? record.source.warnings : [];
+  const sourceWarnings = 'source' in record ? record.source.warnings : NO_WARNINGS;
   const reviewedAs = 'customRole' in record && record.customRole.trim() ? record.customRole : record.selectedRole;
 
   const lenses = useMemo<LensDef[]>(() => {

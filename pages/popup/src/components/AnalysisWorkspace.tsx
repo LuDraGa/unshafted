@@ -110,7 +110,21 @@ export const AnalysisWorkspace = ({
 
   const [panelError, setPanelError] = useState('');
   const [stepIndex, setStepIndex] = useState(0);
-  const [scopeOpen, setScopeOpen] = useState(false);
+  /**
+   * Which analysis the scope sheet is open for, or `null` when it is closed.
+   *
+   * Keyed by analysis rather than held as a bare boolean. `currentAnalysis` is replaced wholesale
+   * when a new page is analysed, and a boolean left `true` would carry an open sheet onto the new
+   * one — which is what the effect this replaced was really preventing.
+   */
+  const [scopeOpenFor, setScopeOpenFor] = useState<string | null>(null);
+  /*
+   * Derived, not corrected in an effect. The sheet is open only while the analysis it was opened
+   * for is still the current one, so a new analysis closes it in the same render rather than
+   * rendering it open and closing it on the next pass. `showCtaBar` already unmounts the bar once
+   * a deep analysis exists, so that case needs no condition of its own.
+   */
+  const scopeOpen = scopeOpenFor !== null && scopeOpenFor === currentAnalysis?.id;
   const autoQuickScanRef = useRef<string | null>(null);
   const ctaBarRef = useRef<HTMLDivElement>(null);
 
@@ -163,19 +177,12 @@ export const AnalysisWorkspace = ({
     void startQuickScan(currentAnalysis);
   }, [currentAnalysis, settings.apiKey, settings.openaiApiKey, settings.provider, startQuickScan]);
 
-  // Close scope sheet when deep analysis completes
-  useEffect(() => {
-    if (currentAnalysis?.deepAnalysis && scopeOpen) {
-      setScopeOpen(false);
-    }
-  }, [currentAnalysis?.deepAnalysis, scopeOpen]);
-
   // Click outside the CTA bar closes the ScopeSheet
   useEffect(() => {
     if (!scopeOpen) return;
     const handlePointerDown = (event: MouseEvent) => {
       if (ctaBarRef.current && !ctaBarRef.current.contains(event.target as Node)) {
-        setScopeOpen(false);
+        setScopeOpenFor(null);
       }
     };
     document.addEventListener('mousedown', handlePointerDown);
@@ -203,7 +210,7 @@ export const AnalysisWorkspace = ({
     }
     setPanelError('');
     setStepIndex(0);
-    setScopeOpen(false);
+    setScopeOpenFor(null);
 
     let response: AnalysisMessageResponse;
     try {
@@ -341,7 +348,7 @@ export const AnalysisWorkspace = ({
               onResetPriorities={() =>
                 void patchCurrentAnalysis({ priorities: buildSuggestedPriorities(currentAnalysis.quickScan) })
               }
-              onClose={() => setScopeOpen(false)}
+              onClose={() => setScopeOpenFor(null)}
             />
           ) : null}
           <p className="popup-cta-scope" title={scopeSummary}>
@@ -354,7 +361,7 @@ export const AnalysisWorkspace = ({
             aria-label="Customize analysis scope"
             aria-expanded={scopeOpen}
             data-onboarding-target="customize"
-            onClick={() => setScopeOpen(open => !open)}>
+            onClick={() => setScopeOpenFor(current => (current === null ? (currentAnalysis?.id ?? null) : null))}>
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"

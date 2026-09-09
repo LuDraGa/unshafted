@@ -35,7 +35,22 @@ export const SpotlightTour = ({
     });
   }, [step.target]);
 
+  /*
+   * The one place in this pass where the rule is answered with a reason rather than a restructure.
+   *
+   * `measure` reads the DOM of an element this component does not own and did not render — the
+   * tour points at whatever carries `data-onboarding-target`, anywhere in the document — so there
+   * is no ref to attach and no render-time derivation available. Measuring foreign layout is what
+   * `useLayoutEffect` is for, and it has to be a LAYOUT effect: `scrollIntoView` must run before
+   * paint or the spotlight is drawn over the wrong place and then jumps.
+   *
+   * Only one path here sets state synchronously — `setRect(null)` when the target is missing. The
+   * rest goes through `requestAnimationFrame` already. Pushing that one branch into a frame too
+   * would satisfy the rule by leaving a stale spotlight on screen for a frame, which is the exact
+   * class of bug the rest of this change removed.
+   */
   useLayoutEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- measures foreign DOM; see above
     measure();
   }, [measure]);
 

@@ -98,15 +98,21 @@ export default config(
       'import-x/exports-last': 'error',
       'import-x/first': 'error',
       /*
-       * eslint-plugin-react-hooks v7 added React Compiler rules that v5 did not have. They fire on
-       * code this project never changed — 11 `set-state-in-effect`, 2 `refs`, 1 memoization — and
-       * every fix is a restructured effect, i.e. a behaviour change. Adopted as warnings so they
-       * stay visible without turning the whole check red; tracked in
-       * https://github.com/LuDraGa/unshafted/issues/16 and to be paid down after v0.8.0 ships.
+       * eslint-plugin-react-hooks v7 added React Compiler rules that v5 did not have. They fired on
+       * 15 sites in code this project never changed, and every fix was a restructured effect — a
+       * behaviour change — so they were adopted as warnings rather than carried onto the branch in
+       * front of CWS review mid-sweep.
+       *
+       * All 15 are paid down (#16), so they are errors now. Warnings were the right call for a
+       * known debt with a ticket on it; leaving them as warnings once the debt is cleared would
+       * only mean the next one goes unnoticed, since nothing fails on a warning.
+       *
+       * One suppression stands, in `SpotlightTour`, with its reasoning next to it: it measures DOM
+       * this project does not own, so there is no ref to attach and no derivation to compute.
        */
-      'react-hooks/set-state-in-effect': 'warn',
-      'react-hooks/refs': 'warn',
-      'react-hooks/preserve-manual-memoization': 'warn',
+      'react-hooks/set-state-in-effect': 'error',
+      'react-hooks/refs': 'error',
+      'react-hooks/preserve-manual-memoization': 'error',
     },
     linterOptions: {
       reportUnusedDisableDirectives: 'error',
