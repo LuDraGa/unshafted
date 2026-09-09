@@ -1,9 +1,8 @@
 # Node 22 pin, and the triage of Dependabot #34
 
-**Base:** `release` at `569a2e5` · **Branches:** `chore/node-22.22.2`, then one `chore/*` per
-landable group out of [#34](https://github.com/LuDraGa/unshafted/pull/34)
-**Status:** job A complete and verified. Job B assessed in full; two branches cut, the rest
-held back with reasons below.
+**Base:** `release` at `569a2e5` · **Branch:** `chore/node-22-pin-and-safe-dev-bumps`
+**Status:** complete. The pin and the three safe bumps are on one branch, verified together; the
+remaining eight are held back with reasons below, each with an issue.
 
 Two pieces of one problem. The React test harness (#33) pulled in `jsdom`, pinned to `^27` because
 `jsdom@30` requires a Node the repo does not pin. Dependabot then opened #34 proposing `jsdom@30`
@@ -77,12 +76,12 @@ notes.
 
 | Bump | Verdict | Lands as |
 |---|---|---|
-| `globals` 16→17 | safe | `chore/globals-17` |
-| `jsdom` 27→30 | safe, gated on job A | `chore/jsdom-30-lint-staged-17` |
-| `lint-staged` 16→17 | safe, gated on job A | same branch |
+| `globals` 16→17 | safe | this branch |
+| `jsdom` 27→30 | safe, gated on job A | this branch |
+| `lint-staged` 16→17 | safe, gated on job A | this branch |
 | `esbuild` 0.25→0.28 | safe but pointless — nothing imports it | remove instead |
 | `magic-string` 0.30→1.2 | safe but pointless — nothing imports it | remove instead |
-| `@types/node` 22→26 | reject — overshoots the runtime | held at `^22` |
+| `@types/node` 22→26 | reject — overshoots the runtime | `dependabot.yml` ignore |
 | `eslint-plugin-tailwindcss` 3→4 | reject — the plugin is dead weight | remove instead |
 | `eslint` 9→10 + `@eslint/js` 9→10 | needs work — 4 new findings, 3 unmet peers | own branch, later |
 | `vite` 6→8 | needs work — one type error, one unmet peer | own branch, later |
@@ -90,6 +89,10 @@ notes.
 | `tailwindcss` 3→4 | blocked — a real framework migration | own effort |
 
 ### Safe, and landing
+
+All three ship on one branch. `globals` is independent of the pin and was verified separately to
+establish that, but splitting the PR on that distinction would buy nothing: the pin is landing in
+the same change, so there is no world where `globals` needs to go in without it.
 
 **`globals` 16→17** supplies only the `browser`, `es2020` and `node` predefined-globals maps that
 `eslint.config.ts` spreads into `languageOptions`. All three exports survive the major and its own
@@ -118,7 +121,13 @@ without it.
 **`@types/node` 22→26 overshoots the runtime.** The types line describes the Node the code runs on;
 pointing it at 26 while CI, `.nvmrc` and `engines` all say 22 means the compiler accepts APIs the
 runtime does not have. It is a silent class of bug — nothing fails until something calls a Node 26
-API in production. It stays on `^22` and moves when the runtime moves, not before.
+API in production, at which point it is a `TypeError` in a service worker rather than a red check.
+
+This one is not a deferral, it is a standing rule, so it is written into `.github/dependabot.yml`
+as an ignore on major bumps rather than rejected by hand every cycle — the same treatment `zod`
+already gets, and for the same reason: the reasoning belongs next to the config that would have to
+change for it to stop applying. The entry is tied to the pin, not to a bug, so it is lifted in
+whatever change moves `.nvmrc` to a new major line.
 
 **`eslint-plugin-tailwindcss` is never loaded.** It sits in `devDependencies` and appears nowhere in
 `eslint.config.ts` — no import, no entry in the config array, no rules. It has been linting nothing.
