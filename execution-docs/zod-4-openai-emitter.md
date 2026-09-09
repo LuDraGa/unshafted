@@ -21,6 +21,7 @@ Branch: `chore/zod-4-openai-emitter`, cut from `release`. Squash-merges back int
 | Lift the zod-major ignore from `.github/dependabot.yml` | done |
 | Raise follow-up issues | done — [#46](https://github.com/LuDraGa/unshafted/issues/46), [#47](https://github.com/LuDraGa/unshafted/issues/47), [#48](https://github.com/LuDraGa/unshafted/issues/48) |
 | Type-check, lint, full test suite | done — 12/12 type-check, 14/14 test, lint clean |
+| CI on the PR | `build`, `test`, `type-check`, `Prettier`, `CodeQL`, `eslint` green; the red checks are [#51](https://github.com/LuDraGa/unshafted/issues/51) |
 
 ## Why this is not a dependency bump
 
@@ -146,3 +147,6 @@ next submission.
   has credit.
 - [#48](https://github.com/LuDraGa/unshafted/issues/48) — `sampleDeepAnalysis` cannot stand in for a
   model response.
+- [#51](https://github.com/LuDraGa/unshafted/issues/51) — every PR into `release` inherits a failing
+  duplicate `eslint` check and ~20 dead E2E checks from workflow definitions that survive only on
+  `main`. Not caused by this change, and it clears itself at the next publish merge.
