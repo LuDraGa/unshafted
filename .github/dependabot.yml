@@ -42,6 +42,19 @@ updates:
       - dependency-name: "zod"
         update-types: ["version-update:semver-major"]
 
+      # `@types/node` describes the runtime, so it is not free to move ahead of it. The repo pins
+      # Node 22 in `.nvmrc`, `.node-version` and `engines.node`, and CI installs from the first of
+      # those; a types package for 26 would let the compiler accept APIs the runtime does not have.
+      # That failure is silent in exactly the wrong direction — nothing goes red, and the first
+      # symptom is a `TypeError` in a service worker in front of a user. Dependabot proposed 22 -> 26
+      # in #34 and will keep proposing it, so the decision is written here rather than re-made by
+      # hand every cycle.
+      #
+      # This entry is tied to the Node pin, not to a bug: lift it in the same change that moves
+      # `.nvmrc` to a new major line, and let the types follow the runtime in one commit.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+
   - package-ecosystem: "github-actions"
     target-branch: 'release'
     directory: "/"
