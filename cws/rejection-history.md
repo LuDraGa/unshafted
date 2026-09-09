@@ -169,3 +169,76 @@ them, and only a person opening the dashboard would notice.
 **Approval date is inferred**, from the publish merge `90e5f73` (2026-09-08) — under `CLAUDE.md`'s
 branch model `main` moves only after CWS publishes. Replace with the exact dashboard date when
 someone is next signed in.
+
+---
+
+## Rejection — v0.8.1, Yellow Argon (2026-09-09)
+
+**Violation type:** Spam and Placement in the Store
+**Violation reference ID:** Yellow Argon
+**Violation:** Having excessive keywords in the item's description.
+**Quoted back by review:** `Netflix, PayPal, Uber, Amazon, LinkedIn, Instagram, TikTok, Chase, Coinbase, Reddit`
+**Rectification asked for:** remove the excessive keywords from the description and resubmit.
+
+The item was rejected on the first round for a single paragraph of listing copy. Nothing in the ZIP,
+the manifest, the permissions, the privacy policy or the single purpose was cited or changed. The
+0.8.1 build that went in is the build that comes back out.
+
+### What was actually wrong
+
+The bundled-corpus paragraph read *"36 sites come already analysed and built into the extension —
+Netflix, PayPal, Uber, Amazon, LinkedIn, Instagram, TikTok, Chase, Coinbase, Reddit and more."* The
+snapshot's own rationale defended that sentence on the grounds that concrete names make the feature
+legible in one line. It does, and it is also a run of ten brand names in a body paragraph, which is
+the textbook shape of the thing the policy prohibits. Both statements were true at once and only one
+of them was being weighed.
+
+### The uncomfortable part
+
+**The same paragraph passed review four weeks earlier.** It shipped in the 0.8.0 listing, which was
+approved on the first round with no questions on `<all_urls>` and no questions on anything else. The
+entry above this one draws the lesson that moving all four review surfaces together is what carries a
+hard submission, and that lesson still holds. What it did not say, because there was no evidence for
+it yet, is that **approval is not precedent.** A surface can pass once and be cited later on
+unchanged text. Consistency across surfaces buys a coherent story; it does not buy immunity, and
+nothing in `cws/` should be written as though a past approval settles a question permanently.
+
+An appeal was available and deliberately not taken. The argument would have been sound — identical
+copy, identical item, opposite outcomes four weeks apart — but appeals are slow, this is a
+maintenance release, and the rewrite is better copy than the thing being defended. Worth keeping in
+reserve if a later round cites something equally arbitrary.
+
+### The fix
+
+Described in full in the 2026-09-09 change-log entry of
+[`store-listing-snapshot.md`](store-listing-snapshot.md). In short: the corpus is described by the
+seven verticals the corpus data already carries, no company whose policies are analysed is named
+anywhere in the listing, and the copy was rebuilt rather than patched so both product halves carry
+visibly equal weight.
+
+Brand names deliberately kept: **OpenAI, OpenRouter, Google, Supabase, Chrome.** These are functional
+disclosures. The test is not "is this a brand name" but "does the sentence stop being true without
+it" — and stripping them would recreate the Purple Nickel failure of a listing that discloses less
+than the privacy policy.
+
+### Two near-misses caught in draft, not by review
+
+Both would have been misleading-metadata findings in the same policy family as the citation being
+fixed:
+
+1. A draft claimed the toolbar icon shows a risk grade. `BADGE_TEXT = '•'` in
+   `chrome-extension/src/background/site-policy.ts` — it is a coloured dot, and the grade words are
+   in the `setTitle` tooltip. A reviewer who installs the item and sees a dot has a finding.
+2. A draft promised opt-out deadlines unhedged, in the opening sentence Chrome never truncates. Only
+   59 of 519 available actions carry a deadline and `hasTimeSensitiveAction` is absent from all 82
+   analyses, so the claim must stay hedged wherever it appears.
+
+One previously **approved** sentence was narrowed on the same principle: *"nothing leaves your
+browser until you press the button"* became *"no document text reaches your AI provider until you
+ask"*. Discovery fetches documents before any button is pressed, and the listing's own privacy block
+says so eleven lines further down. A claim contradicted by its own privacy block is how Purple Nickel
+was earned the first time.
+
+**Takeaway.** Every factual claim in listing copy is now checked against the shipped corpus or
+source before it is written, not after it is cited. The listing is metadata, and metadata is judged
+against what the extension actually does when a reviewer installs it.
