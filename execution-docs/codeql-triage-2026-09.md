@@ -155,3 +155,77 @@ rather than folded in silently.
 ### Test count
 
 77 → 80 in `@extension/unshafted-core`.
+
+---
+
+## #28 — alerts 10 and 11, `tools/corpus/report.ts`
+
+**Worked:** 2026-09-09 · **Base:** `release` at `ff0f538` · **Branch:** `chore/codeql-28-triage`
+**Status:** complete. No code change.
+
+The two alerts raised above, triaged to the same bar. **The hypothesis recorded above is wrong**, and
+the ticket's own caveat is what turned out to matter: the flagged sanitizer is not `mdCell`, and
+these are not false positives.
+
+### They point at `main`, where `mdCell` does not exist
+
+CodeQL records every instance at `refs/heads/main`, commit `90e5f73` — the same fact that dissolved
+alert 8. Read at that commit, lines 115 and 141 are not `mdCell` call sites. They are the code
+`mdCell` replaced:
+
+```
+main:115  line(`| ${doc.anchorText.replace(/\|/g, '\\|') || '—'} | \`${doc.chosenUrl.slice(0, 70)}\` |`);
+main:141  line(`| \`${term}\` | ${count} | ${(example?.text ?? '').replace(/\|/g, '\\|').slice(0, 50)} (${example?.domain}) |`);
+```
+
+Pipes escaped, backslashes not. CodeQL's message — "This does not escape backslash characters in
+the input" — is exactly right, and the column positions it reports (17–39 and 42–71) land on those
+two `.replace(...)` chains rather than on any helper.
+
+### Demonstrated, not argued
+
+Anchor text is crawled, so a backslash before a pipe is not hypothetical. `Privacy \| Terms`:
+
+| | escaped output | live columns | header declares |
+|---|---|---:|---:|
+| `main` | `Privacy \\\| Terms` | **3** | 2 |
+| `release` | `Privacy \\\\\| Terms` | 2 | 2 |
+
+On `main` the `\\` is read as an escaped backslash and the `|` behind it stays live, so the row
+gains a column: `Terms` lands under **URL** and the URL spills into a heading that does not exist.
+`release` escapes the backslash first, both characters survive as text, and the row holds its shape.
+
+That is a real defect in the branch CodeQL scans, not a false positive.
+
+### Already fixed, by a commit that was not aiming at it
+
+`fce2180` — the PR-checks fix (#26) — introduced `mdCell` and rewrote **exactly these two lines**,
+one for one, on 2026-09-08. The alerts were filed on 2026-09-07. They were a day old and already
+dead when the ticket was written; the prettier pass over `tools/` swept them up on its way past.
+
+Both crawled-text cells on `release` now route through `mdCell`, and they are the only two:
+`report.ts:139` and `:169`. Every other table interpolation is an enumerated status, a hostname, a
+URL or a curated domain, and each is fenced in backticks.
+
+### Outcome
+
+| Alert | Rule | Location | Result |
+|---|---|---|---|
+| 10 | `js/incomplete-sanitization` | `tools/corpus/report.ts:115` | **stale** — real on `main`, fixed on `release` by `fce2180`; left open |
+| 11 | `js/incomplete-sanitization` | `tools/corpus/report.ts:141` | **stale** — same |
+
+**Not dismissed**, for alert 8's reason: the finding is true of the branch it was recorded against,
+and dismissing a true finding to tidy a dashboard is how a real one gets waved through later. Both
+clear themselves the moment `release` reaches `main`.
+
+So the count of genuinely open high-severity alerts is **zero**. Alerts 4, 8, 10 and 11 are all
+either fixed or fixed-pending-publish; 9 is dismissed with its premise pinned by a test.
+
+### Noticed in passing, not changed
+
+`report.ts:169` slices after escaping — `mdCell(example?.text ?? '').slice(0, 50)` — so a 50-character
+cut can land inside an escape pair and leave a trailing lone backslash. Traced rather than assumed:
+the template always follows the cell with `` ` (` ``, so the stray backslash escapes a space, the
+separator pipe stays live, and the column count survives. Cosmetic, in a local report, and
+`mdCell(text.slice(0, 50))` would be the tidier order if this file is touched for another reason.
+Not worth a commit of its own.
