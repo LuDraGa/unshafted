@@ -34,9 +34,19 @@ of its own and is unaffected.
 would work equally well. The floor jsdom asks for is the smaller, more auditable change, and the
 pin can move again on its own merits rather than as a side effect of a jsdom bump.
 
-`engines.node` moved from `>=22.15.1` to `>=22.22.2`. It is a floor, not a pin, so it does not
-forbid the 24 or 26 lines — it only stops an install on a Node that `jsdom` has already said it
-does not run on.
+**`engines.node` moved from `>=22.15.1` to `^22.22.2` — a range, not a floor.** The first draft used
+`>=22.22.2` on the reasoning that a floor refuses less than a pin does. Review pointed out that this
+is the wrong shape, and it is right: `jsdom@30` declares `^22.22.2 || ^24.15.0 || >=26.0.0`, so a
+bare `>=22.22.2` advertises Node 23, 24.0–24.14 and 25 as supported while `engine-strict` fails the
+install on all of them. `jsdom@27` accepted every Node from 24 up, so widening the floor without
+narrowing the ceiling made the advertised range *less* accurate than it had been.
+
+Mirroring jsdom's disjoint range here was the other option and was not taken: it would tie the
+project's own statement of what it supports to one devDependency's support matrix, needing an edit
+every time jsdom ships. `^22.22.2` says the true thing instead — **this is a Node 22 project**, which
+is already what `.nvmrc`, `.node-version` and every CI workflow say. It also keeps this file honest
+against the `@types/node` decision below: holding the types at `^22` because they describe the
+runtime, while `engines` advertised Node 26, would have been two halves of one PR disagreeing.
 
 ### Verification
 
