@@ -1,6 +1,9 @@
 import {
   AvailableActionSchema,
   callOpenRouterStructured,
+  DeepAnalysisResultSchema,
+  sampleDeepAnalysis,
+  sampleDeepAnalysisResponse,
   SitePolicyAnalysisSchema,
   toOpenAiJsonSchema,
 } from '../index.mts';
@@ -284,4 +287,69 @@ test('OpenRouter still retries, because there the retry drops json_object and no
   const result = await countAttempts('openrouter', JSON.stringify({ label: 42 }));
 
   assert.deepEqual(result, { calls: 2, threw: true });
+});
+
+/**
+ * Everything above pins the emitted schema against small purpose-built schemas. This pins it
+ * against the largest contract actually sent, using the fixture that claims to be a reply to it.
+ *
+ * The walk is deliberately narrow — it answers "is anything the schema requires missing?", which
+ * is the one question `sampleDeepAnalysis` failed (#48) and the one a response fixture exists to
+ * keep answering. Emitted nodes come in three forms: closed objects, arrays, and the
+ * `anyOf: [X, {type:'null'}]` that strict mode forces optionality into.
+ */
+const findMissingRequired = (node: unknown, value: unknown, path = '$'): string[] => {
+  if (!node || typeof node !== 'object') return [];
+  const schema = node as Record<string, unknown>;
+
+  if (Array.isArray(schema.anyOf)) {
+    if (value === null) return [];
+    // Choosing between branches would mean guessing which one the model meant, so only the
+    // unambiguous case — one real branch beside `null` — is followed. See `absent-nulls.ts`.
+    const branches = schema.anyOf.filter(branch => (branch as Record<string, unknown>)?.type !== 'null');
+
+    return branches.length === 1 ? findMissingRequired(branches[0], value, path) : [];
+  }
+
+  if (schema.type === 'object' && value && typeof value === 'object' && !Array.isArray(value)) {
+    const properties = (schema.properties ?? {}) as Record<string, unknown>;
+    const record = value as Record<string, unknown>;
+    const missing = ((schema.required ?? []) as string[])
+      .filter(name => !(name in record))
+      .map(name => `${path}.${name}`);
+
+    return [
+      ...missing,
+      ...Object.keys(record).flatMap(name => findMissingRequired(properties[name], record[name], `${path}.${name}`)),
+    ];
+  }
+
+  if (schema.type === 'array' && Array.isArray(value)) {
+    return value.flatMap((item, index) => findMissingRequired(schema.items, item, `${path}[${index}]`));
+  }
+
+  return [];
+};
+
+test('the response fixture is a shape the emitted schema would accept', () => {
+  const emitted = toOpenAiJsonSchema(DeepAnalysisResultSchema);
+
+  assert.deepEqual(findMissingRequired(emitted, sampleDeepAnalysisResponse), []);
+});
+
+/**
+ * The other half of the claim, and the reason the two fixtures are two objects: the rendering
+ * fixture is what you get back out, and it is NOT what goes in. If this ever passes,
+ * `sampleDeepAnalysisResponse` has stopped being response-shaped.
+ */
+test('the rendering fixture is not, which is why it is a separate object', () => {
+  const emitted = toOpenAiJsonSchema(DeepAnalysisResultSchema);
+
+  assert.deepEqual(findMissingRequired(emitted, sampleDeepAnalysis), [
+    '$.topicConcerns[0].reference.quote',
+    '$.topicConcerns[1].reference.quote',
+    '$.topicConcerns[2].reference.quote',
+    '$.negotiationIdeas[1].fallback',
+    '$.potentialAdvantages[0].reference.quote',
+  ]);
 });

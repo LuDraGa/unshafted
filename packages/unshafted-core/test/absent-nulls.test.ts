@@ -1,4 +1,12 @@
-import { ClauseReferenceSchema, dropAbsentNulls, parseStructuredJson, SitePolicyAnalysisSchema } from '../index.mts';
+import {
+  ClauseReferenceSchema,
+  DeepAnalysisResultSchema,
+  dropAbsentNulls,
+  parseStructuredJson,
+  sampleDeepAnalysis,
+  sampleDeepAnalysisResponse,
+  SitePolicyAnalysisSchema,
+} from '../index.mts';
 import { z } from 'zod';
 import assert from 'node:assert/strict';
 import test from 'node:test';
@@ -93,4 +101,29 @@ test('a wrong type is still a parse error', () => {
   const schema = z.object({ label: z.string() });
 
   assert.throws(() => parseStructuredJson(schema, JSON.stringify({ label: 42 })), z.ZodError);
+});
+
+/**
+ * Everything above is reduced to the smallest schema that shows the behaviour. This is the seam at
+ * full size: the largest response schema in the codebase, a complete reply to it, and the
+ * rendering fixture it has to come back out as.
+ *
+ * The pair could not have been written before the seam existed — `sampleDeepAnalysisResponse` is a
+ * valid reply to the schema we send and was, until then, unparseable (#46, #48).
+ */
+test('a full deep-analysis reply parses back into exactly the rendering fixture', () => {
+  const parsed = parseStructuredJson(DeepAnalysisResultSchema, JSON.stringify(sampleDeepAnalysisResponse));
+
+  assert.deepEqual(parsed, sampleDeepAnalysis);
+});
+
+/** `deepEqual` treats an absent key and an `undefined` one alike, so the nulls are checked directly. */
+test('the absences in that reply are gone, not present and undefined', () => {
+  const parsed = parseStructuredJson(DeepAnalysisResultSchema, JSON.stringify(sampleDeepAnalysisResponse));
+
+  assert.equal('quote' in (parsed.topicConcerns[0].reference ?? {}), false);
+  assert.equal('fallback' in parsed.negotiationIdeas[1], false);
+  assert.equal('quote' in (parsed.potentialAdvantages[0].reference ?? {}), false);
+  // A quote that was really there survives untouched.
+  assert.equal(parsed.immediateWorries[0].reference?.quote, sampleDeepAnalysis.immediateWorries[0].reference?.quote);
 });
