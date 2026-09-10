@@ -281,12 +281,17 @@ const extractTextFromPdf = async (fileBuffer: ArrayBuffer): Promise<PdfExtractio
     }).promise;
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
+    // `cause` on both: the user-facing message is a rewrite for a person reading a dialog, and
+    // without it pdf.js's own error — the stack that says WHICH structure it choked on — is gone
+    // by the time anyone looks. A PDF that fails for an interesting reason should still be
+    // diagnosable from the console.
     if (message.includes('password')) {
       throw new Error(
         'This PDF is password-protected. Remove the password and try again, or paste the text into a `.txt` file.',
+        { cause: err },
       );
     }
-    throw new Error(`Could not read PDF: ${message}`);
+    throw new Error(`Could not read PDF: ${message}`, { cause: err });
   }
 
   const { numPages } = pdf;
