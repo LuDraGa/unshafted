@@ -233,3 +233,55 @@ test('a supported format survives', () => {
 
   assert.equal(emitted.properties.at.format, 'date-time');
 });
+
+/**
+ * The retry drops something different for each provider, so it cannot be right for both.
+ *
+ * For OpenRouter it drops `json_object`, which some models reject — the compatibility escape this
+ * fallback was written for. For OpenAI it drops the schema, which is the only thing that told the
+ * model what to produce, so the second attempt is strictly less likely to parse than the first.
+ */
+const countAttempts = async (provider: 'openai' | 'openrouter', reply: string) => {
+  const originalFetch = globalThis.fetch;
+  let calls = 0;
+
+  globalThis.fetch = (async () => {
+    calls += 1;
+
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({ model: 'm', choices: [{ finish_reason: 'stop', message: { content: reply } }] }),
+    };
+  }) as unknown as typeof globalThis.fetch;
+
+  let threw = false;
+  try {
+    await callOpenRouterStructured({
+      provider,
+      apiKey: 'k',
+      model: 'm',
+      schema: z.object({ label: z.string() }),
+      schemaName: 'test_schema',
+      messages: [{ role: 'user', content: 'hi' }],
+    });
+  } catch {
+    threw = true;
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+
+  return { calls, threw };
+};
+
+test('OpenAI does not retry without the schema it just used', async () => {
+  const result = await countAttempts('openai', JSON.stringify({ label: 42 }));
+
+  assert.deepEqual(result, { calls: 1, threw: true });
+});
+
+test('OpenRouter still retries, because there the retry drops json_object and not a schema', async () => {
+  const result = await countAttempts('openrouter', JSON.stringify({ label: 42 }));
+
+  assert.deepEqual(result, { calls: 2, threw: true });
+});
