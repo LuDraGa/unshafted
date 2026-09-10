@@ -214,11 +214,26 @@ export const callOpenRouterStructured = async <T>(
   try {
     return await attempt(true);
   } catch (error) {
-    if (error instanceof SyntaxError || error instanceof ZodError) {
-      return attempt(false);
+    if (!(error instanceof SyntaxError || error instanceof ZodError)) {
+      throw error;
     }
 
-    throw error;
+    // What the retry drops is not the same thing for both providers.
+    //
+    // For OpenRouter it drops `json_object` mode, which some models reject outright — a real
+    // compatibility escape, and the reason this fallback exists.
+    //
+    // For OpenAI it drops the SCHEMA, and that is the opposite of a fallback. The strict request
+    // is the only one that told the model what shape to produce, so a second attempt without it
+    // is strictly less likely to parse. Measured while clearing #47: a strict reply came back
+    // correct but for one `null`, and the schema-less retry answered with an entirely invented
+    // shape — `{id, name, description}` where the contract asks for `{action, howTo, effort}`.
+    // Two calls, no result, where reading that `null` as absent was all it needed (#46).
+    if (provider === 'openai') {
+      throw error;
+    }
+
+    return attempt(false);
   }
 };
 

@@ -1,3 +1,4 @@
+import { dropAbsentNulls } from './absent-nulls.js';
 import type { ZodType } from 'zod';
 
 /*
@@ -63,5 +64,9 @@ export const extractJsonFromText = (input: string): string => {
 export const parseStructuredJson = <T>(schema: ZodType<T>, raw: string): T => {
   const extracted = extractJsonFromText(raw);
   const parsed = JSON.parse(extracted);
-  return schema.parse(parsed);
+
+  // A model has no `undefined` to send. Where the schema will not accept a `null`, one means the
+  // value is absent — and under OpenAI strict mode we explicitly asked for it that way, because
+  // every property must be listed in `required`. See `absent-nulls.ts`.
+  return schema.parse(dropAbsentNulls(schema, parsed));
 };
