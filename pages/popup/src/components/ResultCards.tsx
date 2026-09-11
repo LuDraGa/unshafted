@@ -184,7 +184,7 @@ const LensPanel = ({ lens }: { lens: LensDef }) => (
 
 const EmptyState = ({ message }: { message: string }) => <p className="popup-lens-panel-empty">{message}</p>;
 
-const QuoteBlock = ({ text }: { text: string }) => <p className="popup-item-quote">"{text}"</p>;
+const QuoteBlock = ({ text }: { text: string }) => <p className="popup-item-quote">“{text}”</p>;
 
 const FindingBody = ({ item }: { item: DetailedFinding }) => (
   <>
