@@ -18,11 +18,8 @@ export default config(
   importXFlatConfig.typescript,
   eslintPluginPrettierRecommended,
   ...fixupConfigRules(new FlatCompat().extends('plugin:react-hooks/recommended') as FixupConfigArray),
-  {
-    files: ['**/*.{ts,tsx}'],
-    ...reactPlugin.configs.flat.recommended,
-    ...reactPlugin.configs.flat['jsx-runtime'],
-  },
+  { files: ['**/*.{ts,tsx}'], ...reactPlugin.configs.flat.recommended },
+  { files: ['**/*.{ts,tsx}'], ...reactPlugin.configs.flat['jsx-runtime'] },
   // Custom config
   {
     ignores: ['**/build/**', '**/dist/**', '**/node_modules/**', '**/*.min.mjs', 'chrome-extension/manifest.js'],
@@ -53,7 +50,18 @@ export default config(
     },
     settings: {
       react: {
-        version: 'detect',
+        /*
+         * Pinned, not 'detect', because detection is what breaks under eslint 10 (#55).
+         * `eslint-plugin-react@7.37.5` resolves a detected version via `context.getFilename()`,
+         * removed in eslint 10 — so every rule that asks what React version it is linting against
+         * throws, and takes the whole run down with it. That is seven of the recommended rules,
+         * `display-name` and `no-string-refs` among them, in all 11 packages. An explicit version
+         * never enters that code path, so the whole set loads.
+         *
+         * The value only ever reaches `semver.satisfies` range tests, so the major is what carries
+         * meaning. Keep it in step with the `react` major in the root package.json.
+         */
+        version: '19.0',
       },
     },
     rules: {
