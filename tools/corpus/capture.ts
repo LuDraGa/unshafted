@@ -103,10 +103,36 @@ const DOC_TYPES: PolicyDocType[] = ['terms', 'privacy', 'cookie', 'eula', 'accep
  * invisible to the corpus. Measuring that gap is the point; this list is never used to CAPTURE.
  */
 const WIDE_TERMS = [
-  'e-sign', 'esign', 'electronic', 'disclosure', 'consent', 'agreement', 'notice', 'policy',
-  'rewards', 'loyalty', 'program', 'membership', 'billing', 'refund', 'cancellation',
-  'subscription', 'auto-renew', 'autorenew', 'arbitration', 'opt-out', 'preferences', 'choices',
-  'your data', 'data protection', 'gdpr', 'ccpa', 'dpdp', 'copyright', 'dmca', 'imprint',
+  'e-sign',
+  'esign',
+  'electronic',
+  'disclosure',
+  'consent',
+  'agreement',
+  'notice',
+  'policy',
+  'rewards',
+  'loyalty',
+  'program',
+  'membership',
+  'billing',
+  'refund',
+  'cancellation',
+  'subscription',
+  'auto-renew',
+  'autorenew',
+  'arbitration',
+  'opt-out',
+  'preferences',
+  'choices',
+  'your data',
+  'data protection',
+  'gdpr',
+  'ccpa',
+  'dpdp',
+  'copyright',
+  'dmca',
+  'imprint',
 ];
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -250,10 +276,30 @@ const captureCanonical = async (
   const kind = classifyContentType(contentType);
 
   if (kind === 'pdf') {
-    return { status: 'pdf_not_captured', httpStatus, finalUrl, contentType, hash: null, length: null, usedMainContainer: null, raw: null, text: null };
+    return {
+      status: 'pdf_not_captured',
+      httpStatus,
+      finalUrl,
+      contentType,
+      hash: null,
+      length: null,
+      usedMainContainer: null,
+      raw: null,
+      text: null,
+    };
   }
   if (kind === 'other') {
-    return { status: 'unsupported_type', httpStatus, finalUrl, contentType, hash: null, length: null, usedMainContainer: null, raw: null, text: null };
+    return {
+      status: 'unsupported_type',
+      httpStatus,
+      finalUrl,
+      contentType,
+      hash: null,
+      length: null,
+      usedMainContainer: null,
+      raw: null,
+      text: null,
+    };
   }
 
   let raw: string;
@@ -267,14 +313,32 @@ const captureCanonical = async (
       raw = await retry.text();
     } catch (error) {
       return {
-        status: 'fetch_error', httpStatus, finalUrl, contentType, hash: null, length: null, usedMainContainer: null, raw: null, text: null,
+        status: 'fetch_error',
+        httpStatus,
+        finalUrl,
+        contentType,
+        hash: null,
+        length: null,
+        usedMainContainer: null,
+        raw: null,
+        text: null,
         error: error instanceof Error ? error.message.split('\n')[0] : 'Body unavailable.',
       };
     }
   }
 
   if (httpStatus >= 400) {
-    return { status: 'http_error', httpStatus, finalUrl, contentType, hash: null, length: null, usedMainContainer: null, raw: null, text: null };
+    return {
+      status: 'http_error',
+      httpStatus,
+      finalUrl,
+      contentType,
+      hash: null,
+      length: null,
+      usedMainContainer: null,
+      raw: null,
+      text: null,
+    };
   }
 
   const { hash, normalized } = await computePolicyHash(raw);
@@ -507,7 +571,10 @@ const captureSite = async (context: BrowserContext, site: SiteSpec): Promise<Sit
           };
         } catch (error) {
           rendered = {
-            status: 'fetch_error', httpStatus: null, contentHash: null, normalizedLength: null,
+            status: 'fetch_error',
+            httpStatus: null,
+            contentHash: null,
+            normalizedLength: null,
             agreesWithCanonical: null,
             error: error instanceof Error ? error.message.split('\n')[0] : 'Render failed.',
           };
@@ -558,7 +625,9 @@ const captureSite = async (context: BrowserContext, site: SiteSpec): Promise<Sit
         result.discoveryNotes.push(`No ${pick.docType} link found; chooser fell back to path guess ${pick.url}`);
       }
       if (doc && !doc.reachableByClient) {
-        result.discoveryNotes.push(`Chooser picked cross-origin ${pick.docType} at ${doc.host} — AD-4 makes this unfetchable in-page.`);
+        result.discoveryNotes.push(
+          `Chooser picked cross-origin ${pick.docType} at ${doc.host} — AD-4 makes this unfetchable in-page.`,
+        );
       }
       if (doc && doc.status !== 'captured') {
         result.discoveryNotes.push(`Chooser's ${pick.docType} pick ${pick.url} came back ${doc.status}.`);
@@ -566,7 +635,9 @@ const captureSite = async (context: BrowserContext, site: SiteSpec): Promise<Sit
     }
     const untyped = result.documents.filter(doc => doc.docType === null);
     if (untyped.length > 0) {
-      result.discoveryNotes.push(`${untyped.length} discovered link(s) matched POLICY_LINK_PATTERN but guessDocType returned null.`);
+      result.discoveryNotes.push(
+        `${untyped.length} discovered link(s) matched POLICY_LINK_PATTERN but guessDocType returned null.`,
+      );
     }
   } finally {
     await page.close().catch(() => undefined);
@@ -651,7 +722,9 @@ const main = async () => {
                 `${capture.missedCandidates.length} missed-by-pattern, ${Math.round((Date.now() - started) / 1000)}s`,
             );
           } catch (error) {
-            console.log(`[w${id}] ${site.domain} — FAILED: ${error instanceof Error ? error.message.split('\n')[0] : error}`);
+            console.log(
+              `[w${id}] ${site.domain} — FAILED: ${error instanceof Error ? error.message.split('\n')[0] : error}`,
+            );
           }
         }
       } finally {
@@ -676,9 +749,8 @@ const main = async () => {
     egress: await readEgress(),
     tooling: {
       node: process.version,
-      playwrightCore: JSON.parse(
-        await readFile(path.join(ROOT, 'node_modules/playwright-core/package.json'), 'utf8'),
-      ).version as string,
+      playwrightCore: JSON.parse(await readFile(path.join(ROOT, 'node_modules/playwright-core/package.json'), 'utf8'))
+        .version as string,
       // Read from disk rather than the browser handle: an assemble-only run launches no
       // browser, and the manifest still needs to say which Chrome produced these hashes.
       chrome: await chromeVersion(browser),
@@ -697,8 +769,12 @@ const main = async () => {
   console.log('');
   console.log(`[corpus] sites            ${sites.length}`);
   console.log(`[corpus] documents        ${docs.length} (${captured.length} captured)`);
-  console.log(`[corpus] cross-origin     ${docs.filter(doc => !doc.reachableByClient).length} unreachable by the client (AD-4)`);
-  console.log(`[corpus] untyped          ${docs.filter(doc => doc.docType === null).length} guessDocType returned null`);
+  console.log(
+    `[corpus] cross-origin     ${docs.filter(doc => !doc.reachableByClient).length} unreachable by the client (AD-4)`,
+  );
+  console.log(
+    `[corpus] untyped          ${docs.filter(doc => doc.docType === null).length} guessDocType returned null`,
+  );
   console.log(`[corpus] missed by regex  ${sites.reduce((total, site) => total + site.missedCandidates.length, 0)}`);
   console.log(
     `[corpus] node-fetch agree ${agreed.length}/${compared.length}` +

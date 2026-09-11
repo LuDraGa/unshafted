@@ -48,12 +48,12 @@ const FRESHNESS_TONE: Record<DocumentFreshness, string> = {
 
 const ReferenceLine = ({ reference }: { reference: NonNullable<Exposure['reference']> }) => (
   <div className="mt-1.5 border-l-2 border-[var(--unshafted-border-strong)] pl-2">
-    <p className="m-0 text-[10px] font-semibold uppercase tracking-wide text-[var(--unshafted-text-faint)]">
+    <p className="m-0 text-[10px] font-semibold tracking-wide text-[var(--unshafted-text-faint)] uppercase">
       {reference.label}
     </p>
     {/* The quote is what makes a finding checkable on a page that has since moved (D7). */}
     {reference.quote ? (
-      <p className="m-0 mt-0.5 text-[11px] italic leading-relaxed text-[var(--unshafted-text)]">“{reference.quote}”</p>
+      <p className="m-0 mt-0.5 text-[11px] leading-relaxed text-[var(--unshafted-text)] italic">“{reference.quote}”</p>
     ) : null}
   </div>
 );
@@ -61,7 +61,7 @@ const ReferenceLine = ({ reference }: { reference: NonNullable<Exposure['referen
 const ExposureRow = ({ exposure }: { exposure: Exposure }) => (
   <div className="panel-row">
     <div className="flex items-start justify-between gap-2">
-      <p className="m-0 text-[13px] font-semibold leading-snug text-[var(--unshafted-text)]">{exposure.title}</p>
+      <p className="m-0 text-[13px] leading-snug font-semibold text-[var(--unshafted-text)]">{exposure.title}</p>
       <span
         className={`flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${SEVERITY_TONE[exposure.severity]}`}>
         {exposure.severity}
@@ -75,7 +75,7 @@ const ExposureRow = ({ exposure }: { exposure: Exposure }) => (
 
 const ActionRow = ({ action }: { action: AvailableAction }) => (
   <div className="panel-row">
-    <p className="m-0 text-[13px] font-semibold leading-snug text-[var(--unshafted-text)]">{action.action}</p>
+    <p className="m-0 text-[13px] leading-snug font-semibold text-[var(--unshafted-text)]">{action.action}</p>
     <p className="m-0 mt-1 text-xs leading-relaxed text-[var(--unshafted-text-muted)]">{action.howTo}</p>
     {action.deadline ? (
       <p className="m-0 mt-1 text-xs font-semibold text-violet-700">{describeDeadline(action.deadline)}</p>
@@ -86,7 +86,7 @@ const ActionRow = ({ action }: { action: AvailableAction }) => (
 
 const AbsentDisclosureRow = ({ disclosure }: { disclosure: RequiredDisclosure }) => (
   <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2">
-    <p className="m-0 text-[13px] font-semibold leading-snug text-rose-900">
+    <p className="m-0 text-[13px] leading-snug font-semibold text-rose-900">
       {disclosure.name} <span className="font-normal">({disclosure.regime})</span>
     </p>
     <p className="m-0 mt-1 text-xs leading-relaxed text-rose-800">{disclosure.note}</p>

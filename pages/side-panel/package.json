@@ -1,6 +1,6 @@
 {
   "name": "@extension/side-panel",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "chrome extension - side panel",
   "type": "module",
   "private": true,
@@ -17,7 +17,8 @@
     "lint": "eslint .",
     "lint:fix": "pnpm lint --fix",
     "format": "prettier . --write --ignore-path ../../.prettierignore",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@extension/shared": "workspace:*",
@@ -31,8 +32,7 @@
   },
   "postcss": {
     "plugins": {
-      "tailwindcss": {},
-      "autoprefixer": {}
+      "@tailwindcss/postcss": {}
     }
   }
 }

@@ -6,8 +6,8 @@ import {
   deleteAnalysisFile,
   deleteSourceFileIfOrphaned,
 } from './drive.js';
-import type { DriveQuickScanFile, DriveDeepAnalysisFile, DriveSitePolicyFile } from './drive-types.js';
 import { sanitizeDocumentName } from '@extension/unshafted-core';
+import type { DriveQuickScanFile, DriveDeepAnalysisFile, DriveSitePolicyFile } from './drive-types.js';
 import type { CurrentAnalysis, LocalPolicyAnalysis, PolicyDocType } from '@extension/unshafted-core';
 
 const buildFilename = (slug: string, analysisType: string, contentHash: string): string =>

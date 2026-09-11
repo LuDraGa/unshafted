@@ -69,7 +69,7 @@ const DocumentRow = ({
 
   return (
     <div className="panel-row">
-      <p className="m-0 text-[13px] font-semibold leading-snug text-[var(--unshafted-text)]">
+      <p className="m-0 text-[13px] leading-snug font-semibold text-[var(--unshafted-text)]">
         {documentLabel(candidate)}
       </p>
       <p className="m-0 mt-0.5 truncate text-[10px] text-[var(--unshafted-text-faint)]">{shortenUrl(candidate.url)}</p>
@@ -174,7 +174,7 @@ const SourceLinks = ({ analyses }: { analyses: readonly SitePolicyAnalysis[] }) 
  */
 const ReaderNote = ({ title, children }: { title: string; children: ReactNode }) => (
   <section className="panel-one-thing">
-    <p className="m-0 mb-1.5 text-[13px] font-bold leading-snug text-[var(--unshafted-text)]">{title}</p>
+    <p className="m-0 mb-1.5 text-[13px] leading-snug font-bold text-[var(--unshafted-text)]">{title}</p>
     {children}
   </section>
 );

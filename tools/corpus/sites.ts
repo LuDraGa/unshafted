@@ -50,7 +50,11 @@ export type SiteSpec = {
 
 export const SITES: SiteSpec[] = [
   // ── Ecommerce / marketplaces / delivery ──
-  { domain: 'amazon.com', tags: ['ecommerce', 'subscription_autorenewal', 'ott_streaming', 'identity_provider', 'payments_fintech'], market: 'us' },
+  {
+    domain: 'amazon.com',
+    tags: ['ecommerce', 'subscription_autorenewal', 'ott_streaming', 'identity_provider', 'payments_fintech'],
+    market: 'us',
+  },
   { domain: 'walmart.com', tags: ['ecommerce', 'subscription_autorenewal'], market: 'us' },
   { domain: 'ebay.com', tags: ['ecommerce', 'payments_fintech'], market: 'us' },
   { domain: 'flipkart.com', tags: ['ecommerce'], market: 'in' },
@@ -102,7 +106,11 @@ export const SITES: SiteSpec[] = [
 
   // ── Identity providers / platform accounts ──
   { domain: 'google.com', tags: ['identity_provider', 'saas', 'payments_fintech'], market: 'global' },
-  { domain: 'apple.com', tags: ['identity_provider', 'ott_streaming', 'ecommerce', 'payments_fintech'], market: 'global' },
+  {
+    domain: 'apple.com',
+    tags: ['identity_provider', 'ott_streaming', 'ecommerce', 'payments_fintech'],
+    market: 'global',
+  },
   { domain: 'microsoft.com', tags: ['identity_provider', 'saas'], market: 'global' },
 
   // ── SaaS / productivity ──

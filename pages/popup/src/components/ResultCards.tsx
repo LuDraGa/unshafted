@@ -27,7 +27,7 @@ const severityClasses: Record<Severity, string> = {
 const RiskBadge = ({ label }: { label: VerdictTone }) => (
   <span
     className={cn(
-      'rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]',
+      'rounded-full border px-3 py-1 text-[11px] font-semibold tracking-[0.18em] uppercase',
       verdictToneClasses[label],
     )}>
     {label}
@@ -37,7 +37,7 @@ const RiskBadge = ({ label }: { label: VerdictTone }) => (
 const SeverityBadge = ({ severity }: { severity: Severity }) => (
   <span
     className={cn(
-      'rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]',
+      'rounded-full px-2.5 py-1 text-[10px] font-semibold tracking-[0.16em] uppercase',
       severityClasses[severity],
     )}>
     {severity}
@@ -54,10 +54,7 @@ const SectionHeader = ({ title, subtitle }: { title: string; subtitle?: string }
 const severityRank: Record<Severity, number> = { low: 0, medium: 1, high: 2 };
 
 const maxSeverity = (items: { severity: Severity }[]): Severity =>
-  items.reduce<Severity>(
-    (max, item) => (severityRank[item.severity] > severityRank[max] ? item.severity : max),
-    'low',
-  );
+  items.reduce<Severity>((max, item) => (severityRank[item.severity] > severityRank[max] ? item.severity : max), 'low');
 
 const getDecisionAction = (riskLevel: 'Low' | 'Medium' | 'High' | 'Very High') => {
   switch (riskLevel) {
@@ -76,15 +73,7 @@ const getDecisionAction = (riskLevel: 'Low' | 'Medium' | 'High' | 'Very High') =
 
 // ── v0.10 primitives ─────────────────────────────────────────────────────
 
-const DocStrip = ({
-  name,
-  type,
-  partyCount,
-}: {
-  name: string;
-  type?: string;
-  partyCount?: number | null;
-}) => (
+const DocStrip = ({ name, type, partyCount }: { name: string; type?: string; partyCount?: number | null }) => (
   <div className="popup-doc-strip">
     <p className="popup-doc-strip-name" title={name}>
       {name}
@@ -101,15 +90,7 @@ const DocStrip = ({
   </div>
 );
 
-const CompactVerdict = ({
-  tone,
-  action,
-  preview,
-}: {
-  tone: VerdictTone;
-  action: string;
-  preview?: string;
-}) => (
+const CompactVerdict = ({ tone, action, preview }: { tone: VerdictTone; action: string; preview?: string }) => (
   <section className="popup-verdict" data-onboarding-target="summary">
     <div className="popup-verdict-headline">
       <RiskBadge label={tone} />
@@ -184,9 +165,7 @@ const LensStrip = ({
           className="popup-lens-tab"
           onClick={() => onChange(lens.id)}>
           <span>{lens.label}</span>
-          {lens.count !== undefined && lens.count > 0 ? (
-            <span className="popup-lens-count">{lens.count}</span>
-          ) : null}
+          {lens.count !== undefined && lens.count > 0 ? <span className="popup-lens-count">{lens.count}</span> : null}
         </button>
       );
     })}
@@ -205,7 +184,7 @@ const LensPanel = ({ lens }: { lens: LensDef }) => (
 
 const EmptyState = ({ message }: { message: string }) => <p className="popup-lens-panel-empty">{message}</p>;
 
-const QuoteBlock = ({ text }: { text: string }) => <p className="popup-item-quote">"{text}"</p>;
+const QuoteBlock = ({ text }: { text: string }) => <p className="popup-item-quote">“{text}”</p>;
 
 const FindingBody = ({ item }: { item: DetailedFinding }) => (
   <>
@@ -418,10 +397,7 @@ const buildEvidenceLens = (deep: DeepAnalysisResult | null | undefined): LensDef
     content: (
       <>
         {findings.map((item, i) => (
-          <CollapsibleItem
-            key={`ev-${item.title}-${i}`}
-            title={item.title}
-            severity={item.severity}>
+          <CollapsibleItem key={`ev-${item.title}-${i}`} title={item.title} severity={item.severity}>
             <FindingBody item={item} />
           </CollapsibleItem>
         ))}
@@ -473,7 +449,7 @@ const buildDocLens = (
     <div className="space-y-3 px-3 py-2 text-xs leading-5 text-stone-700">
       {quick.parties.length > 0 ? (
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">Parties</p>
+          <p className="text-[10px] font-semibold tracking-[0.18em] text-stone-500 uppercase">Parties</p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {quick.parties.map(p => (
               <span
@@ -488,7 +464,7 @@ const buildDocLens = (
       ) : null}
       {quick.topics.length > 0 ? (
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">Topics</p>
+          <p className="text-[10px] font-semibold tracking-[0.18em] text-stone-500 uppercase">Topics</p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {quick.topics.map(t => (
               <span
@@ -501,7 +477,7 @@ const buildDocLens = (
         </div>
       ) : null}
       <div>
-        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">Summary</p>
+        <p className="text-[10px] font-semibold tracking-[0.18em] text-stone-500 uppercase">Summary</p>
         <p className="mt-1">{deep?.plainEnglishSummary ?? quick.summary}</p>
       </div>
       <p className="text-[11px] text-stone-500">
@@ -529,7 +505,9 @@ const buildCaveatsLens = (
     content: (
       <div className="space-y-2 px-2 py-2 text-xs leading-5 text-stone-700">
         {extraction.map(note => (
-          <div key={`ex-${note}`} className="rounded-xl border border-amber-200 bg-amber-50/85 px-3 py-2 text-amber-900">
+          <div
+            key={`ex-${note}`}
+            className="rounded-xl border border-amber-200 bg-amber-50/85 px-3 py-2 text-amber-900">
             {note}
           </div>
         ))}
@@ -539,7 +517,9 @@ const buildCaveatsLens = (
           </div>
         ))}
         {assumptions.map(note => (
-          <div key={`as-${note}`} className="rounded-xl border border-stone-200 bg-stone-100/80 px-3 py-2 text-stone-600">
+          <div
+            key={`as-${note}`}
+            className="rounded-xl border border-stone-200 bg-stone-100/80 px-3 py-2 text-stone-600">
             {note}
           </div>
         ))}
@@ -559,15 +539,16 @@ const pickInitialLens = (lenses: LensDef[]): LensId => {
 // ── ResultsView ─────────────────────────────────────────────────────────
 
 type ResultsViewRecord =
-  | Pick<CurrentAnalysis, 'quickScan' | 'deepAnalysis' | 'selectedRole' | 'customRole' | 'source'>
-  | HistoryRecord;
+  Pick<CurrentAnalysis, 'quickScan' | 'deepAnalysis' | 'selectedRole' | 'customRole' | 'source'> | HistoryRecord;
+
+/** Stable identity for the no-source case, so it cannot churn a dependency list. */
+const NO_WARNINGS: string[] = [];
 
 const ResultsView = ({ record }: { record: ResultsViewRecord }) => {
   const quick = record.quickScan;
   const deep = record.deepAnalysis;
-  const sourceWarnings = 'source' in record ? record.source.warnings : [];
-  const reviewedAs =
-    'customRole' in record && record.customRole.trim() ? record.customRole : record.selectedRole;
+  const sourceWarnings = 'source' in record ? record.source.warnings : NO_WARNINGS;
+  const reviewedAs = 'customRole' in record && record.customRole.trim() ? record.customRole : record.selectedRole;
 
   const lenses = useMemo<LensDef[]>(() => {
     if (!quick) return [];
@@ -597,10 +578,8 @@ const ResultsView = ({ record }: { record: ResultsViewRecord }) => {
   );
 };
 
-const buildVerdictPreview = (
-  quick: QuickScanResult,
-  deep: DeepAnalysisResult | null | undefined,
-): string => (deep ? deep.bottomLine : quick.cautionLine);
+const buildVerdictPreview = (quick: QuickScanResult, deep: DeepAnalysisResult | null | undefined): string =>
+  deep ? deep.bottomLine : quick.cautionLine;
 
 export {
   ResultsView,

@@ -1,3 +1,4 @@
+import { resolveProvider } from './resolve-provider.js';
 import {
   AnalysisErrorSchema,
   DeepAnalysisResultSchema,
@@ -15,7 +16,6 @@ import {
   touchCurrentAnalysis,
 } from '@extension/unshafted-core';
 import type { AnalysisError, AppSettings, CurrentAnalysis } from '@extension/unshafted-core';
-import { resolveProvider } from './resolve-provider.js';
 
 const makeError = (error: unknown, fallback: AnalysisError): AnalysisError => {
   if (error instanceof Error) {

@@ -1,0 +1,11 @@
+{
+  "extends": "@extension/tsconfig/module",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "noEmit": true,
+    // The suite runs under tsx and imports `../index.mts` by its real extension.
+    "allowImportingTsExtensions": true,
+    "types": ["node"]
+  },
+  "include": [".", "../index.mts", "../lib"]
+}

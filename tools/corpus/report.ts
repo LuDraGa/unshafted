@@ -19,6 +19,16 @@ import type { SiteTag } from './sites.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
+/**
+ * Escape a crawled string for a Markdown table cell.
+ *
+ * The backslash has to go first: escaping `|` alone turns a cell containing `\` into `\\|`, which
+ * Markdown reads as an escaped backslash followed by a live pipe — so the column count shifts and
+ * the rest of the row lands in the wrong headings. Anchor text and matched snippets come from
+ * whatever site was crawled, so neither character is hypothetical.
+ */
+const mdCell = (value: string): string => value.replace(/\\/g, '\\\\').replace(/\|/g, '\\|');
+
 const pct = (part: number, whole: number) => (whole === 0 ? '—' : `${Math.round((part / whole) * 100)}%`);
 
 const countBy = <T>(items: T[], key: (item: T) => string): [string, number][] => {
@@ -28,9 +38,7 @@ const countBy = <T>(items: T[], key: (item: T) => string): [string, number][] =>
 };
 
 const main = async () => {
-  const manifest = JSON.parse(
-    await readFile(path.join(ROOT, 'corpus/manifest.json'), 'utf8'),
-  ) as CorpusManifest;
+  const manifest = JSON.parse(await readFile(path.join(ROOT, 'corpus/manifest.json'), 'utf8')) as CorpusManifest;
 
   const sites = manifest.sites;
   const docs = sites.flatMap(site => site.documents);
@@ -39,8 +47,12 @@ const main = async () => {
   const out: string[] = [];
   const line = (text = '') => out.push(text);
 
-  line(`Capture ${manifest.captureId} — ${manifest.normalizerVersion} — egress ${manifest.egress.country} (${manifest.egress.city})`);
-  line(`Chrome ${manifest.tooling.chrome ?? '?'} · Node ${manifest.tooling.node} · playwright-core ${manifest.tooling.playwrightCore}`);
+  line(
+    `Capture ${manifest.captureId} — ${manifest.normalizerVersion} — egress ${manifest.egress.country} (${manifest.egress.city})`,
+  );
+  line(
+    `Chrome ${manifest.tooling.chrome ?? '?'} · Node ${manifest.tooling.node} · playwright-core ${manifest.tooling.playwrightCore}`,
+  );
   line();
 
   // ── Coverage ──
@@ -51,10 +63,18 @@ const main = async () => {
   line('## Coverage');
   line();
   line(`- Sites attempted: **${sites.length}**`);
-  line(`- Sites with at least one captured document: **${sitesWithDocs.length}** (${pct(sitesWithDocs.length, sites.length)})`);
-  line(`- Homepage unreachable: **${deadSites.length}**${deadSites.length ? ` — ${deadSites.map(s => s.domain).join(', ')}` : ''}`);
-  line(`- Homepage reached but zero policy links found: **${emptySites.length}**${emptySites.length ? ` — ${emptySites.map(s => s.domain).join(', ')}` : ''}`);
-  line(`- Documents attempted: **${docs.length}**, captured: **${captured.length}** (${pct(captured.length, docs.length)})`);
+  line(
+    `- Sites with at least one captured document: **${sitesWithDocs.length}** (${pct(sitesWithDocs.length, sites.length)})`,
+  );
+  line(
+    `- Homepage unreachable: **${deadSites.length}**${deadSites.length ? ` — ${deadSites.map(s => s.domain).join(', ')}` : ''}`,
+  );
+  line(
+    `- Homepage reached but zero policy links found: **${emptySites.length}**${emptySites.length ? ` — ${emptySites.map(s => s.domain).join(', ')}` : ''}`,
+  );
+  line(
+    `- Documents attempted: **${docs.length}**, captured: **${captured.length}** (${pct(captured.length, docs.length)})`,
+  );
   line();
   line('| Outcome | Documents |');
   line('|---|---|');
@@ -92,7 +112,9 @@ const main = async () => {
   const crossOriginHosts = countBy(crossOrigin, doc => doc.host ?? 'unknown');
   line(`### Cross-origin documents — unreachable by the client (AD-4)`);
   line();
-  line(`**${crossOrigin.length} of ${docs.length}** discovered documents (${pct(crossOrigin.length, docs.length)}) live on a different origin than the site.`);
+  line(
+    `**${crossOrigin.length} of ${docs.length}** discovered documents (${pct(crossOrigin.length, docs.length)}) live on a different origin than the site.`,
+  );
   line('The extension fetches from inside the page, so it cannot reach any of these.');
   line();
   if (crossOriginHosts.length > 0) {
@@ -105,14 +127,16 @@ const main = async () => {
   const untyped = docs.filter(doc => doc.docType === null);
   line('### Documents the classifier cannot type');
   line();
-  line(`\`guessDocType\` returned \`null\` for **${untyped.length}** documents (${pct(untyped.length, docs.length)}) that`);
+  line(
+    `\`guessDocType\` returned \`null\` for **${untyped.length}** documents (${pct(untyped.length, docs.length)}) that`,
+  );
   line('`POLICY_LINK_PATTERN` had already accepted — collected, fetched, and then unclassifiable.');
   line();
   if (untyped.length > 0) {
     line('| Anchor text | URL |');
     line('|---|---|');
     for (const doc of untyped.slice(0, 20)) {
-      line(`| ${doc.anchorText.replace(/\|/g, '\\|') || '—'} | \`${doc.chosenUrl.slice(0, 70)}\` |`);
+      line(`| ${mdCell(doc.anchorText) || '—'} | \`${doc.chosenUrl.slice(0, 70)}\` |`);
     }
     line();
   }
@@ -123,13 +147,17 @@ const main = async () => {
   line('### Path-guess fallback');
   line();
   line(`\`choosePolicyUrl\` found no link and fabricated a URL **${pathGuesses.length}** times.`);
-  line(`Of the fabricated URLs actually fetched, **${guessOk.length} of ${guessDocs.length}** (${pct(guessOk.length, guessDocs.length)}) returned a real document.`);
+  line(
+    `Of the fabricated URLs actually fetched, **${guessOk.length} of ${guessDocs.length}** (${pct(guessOk.length, guessDocs.length)}) returned a real document.`,
+  );
   line();
 
   const missed = sites.flatMap(site => site.missedCandidates.map(candidate => ({ ...candidate, domain: site.domain })));
   line('### Documents `POLICY_LINK_PATTERN` never collects');
   line();
-  line(`**${missed.length}** footer links across **${new Set(missed.map(m => m.domain)).size}** sites name a policy document`);
+  line(
+    `**${missed.length}** footer links across **${new Set(missed.map(m => m.domain)).size}** sites name a policy document`,
+  );
   line('that the shipped regex does not match, so they are never collected, never typed, never captured.');
   line();
   if (missed.length > 0) {
@@ -138,7 +166,7 @@ const main = async () => {
     const byTerm = countBy(missed, item => item.matchedTerm);
     for (const [term, count] of byTerm.slice(0, 20)) {
       const example = missed.find(item => item.matchedTerm === term);
-      line(`| \`${term}\` | ${count} | ${(example?.text ?? '').replace(/\|/g, '\\|').slice(0, 50)} (${example?.domain}) |`);
+      line(`| \`${term}\` | ${count} | ${mdCell(example?.text ?? '').slice(0, 50)} (${example?.domain}) |`);
     }
     line();
   }
@@ -148,11 +176,15 @@ const main = async () => {
   line();
   const comparable = captured.filter(doc => doc.nodeFetch.agreesWithCanonical !== null);
   const agreed = comparable.filter(doc => doc.nodeFetch.agreesWithCanonical === true);
-  const nodeBlocked = captured.filter(doc => doc.nodeFetch.status === 'http_error' || doc.nodeFetch.status === 'fetch_error');
+  const nodeBlocked = captured.filter(
+    doc => doc.nodeFetch.status === 'http_error' || doc.nodeFetch.status === 'fetch_error',
+  );
 
   line(`Of **${captured.length}** documents captured canonically:`);
   line();
-  line(`- **${nodeBlocked.length}** (${pct(nodeBlocked.length, captured.length)}) could not be fetched by plain Node at all — blocked, or transport failure.`);
+  line(
+    `- **${nodeBlocked.length}** (${pct(nodeBlocked.length, captured.length)}) could not be fetched by plain Node at all — blocked, or transport failure.`,
+  );
   line(`- **${comparable.length}** produced a comparable Node hash.`);
   line(`- Of those, **${agreed.length}** agreed (${pct(agreed.length, comparable.length)}).`);
   line();
@@ -173,7 +205,10 @@ const main = async () => {
   // ── Thin documents ──
   const thin = docs.filter(doc => doc.status === 'thin');
   const thinRenderedBigger = thin.filter(
-    doc => doc.rendered?.normalizedLength != null && doc.normalizedLength != null && doc.rendered.normalizedLength > doc.normalizedLength * 2,
+    doc =>
+      doc.rendered?.normalizedLength != null &&
+      doc.normalizedLength != null &&
+      doc.rendered.normalizedLength > doc.normalizedLength * 2,
   );
   line('## Thin documents — JS-rendered, or wrong URL?');
   line();
@@ -214,8 +249,8 @@ const main = async () => {
   // ── What the chooser actually selected ──
   line('## What `choosePolicyUrl` actually selected');
   line();
-  line('These are the URLs the SHIPPED chooser returned — what a user\'s extension would fetch and');
-  line('present as that site\'s policy. Listed in full because the failures here are not statistical,');
+  line("These are the URLs the SHIPPED chooser returned — what a user's extension would fetch and");
+  line("present as that site's policy. Listed in full because the failures here are not statistical,");
   line('they are individually wrong in ways a count would hide.');
   line();
   line('| Site | Doc type | Selected URL | Normalized chars |');
@@ -237,7 +272,9 @@ const main = async () => {
   for (const site of sites) {
     const siteCaptured = site.documents.filter((doc: CapturedDocument) => doc.status === 'captured').length;
     const siteCross = site.documents.filter((doc: CapturedDocument) => !doc.reachableByClient).length;
-    line(`| ${site.domain} | ${site.homepage.candidateCount} | ${siteCaptured}/${site.documents.length} | ${siteCross} | ${site.missedCandidates.length} |`);
+    line(
+      `| ${site.domain} | ${site.homepage.candidateCount} | ${siteCaptured}/${site.documents.length} | ${siteCross} | ${site.missedCandidates.length} |`,
+    );
   }
   line();
 

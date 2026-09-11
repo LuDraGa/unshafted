@@ -22,7 +22,13 @@ import type { SitePolicyRunState } from '@extension/unshafted-core';
 
 const formatBytes = (bytes: number) => `${Math.round(bytes / 1024).toLocaleString()} KB`;
 
-export const RunProgress = ({ runState }: { runState: SitePolicyRunState }) => {
+/** What is saved and what it costs. Plain I/O with no state in it, so both readers can share it. */
+const readStoredState = async () => {
+  const [listed, measured] = await Promise.all([localSitePolicyStorage.list(), localSitePolicyStorage.stats()]);
+  return { entries: listed, stats: { bytes: measured.bytes, budgetBytes: measured.budgetBytes } };
+};
+
+const RunProgress = ({ runState }: { runState: SitePolicyRunState }) => {
   const position = runState.currentUrl ? runState.completed + 1 : runState.completed;
 
   return (
@@ -49,14 +55,30 @@ const StorageRelief = ({ onChanged }: { onChanged: () => void }) => {
   const [stats, setStats] = useState<{ bytes: number; budgetBytes: number } | null>(null);
 
   const refresh = useCallback(async () => {
-    const [listed, measured] = await Promise.all([localSitePolicyStorage.list(), localSitePolicyStorage.stats()]);
-    setEntries(listed);
-    setStats({ bytes: measured.bytes, budgetBytes: measured.budgetBytes });
+    const state = await readStoredState();
+    setEntries(state.entries);
+    setStats(state.stats);
   }, []);
 
+  /*
+   * The first read is the effect's own, rather than a call to `refresh`. It needs a disposal guard
+   * that `refresh` cannot have — `refresh` is also awaited by `remove`, where landing after the
+   * component is gone is impossible — and reading through a callback left the state write looking
+   * synchronous from the effect body.
+   */
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    let disposed = false;
+
+    void readStoredState().then(state => {
+      if (disposed) return;
+      setEntries(state.entries);
+      setStats(state.stats);
+    });
+
+    return () => {
+      disposed = true;
+    };
+  }, []);
 
   const remove = async (hash: string) => {
     await localSitePolicyStorage.remove(hash);
@@ -95,13 +117,7 @@ const StorageRelief = ({ onChanged }: { onChanged: () => void }) => {
   );
 };
 
-export const RunOutcome = ({
-  runState,
-  onStorageChanged,
-}: {
-  runState: SitePolicyRunState;
-  onStorageChanged: () => void;
-}) => {
+const RunOutcome = ({ runState, onStorageChanged }: { runState: SitePolicyRunState; onStorageChanged: () => void }) => {
   const [managing, setManaging] = useState(false);
 
   if (runState.failures.length === 0 && !runState.overBudget) return null;
@@ -150,3 +166,5 @@ export const RunOutcome = ({
     </section>
   );
 };
+
+export { RunProgress, RunOutcome };

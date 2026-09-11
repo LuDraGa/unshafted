@@ -1,1 +1,5 @@
 @import '@extension/ui/global.css';
+
+/* This page's own sources. The shared `@extension/ui` ones come with the import above. */
+@source '../index.html';
+@source './';

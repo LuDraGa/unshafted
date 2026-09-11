@@ -35,9 +35,8 @@ const fakeLocal = {
 };
 
 const { sitePolicyCacheStorage, POLICY_CACHE_BUDGET_BYTES } = await import('../lib/impl/unshafted-policy-storage.js');
-const { localSitePolicyStorage, LOCAL_POLICY_BUDGET_BYTES } = await import(
-  '../lib/impl/unshafted-local-policy-storage.js'
-);
+const { localSitePolicyStorage, LOCAL_POLICY_BUDGET_BYTES } =
+  await import('../lib/impl/unshafted-local-policy-storage.js');
 
 const CORPUS_ENTRY_PREFIX = 'unshafted-policy-analysis:';
 const LOCAL_ENTRY_PREFIX = 'unshafted-local-policy-analysis:';

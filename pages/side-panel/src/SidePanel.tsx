@@ -256,7 +256,7 @@ const SidePanel = () => {
     <main className="panel-shell">
       {/* No "This site" label above the domain — the domain is the label. */}
       <header className="flex flex-col gap-1">
-        <h1 className="m-0 text-lg font-semibold leading-tight tracking-tight text-[var(--unshafted-text)]">
+        <h1 className="m-0 text-lg leading-tight font-semibold tracking-tight text-[var(--unshafted-text)]">
           {/*
             "No site here" is a finding, not a placeholder, so it waits for the resolve. Showing it
             on every panel open — which is what the fallback did while the first query was in

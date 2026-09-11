@@ -1,5 +1,15 @@
 import { DISCLAIMER_LINE } from '../constants.js';
-import type { DeepAnalysisResult, QuickScanResult } from '../types.js';
+import type { StrictModeResponse } from '../openai-json-schema.js';
+import type { ClauseReference, DeepAnalysisResult, QuickScanResult } from '../types.js';
+
+/** An absent optional is spelled `null` on the wire, never left out. */
+const asResponseReference = (reference: ClauseReference | undefined) =>
+  reference ? { ...reference, quote: reference.quote ?? null } : null;
+
+const asResponseFinding = <T extends { reference?: ClauseReference }>(finding: T) => ({
+  ...finding,
+  reference: asResponseReference(finding.reference),
+});
 
 export const sampleContractText = `
 SERVICE AGREEMENT
@@ -58,6 +68,14 @@ export const sampleQuickScan: QuickScanResult = {
   extractionConcerns: [],
 };
 
+/**
+ * The OUTPUT fixture: what `DeepAnalysisResultSchema.parse()` produces, and what the UI renders.
+ * `runtime.ts` hands it straight to the demo analysis, so it is shaped the way the components
+ * expect — an optional with nothing to say is simply absent.
+ *
+ * It is deliberately NOT a stand-in for a model reply. See `sampleDeepAnalysisResponse` below for
+ * that, and for why the two cannot be one object.
+ */
 export const sampleDeepAnalysis: DeepAnalysisResult = {
   plainEnglishSummary:
     'This agreement is workable only if you have very little leverage and are comfortable carrying most of the risk. The client controls payment, termination, IP ownership, and damages in a way that can leave you doing the work while still exposed afterward.',
@@ -206,4 +224,39 @@ export const sampleDeepAnalysis: DeepAnalysisResult = {
   assumptionsAndUnknowns: ['No statement of work or deliverable acceptance rubric was provided.'],
   clauseReferenceNotes: ['References are based on headings and nearby quoted text, not formal legal citations.'],
   disclaimer: DISCLAIMER_LINE,
+};
+
+/**
+ * The RESPONSE fixture: the same analysis as `sampleDeepAnalysis`, in the shape a model actually
+ * replies in.
+ *
+ * `toOpenAiJsonSchema` has to name every property in `required` — strict mode gives it no choice —
+ * so an optional cannot mean "absent" by going missing, and says it with `null` instead. Under
+ * that schema `sampleDeepAnalysis` is not a valid reply: three `topicConcerns` references, one
+ * `potentialAdvantages` reference and one `negotiationIdeas.fallback` are simply not there (#48).
+ *
+ * The two shapes stay two objects rather than being reconciled into one. `sampleDeepAnalysis` is
+ * typed `DeepAnalysisResult`, where `quote` is `string | undefined`; writing `quote: null` into it
+ * would make that annotation false, and widening the domain type to admit a `null` would push a
+ * wire-format detail into the objects the UI renders — the same trade `absent-nulls.ts` already
+ * declined for `SitePolicyAnalysisSchema`. A test that says which seam it is exercising is worth
+ * more than one fixture that quietly claims to be both.
+ *
+ * Content is derived from `sampleDeepAnalysis` so the two cannot drift apart on anything but that
+ * spelling, and `StrictModeResponse` makes the compiler check the spelling: leave an optional out
+ * and this stops building.
+ */
+export const sampleDeepAnalysisResponse: StrictModeResponse<DeepAnalysisResult> = {
+  ...sampleDeepAnalysis,
+  immediateWorries: sampleDeepAnalysis.immediateWorries.map(asResponseFinding),
+  oneSidedClauses: sampleDeepAnalysis.oneSidedClauses.map(asResponseFinding),
+  timingAndLockIn: sampleDeepAnalysis.timingAndLockIn.map(asResponseFinding),
+  topicConcerns: sampleDeepAnalysis.topicConcerns.map(asResponseFinding),
+  couldShaftYouLater: sampleDeepAnalysis.couldShaftYouLater.map(asResponseFinding),
+  potentialAdvantages: sampleDeepAnalysis.potentialAdvantages.map(asResponseFinding),
+  negotiationIdeas: sampleDeepAnalysis.negotiationIdeas.map(idea => ({
+    ...idea,
+    fallback: idea.fallback ?? null,
+    targetClause: idea.targetClause ?? null,
+  })),
 };

@@ -1,8 +1,8 @@
 import { diffPolicyText, findAffectedExposures, normalizePolicyHtml, splitPolicyBlocks } from '../index.mts';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 import type { Exposure } from '../index.mts';
 
 const FIXTURE_ROOT = fileURLToPath(new URL('./fixtures/site-policy/', import.meta.url));

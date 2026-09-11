@@ -91,7 +91,9 @@ const main = async () => {
     JSON.stringify(parsed.data, null, 2),
     'utf8',
   );
-  console.log(`[ok] ${body.hash8} ${entry.domain} ${entry.docType} — ${parsed.data.exposures.length} exposures, ${parsed.data.riskLevel}`);
+  console.log(
+    `[ok] ${body.hash8} ${entry.domain} ${entry.docType} — ${parsed.data.exposures.length} exposures, ${parsed.data.riskLevel}`,
+  );
 };
 
 void main();

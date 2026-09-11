@@ -1,6 +1,6 @@
 {
   "name": "@extension/hmr",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "chrome extension - hot module reload/refresh",
   "type": "module",
   "private": true,
@@ -27,7 +27,6 @@
     "@extension/tsconfig": "workspace:*",
     "@rollup/plugin-sucrase": "^5.0.2",
     "@types/ws": "^8.18.1",
-    "esbuild": "^0.25.4",
     "esm": "^3.2.25",
     "rollup": "^4.41.0",
     "ts-node": "^10.9.2",

@@ -8,10 +8,10 @@ import {
   POLICY_INDEX_HEADER_BYTES,
   POLICY_INDEX_MAX_BYTES,
   POLICY_INDEX_RECORD_BYTES,
-  type PolicyIndexRecord,
 } from '../index.mts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import type { PolicyIndexRecord } from '../index.mts';
 
 const RECORDS: PolicyIndexRecord[] = [
   { domain: 'example.com', riskLevel: 'High', hasTimeSensitiveAction: true },

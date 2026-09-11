@@ -1,3 +1,5 @@
+import { registerSitePolicySidePanel } from './side-panel.js';
+import { registerSitePolicyBadge } from './site-policy.js';
 import { runQuickScan, runDeepAnalysis, runSitePolicyAnalysis } from '@extension/shared';
 import {
   currentAnalysisStorage,
@@ -21,8 +23,6 @@ import type {
   LocalPolicyAnalysis,
   AnalysisMessageResponse,
 } from '@extension/unshafted-core';
-import { registerSitePolicySidePanel } from './side-panel.js';
-import { registerSitePolicyBadge } from './site-policy.js';
 
 console.info('[Unshafted] background worker ready');
 

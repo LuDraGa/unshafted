@@ -28,9 +28,7 @@ const main = async () => {
   };
   const byHash = new Map(curated.entries.map(entry => [entry.contentHash, entry]));
 
-  const files = existsSync(ANALYSIS_DIR)
-    ? (await readdir(ANALYSIS_DIR)).filter(name => name.endsWith('.json'))
-    : [];
+  const files = existsSync(ANALYSIS_DIR) ? (await readdir(ANALYSIS_DIR)).filter(name => name.endsWith('.json')) : [];
 
   const problems: string[] = [];
   const done = new Set<string>();
@@ -72,13 +70,17 @@ const main = async () => {
 
   if (process.argv.includes('--todo')) {
     for (const entry of todo) {
-      console.log(`${entry.contentHash.slice(0, 8)} ${entry.domain} ${entry.docType} ${entry.normalizedLength} ${entry.textPath}`);
+      console.log(
+        `${entry.contentHash.slice(0, 8)} ${entry.domain} ${entry.docType} ${entry.normalizedLength} ${entry.textPath}`,
+      );
     }
     return;
   }
 
   for (const problem of problems) console.error(`[invalid] ${problem}`);
-  console.log(`\n[analysis] valid ${done.size} / ${curated.entries.length}, invalid ${problems.length}, remaining ${todo.length}`);
+  console.log(
+    `\n[analysis] valid ${done.size} / ${curated.entries.length}, invalid ${problems.length}, remaining ${todo.length}`,
+  );
   if (problems.length > 0) process.exitCode = 1;
 };
 

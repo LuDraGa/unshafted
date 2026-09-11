@@ -23,13 +23,13 @@ import type { RiskLevel } from '../types.js';
  * Collision safety: 64-bit prefix, n = 5,000 → birthday probability ≈ n²/2^65 ≈ 7e-13.
  */
 
-export const POLICY_INDEX_MAGIC = 0x554e5346; // 'UNSF'
-export const POLICY_INDEX_FORMAT_VERSION = 1;
-export const POLICY_INDEX_HEADER_BYTES = 16;
-export const POLICY_INDEX_RECORD_BYTES = 9;
+const POLICY_INDEX_MAGIC = 0x554e5346; // 'UNSF'
+const POLICY_INDEX_FORMAT_VERSION = 1;
+const POLICY_INDEX_HEADER_BYTES = 16;
+const POLICY_INDEX_RECORD_BYTES = 9;
 
 /** Build fails above this — a slow cold start is worse than incomplete coverage. */
-export const POLICY_INDEX_MAX_BYTES = 256 * 1024;
+const POLICY_INDEX_MAX_BYTES = 256 * 1024;
 
 const RISK_LEVELS = ['Low', 'Medium', 'High', 'Very High'] as const satisfies readonly RiskLevel[];
 
@@ -40,14 +40,14 @@ const RISK_LEVELS = ['Low', 'Medium', 'High', 'Very High'] as const satisfies re
  */
 const MAX_CANDIDATE_LABELS = 7;
 
-export type PolicyIndexEntry = {
+type PolicyIndexEntry = {
   riskLevel: RiskLevel;
   hasTimeSensitiveAction: boolean;
 };
 
-export type PolicyIndexRecord = PolicyIndexEntry & { domain: string };
+type PolicyIndexRecord = PolicyIndexEntry & { domain: string };
 
-export type PolicyIndex = {
+type PolicyIndex = {
   formatVersion: number;
   recordCount: number;
   /** Sorted ascending. Exposed for tests; use `lookupDomain` / `lookupHostname` instead. */
@@ -72,12 +72,12 @@ const decodePayload = (byte: number): PolicyIndexEntry => ({
  * Shared by the build step and the runtime deliberately — one implementation means build-time
  * and runtime hashes cannot drift apart and silently lose coverage.
  */
-export const domainHashPrefix = async (domain: string): Promise<bigint> => {
+const domainHashPrefix = async (domain: string): Promise<bigint> => {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(domain));
   return new DataView(digest).getBigUint64(0, false);
 };
 
-export const encodePolicyIndex = async (records: PolicyIndexRecord[]): Promise<Uint8Array> => {
+const encodePolicyIndex = async (records: PolicyIndexRecord[]): Promise<Uint8Array> => {
   const rows = await Promise.all(
     records.map(async record => ({ prefix: await domainHashPrefix(record.domain), payload: encodePayload(record) })),
   );
@@ -106,7 +106,7 @@ export const encodePolicyIndex = async (records: PolicyIndexRecord[]): Promise<U
   return bytes;
 };
 
-export const decodePolicyIndex = (input: ArrayBuffer | Uint8Array): PolicyIndex => {
+const decodePolicyIndex = (input: ArrayBuffer | Uint8Array): PolicyIndex => {
   const bytes = input instanceof Uint8Array ? input : new Uint8Array(input);
   if (bytes.byteLength < POLICY_INDEX_HEADER_BYTES) {
     throw new Error('Policy index is truncated: shorter than its header.');
@@ -154,7 +154,7 @@ const findPrefix = (index: PolicyIndex, prefix: bigint): PolicyIndexEntry | null
   return null;
 };
 
-export const lookupDomain = async (index: PolicyIndex, domain: string): Promise<PolicyIndexEntry | null> =>
+const lookupDomain = async (index: PolicyIndex, domain: string): Promise<PolicyIndexEntry | null> =>
   findPrefix(index, await domainHashPrefix(domain));
 
 /**
@@ -173,7 +173,7 @@ export const lookupDomain = async (index: PolicyIndex, domain: string): Promise<
  * That is prevented at BUILD time, where rejecting such entries is cheap, rather than at
  * runtime where it would cost every user the bundle size. See `make-policy-index-plugin.ts`.
  */
-export const candidateDomains = (hostname: string): string[] => {
+const candidateDomains = (hostname: string): string[] => {
   const host = hostname.trim().toLowerCase().replace(/\.$/, '');
   if (!host || host.includes(':') || host.includes('/')) return [];
   // Bare IPv4 literals have no registrable domain.
@@ -191,7 +191,7 @@ export const candidateDomains = (hostname: string): string[] => {
 };
 
 /** Resolve a hostname against the index, most specific match wins. */
-export const lookupHostname = async (
+const lookupHostname = async (
   index: PolicyIndex,
   hostname: string,
 ): Promise<{ domain: string; entry: PolicyIndexEntry } | null> => {
@@ -205,3 +205,18 @@ export const lookupHostname = async (
 
   return null;
 };
+
+export {
+  POLICY_INDEX_MAGIC,
+  POLICY_INDEX_FORMAT_VERSION,
+  POLICY_INDEX_HEADER_BYTES,
+  POLICY_INDEX_RECORD_BYTES,
+  POLICY_INDEX_MAX_BYTES,
+  domainHashPrefix,
+  encodePolicyIndex,
+  decodePolicyIndex,
+  lookupDomain,
+  candidateDomains,
+  lookupHostname,
+};
+export type { PolicyIndexEntry, PolicyIndexRecord, PolicyIndex };

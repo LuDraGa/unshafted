@@ -1,6 +1,6 @@
 {
   "name": "@extension/supabase",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "chrome extension - supabase auth and backend",
   "type": "module",
   "private": true,
@@ -23,9 +23,9 @@
     "postinstall": "pnpm ready"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.49.8",
     "@extension/env": "workspace:*",
-    "@extension/unshafted-core": "workspace:*"
+    "@extension/unshafted-core": "workspace:*",
+    "@supabase/supabase-js": "^2.116.0"
   },
   "devDependencies": {
     "@extension/tsconfig": "workspace:*"

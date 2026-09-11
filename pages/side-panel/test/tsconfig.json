@@ -1,0 +1,12 @@
+{
+  "extends": "@extension/tsconfig/base",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "noEmit": true,
+    "paths": {
+      "@src/*": ["../src/*"]
+    },
+    "types": ["chrome", "node"]
+  },
+  "include": [".", "../src"]
+}

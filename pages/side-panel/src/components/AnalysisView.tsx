@@ -39,7 +39,7 @@ export const WorstRisk = ({
 
   return (
     <section className={`panel-verdict ${RISK_TONE[summary.riskLevel]}`}>
-      <p className="m-0 text-lg font-semibold leading-tight tracking-tight">{summary.riskLevel} risk</p>
+      <p className="m-0 text-lg leading-tight font-semibold tracking-tight">{summary.riskLevel} risk</p>
       <p className="m-0 mt-1 text-xs leading-relaxed">
         The worst of {summary.documentCount === 1 ? 'the one document' : `${summary.documentCount} documents`}{' '}
         {readBy === 'you' ? 'you analysed' : 'we read'} here. Earned by the{' '}
@@ -67,19 +67,19 @@ export const OneThing = ({ analyses }: { analyses: readonly SitePolicyAnalysis[]
       <p className="panel-eyebrow">{one.kind === 'deadline' ? 'On a clock' : 'The one thing'}</p>
       {one.kind === 'deadline' ? (
         <>
-          <p className="m-0 text-sm font-semibold leading-snug text-[var(--unshafted-text)]">{one.action.action}</p>
+          <p className="m-0 text-sm leading-snug font-semibold text-[var(--unshafted-text)]">{one.action.action}</p>
           <p className="m-0 mt-1 text-xs font-semibold text-violet-700">{describeDeadline(one.deadline)}</p>
           <p className="m-0 mt-1 text-xs leading-relaxed text-[var(--unshafted-text-muted)]">{one.action.howTo}</p>
         </>
       ) : (
         <>
-          <p className="m-0 text-sm font-semibold leading-snug text-[var(--unshafted-text)]">{one.exposure.title}</p>
+          <p className="m-0 text-sm leading-snug font-semibold text-[var(--unshafted-text)]">{one.exposure.title}</p>
           <p className="m-0 mt-1 text-xs leading-relaxed text-[var(--unshafted-text-muted)]">
             {one.exposure.whatItMeans}
           </p>
         </>
       )}
-      <p className="m-0 mt-1.5 text-[10px] uppercase tracking-wide text-[var(--unshafted-text-faint)]">
+      <p className="m-0 mt-1.5 text-[10px] tracking-wide text-[var(--unshafted-text-faint)] uppercase">
         From the {DOC_TYPE_LABELS[one.analysis.docType].toLowerCase()}
       </p>
     </section>

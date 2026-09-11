@@ -15,7 +15,7 @@ const INDEX_ASSET = 'policy-index.bin';
 /** Bounded so a long-lived worker or a long popup session cannot grow this without limit. */
 const HOSTNAME_CACHE_LIMIT = 500;
 
-export type HostnameResolution = { domain: string; entry: PolicyIndexEntry } | null;
+type HostnameResolution = { domain: string; entry: PolicyIndexEntry } | null;
 
 /**
  * MV3 workers sleep and restart, resetting this. That is intended: re-reading a small
@@ -24,7 +24,7 @@ export type HostnameResolution = { domain: string; entry: PolicyIndexEntry } | n
  */
 let indexPromise: Promise<PolicyIndex | null> | null = null;
 
-export const loadBundledPolicyIndex = (): Promise<PolicyIndex | null> => {
+const loadBundledPolicyIndex = (): Promise<PolicyIndex | null> => {
   indexPromise ??= (async () => {
     try {
       const response = await fetch(chrome.runtime.getURL(INDEX_ASSET));
@@ -44,7 +44,7 @@ export const loadBundledPolicyIndex = (): Promise<PolicyIndex | null> => {
 
 const hostnameCache = new Map<string, HostnameResolution>();
 
-export const resolveCoveredHostname = async (hostname: string): Promise<HostnameResolution> => {
+const resolveCoveredHostname = async (hostname: string): Promise<HostnameResolution> => {
   const cached = hostnameCache.get(hostname);
   if (cached !== undefined) return cached;
 
@@ -59,3 +59,6 @@ export const resolveCoveredHostname = async (hostname: string): Promise<Hostname
 
   return resolution;
 };
+
+export { loadBundledPolicyIndex, resolveCoveredHostname };
+export type { HostnameResolution };
