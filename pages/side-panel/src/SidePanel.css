@@ -18,7 +18,7 @@
   min-height: 100vh;
   padding: 16px 14px 18px;
   background:
-    radial-gradient(circle at top right, rgba(234, 88, 12, 0.1), transparent 32%),
+    radial-gradient(circle at top right, rgba(245, 74, 0, 0.1), transparent 32%),
     linear-gradient(180deg, #f7f2ea 0%, var(--unshafted-bg-warm) 100%);
   color: var(--unshafted-text);
 }
@@ -59,9 +59,9 @@
 }
 
 .panel-freshness[data-state='changed'] {
-  border-color: #ddd6fe;
-  background: #f5f3ff;
-  color: #5b21b6;
+  border-color: var(--color-violet-200);
+  background: var(--color-violet-50);
+  color: var(--color-violet-800);
 }
 
 /*
