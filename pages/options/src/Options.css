@@ -14,8 +14,14 @@
   backdrop-filter: blur(12px);
 }
 
+/*
+ * No `margin: 0` here. Preflight already zeroes the margin on `p` and `h1`-`h6`, so it was
+ * redundant in v3 and actively harmful under v4: utilities live in a real `@layer utilities`, and
+ * this unlayered class beat `space-y-*` outright — the gap between these lines silently collapsed.
+ * (v3's `space-y` selector scored 0,3,0 and won on specificity; v4's uses a zero-specificity
+ * `:where()` precisely so it is easy to override, which is exactly what was happening by accident.)
+ */
 .options-eyebrow {
-  margin: 0;
   color: var(--unshafted-brand);
   font-size: 12px;
   font-weight: 700;

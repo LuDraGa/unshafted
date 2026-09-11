@@ -1,6 +1,108 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/*
+ * The shared UI layer, v4-style: one stylesheet the three pages import, rather than a `withUI`
+ * helper they each call. Under CSS-first config there is nothing left for such a helper to
+ * compose — see execution-docs/tailwind-4-migration.md.
+ *
+ * `source(none)` turns off v4's automatic file detection. Left on, detection walks up to the
+ * repo root and scans the whole monorepo, so every page would ship every other page's utilities.
+ * The `@source` lines below say exactly what each stylesheet is built from, which is what the v3
+ * `content` arrays said.
+ */
+@import 'tailwindcss' source(none);
+
+/*
+ * Every page gets the `@extension/ui` components' classes, because every page renders them. This
+ * is the line that used to be `withUI`'s entire job.
+ */
+@source './lib';
+
+/*
+ * The palette, pinned to the values v3 shipped.
+ *
+ * v4 re-derived the default palette in OKLCH. The neutrals are unmoved (stone shifts by 1/255),
+ * but the saturated end of the warm ramps is not: red-600 goes #dc2626 → #e7000b, red-700 → Δ28,
+ * rose-700/800 → Δ18. Those are the risk and severity colours.
+ *
+ * Leaving them to move would have split the app in half, because risk is encoded twice. The side
+ * panel's tone maps use utilities — `presentation.ts` has `border-emerald-200 bg-emerald-50
+ * text-emerald-900` for Low — while `SidePanel.css` paints the same state from
+ * `--unshafted-risk-low-*`, whose values below are those exact v3 shades written out as hex. Only
+ * the utility half tracks Tailwind, so under v4's palette one surface shifts and the other does
+ * not, and a product whose whole job is grading risk starts grading it two different colours.
+ *
+ * So this migration changes the build, not the design: pinned, the rendered output is unchanged to
+ * the last channel. Adopting v4's OKLCH palette is worth doing — it is wider-gamut and it is
+ * upstream — but as its own decision that moves both halves together, with its own before/after.
+ * That is #59.
+ *
+ * Only the shades actually in use are listed; an unpinned shade gets v4's value, which is the
+ * right default for anything new.
+ */
+@theme {
+  --color-stone-50: #fafaf9;
+  --color-stone-100: #f5f5f4;
+  --color-stone-200: #e7e5e4;
+  --color-stone-300: #d6d3d1;
+  --color-stone-400: #a8a29e;
+  --color-stone-500: #78716c;
+  --color-stone-600: #57534e;
+  --color-stone-700: #44403c;
+  --color-stone-800: #292524;
+  --color-stone-900: #1c1917;
+  --color-stone-950: #0c0a09;
+
+  --color-amber-50: #fffbeb;
+  --color-amber-100: #fef3c7;
+  --color-amber-200: #fde68a;
+  --color-amber-300: #fcd34d;
+  --color-amber-700: #b45309;
+  --color-amber-900: #78350f;
+
+  --color-orange-50: #fff7ed;
+  --color-orange-200: #fed7aa;
+  --color-orange-300: #fdba74;
+  --color-orange-900: #7c2d12;
+
+  --color-red-50: #fef2f2;
+  --color-red-100: #fee2e2;
+  --color-red-600: #dc2626;
+  --color-red-700: #b91c1c;
+  --color-red-800: #991b1b;
+  --color-red-900: #7f1d1d;
+
+  --color-rose-50: #fff1f2;
+  --color-rose-100: #ffe4e6;
+  --color-rose-200: #fecdd3;
+  --color-rose-300: #fda4af;
+  --color-rose-700: #be123c;
+  --color-rose-800: #9f1239;
+  --color-rose-900: #881337;
+  --color-rose-950: #4c0519;
+
+  --color-emerald-50: #ecfdf5;
+  --color-emerald-200: #a7f3d0;
+  --color-emerald-300: #6ee7b7;
+  --color-emerald-700: #047857;
+  --color-emerald-900: #064e3b;
+
+  --color-violet-50: #f5f3ff;
+  --color-violet-200: #ddd6fe;
+  --color-violet-700: #6d28d9;
+  --color-violet-900: #4c1d95;
+}
+
+/*
+ * v4's Preflight drops `cursor: pointer` from buttons, deferring to the native default. This app
+ * is built almost entirely out of buttons — 60 of them across the three pages — and losing the
+ * pointer on all of them is the single most visible thing about the v4 upgrade. Put it back, which
+ * is what v3 rendered. `:not(:disabled)` so a disabled control still reads as unavailable.
+ */
+@layer base {
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+}
 
 :root {
   --unshafted-bg: #f8f4ee;
@@ -38,41 +140,61 @@
   --unshafted-shadow-card: 0 16px 40px rgba(28, 25, 23, 0.06);
 }
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
+/*
+ * These are element defaults — the project's own half of Preflight — so they belong in the same
+ * layer Preflight uses, and NOT outside the layers.
+ *
+ * This is the one thing about v4 that changes behaviour silently. v3 stripped its `@layer`
+ * directives and emitted utilities as ordinary rules, so `button { font: inherit }` lost to
+ * `.text-[11px]` on plain specificity. v4 emits real cascade layers, and an unlayered rule beats
+ * every layered one no matter how specific — so unlayered, `font: inherit` quietly won over
+ * `text-[11px]` AND `font-semibold`, and the header's Sign in button rendered at 16px/400 instead
+ * of 11px/600. Nothing errors; the type is just wrong, and the wider button reflows the title
+ * beside it.
+ *
+ * In `@layer base` these sit below utilities, which is where v3 effectively had them.
+ *
+ * The component classes further down stay unlayered on purpose: in v3 they came after the
+ * utilities in source order and won ties that way, and unlayered-beats-layered reproduces exactly
+ * that. Same for Popup.css, Options.css and SidePanel.css.
+ */
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
 
-body {
-  margin: 0;
-  padding: 0;
-  font-family: 'Avenir Next', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
-  color: #1c1917;
-  background: #f8f4ee;
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Avenir Next', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    color: #1c1917;
+    background: #f8f4ee;
 
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  font-family: 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', Georgia, serif;
-}
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', Georgia, serif;
+  }
 
-button,
-input,
-textarea,
-select {
-  font: inherit;
-}
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+  code {
+    font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+  }
 }
 
 .spotlight-tour {

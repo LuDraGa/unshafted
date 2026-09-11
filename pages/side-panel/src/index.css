@@ -1,6 +1,17 @@
 @import '@extension/ui/global.css';
 
 /*
+ * This page's own sources. The shared `@extension/ui` ones come with the import above.
+ *
+ * `@source './'` covers `.ts` as well as `.tsx`, which matters: the risk and severity tone maps
+ * live in `src/lib/presentation.ts`. Tailwind only emits classes it can see as literal strings,
+ * and a dropped `bg-rose-50` fails silently — the panel renders with no risk colour at all. The v3
+ * `content` array had to name `.ts` explicitly for the same reason.
+ */
+@source '../index.html';
+@source './';
+
+/*
  * Unlike the popup, the panel does not get to pick its width — Chrome owns it and the user can
  * drag it. So no fixed dimensions here; the panel fills whatever it is given, full height.
  */

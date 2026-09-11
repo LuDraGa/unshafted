@@ -23,15 +23,15 @@ export const ErrorDisplay = ({ error, resetErrorBoundary }: { error?: unknown; r
           <h2 className="mt-4 text-2xl font-semibold text-stone-900">Something broke while loading this view.</h2>
           <p className="mt-2 text-sm text-stone-600">Check the details below, then try again.</p>
         </div>
-        <div className="overflow-hidden rounded-2xl border border-red-100 bg-white shadow-sm">
+        <div className="overflow-hidden rounded-2xl border border-red-100 bg-white shadow-xs">
           <div className="px-4 py-5">
             <p className="mb-2 text-sm font-medium text-stone-700">Error details</p>
             <div className="overflow-auto rounded-xl bg-red-50 p-4">
-              <p className="break-all font-mono text-sm text-red-800">{message || 'Unknown error'}</p>
+              <p className="font-mono text-sm break-all text-red-800">{message || 'Unknown error'}</p>
               {stack && (
                 <details className="mt-3">
                   <summary className="cursor-pointer text-sm text-red-700">Stack trace</summary>
-                  <pre className="mt-2 overflow-auto whitespace-pre-wrap text-xs text-red-900">{stack}</pre>
+                  <pre className="mt-2 overflow-auto text-xs whitespace-pre-wrap text-red-900">{stack}</pre>
                 </details>
               )}
             </div>

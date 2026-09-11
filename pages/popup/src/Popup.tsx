@@ -1144,7 +1144,7 @@ const Popup = () => {
           {selectedHistory ? (
             <section
               ref={selectedReportRef}
-              className="space-y-3 rounded-3xl outline-none focus-visible:ring-4 focus-visible:ring-amber-200"
+              className="space-y-3 rounded-3xl outline-hidden focus-visible:ring-4 focus-visible:ring-amber-200"
               tabIndex={-1}
               aria-label={`Opened report for ${selectedHistory.source.name}`}>
               <section className="popup-report-toolbar">
@@ -1331,7 +1331,7 @@ const Popup = () => {
                         {record.deepAnalysis?.overallRiskLevel ?? record.quickScan.roughRiskLevel}
                       </span>
                     </div>
-                    <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+                    <p className="mt-2 text-[11px] font-semibold tracking-[0.16em] text-stone-500 uppercase">
                       {storageStateCopy[record.storageState]}
                     </p>
                     <div className="mt-2 flex flex-wrap gap-3">
