@@ -8,5 +8,6 @@
   "htmlWhitespaceSensitivity": "strict",
   "plugins": [
     "prettier-plugin-tailwindcss"
-  ]
+  ],
+  "tailwindStylesheet": "./packages/ui/global.css"
 }

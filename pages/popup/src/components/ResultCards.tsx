@@ -27,7 +27,7 @@ const severityClasses: Record<Severity, string> = {
 const RiskBadge = ({ label }: { label: VerdictTone }) => (
   <span
     className={cn(
-      'rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]',
+      'rounded-full border px-3 py-1 text-[11px] font-semibold tracking-[0.18em] uppercase',
       verdictToneClasses[label],
     )}>
     {label}
@@ -37,7 +37,7 @@ const RiskBadge = ({ label }: { label: VerdictTone }) => (
 const SeverityBadge = ({ severity }: { severity: Severity }) => (
   <span
     className={cn(
-      'rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]',
+      'rounded-full px-2.5 py-1 text-[10px] font-semibold tracking-[0.16em] uppercase',
       severityClasses[severity],
     )}>
     {severity}
@@ -449,7 +449,7 @@ const buildDocLens = (
     <div className="space-y-3 px-3 py-2 text-xs leading-5 text-stone-700">
       {quick.parties.length > 0 ? (
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">Parties</p>
+          <p className="text-[10px] font-semibold tracking-[0.18em] text-stone-500 uppercase">Parties</p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {quick.parties.map(p => (
               <span
@@ -464,7 +464,7 @@ const buildDocLens = (
       ) : null}
       {quick.topics.length > 0 ? (
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">Topics</p>
+          <p className="text-[10px] font-semibold tracking-[0.18em] text-stone-500 uppercase">Topics</p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {quick.topics.map(t => (
               <span
@@ -477,7 +477,7 @@ const buildDocLens = (
         </div>
       ) : null}
       <div>
-        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">Summary</p>
+        <p className="text-[10px] font-semibold tracking-[0.18em] text-stone-500 uppercase">Summary</p>
         <p className="mt-1">{deep?.plainEnglishSummary ?? quick.summary}</p>
       </div>
       <p className="text-[11px] text-stone-500">

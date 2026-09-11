@@ -23,9 +23,9 @@
     },
     // No `^ready`, and that was checked rather than assumed. Both workspace packages point `types`
     // at their source entry (`index.mts`, `index.ts`), so TypeScript reads them without a build;
-    // `pnpm type-check` passes 12/12 on a tree with every `dist/` deleted. Nothing here executes a
-    // workspace package the way `lint` executes `tailwind.config.ts`, which is what forced `^ready`
-    // there.
+    // `pnpm type-check` passes 12/12 on a tree with every `dist/` deleted. `lint` used to be the
+    // exception here, because it executed `tailwind.config.ts`; Tailwind 4 removed those files, so
+    // it no longer is.
     "type-check": {
       "cache": false
     },
@@ -45,19 +45,23 @@
       "dependsOn": ["^ready"],
       "cache": false
     },
-    // `^ready` for the same reason `build` needs it. `@extension/ui` resolves through its built
-    // `dist/`, and every `pages/*/tailwind.config.ts` imports `withUI` from it — so on a tree that
-    // has not been built the Tailwind config fails to load, prettier-plugin-tailwindcss falls back
-    // to a parser that cannot read JSX, and eslint exits 2 with a ParseError instead of reporting
-    // lint errors. Only `@extension/shared` builds itself on postinstall, so this passed for anyone
-    // who had run a build and failed on every clean checkout — invisibly, until the PR checks
-    // started reading the repository (#25).
+    /*
+     * No `^ready` any more, and that was measured rather than assumed. It was there because every
+     * `tailwind.config.ts` under `pages/` imported `withUI` from `@extension/ui`s built output, so
+     * unbuilt tree the Tailwind config failed to load, prettier-plugin-tailwindcss fell back to a
+     * parser that could not read JSX, and eslint exited 2 with a ParseError instead of lint errors
+     * (#25).
+     *
+     * Tailwind 4 deleted that coupling (#43). There are no `tailwind.config.ts` files left and no
+     * `withUI`; the shared layer is `packages/ui/global.css`, which prettier-plugin-tailwindcss
+     * reads as source via `tailwindStylesheet` in `.prettierrc`. Nothing in `lint` executes a
+     * workspace package's build output now — checked by deleting every `dist/` and running
+     * `eslint .` in all 11 packages, which passes.
+     */
     "lint": {
-      "dependsOn": ["^ready"],
       "cache": false
     },
     "lint:fix": {
-      "dependsOn": ["^ready"],
       "cache": false
     },
     "format": {

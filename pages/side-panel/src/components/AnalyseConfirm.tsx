@@ -183,7 +183,7 @@ export const AnalyseConfirm = ({
               onChange={() => toggle(candidate.url)}
             />
             <span className="min-w-0 flex-1">
-              <span className="block text-[13px] font-semibold leading-snug text-[var(--unshafted-text)]">
+              <span className="block text-[13px] leading-snug font-semibold text-[var(--unshafted-text)]">
                 {candidateLabel(candidate)}
               </span>
               <span className="mt-0.5 block truncate text-[10px] text-[var(--unshafted-text-faint)]">
