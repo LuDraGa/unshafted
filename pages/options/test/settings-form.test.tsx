@@ -61,12 +61,15 @@ vi.mock('@extension/unshafted-core', () => ({
   DEFAULT_OPENAI_DEEP_MODEL: 'default-oa-deep',
   DEFAULT_OPENAI_QUICK_MODEL: 'default-oa-quick',
   DEFAULT_TEMPERATURE: 0.1,
-  OPENAI_API_KEYS_DOCS_URL: '#',
-  OPENAI_API_KEYS_QUICKSTART_URL: '#',
-  OPENAI_KEYS_URL: '#',
-  OPENROUTER_API_KEYS_DOCS_URL: '#',
-  OPENROUTER_KEYS_URL: '#',
-  PRIVACY_POLICY_URL: '#',
+  // Distinct and URL-shaped on purpose. `Options` keys the provider-help links by href, so a shared
+  // placeholder would collapse the list into duplicate keys — React warnings that are the fixture's
+  // fault, drowning out any real one, and a keying path the test would no longer exercise.
+  OPENAI_API_KEYS_DOCS_URL: 'https://openai.test/docs/api-keys',
+  OPENAI_API_KEYS_QUICKSTART_URL: 'https://openai.test/docs/quickstart',
+  OPENAI_KEYS_URL: 'https://openai.test/api-keys',
+  OPENROUTER_API_KEYS_DOCS_URL: 'https://openrouter.test/docs/api-keys',
+  OPENROUTER_KEYS_URL: 'https://openrouter.test/settings/keys',
+  PRIVACY_POLICY_URL: 'https://privacy.test/unshafted',
   getActiveProviderConfig: () => ({ provider: 'openrouter', apiKey: '', model: '' }),
   getOnboardingKeyHash: async () => 'hash',
   testOpenRouterConnection: async () => 'model',
