@@ -254,7 +254,9 @@ const collectPolicyCandidatesInPage = (): PolicyCandidate[] => {
       const top = anchor.getBoundingClientRect().top + window.scrollY;
       inLowerPage = top / documentHeight > 0.8;
     } catch {
-      inLowerPage = false;
+      // Nothing to reset. The only statement that can throw is the layout read, which runs before
+      // the assignment, so `inLowerPage` still holds the `false` it was initialised to. An anchor
+      // whose position cannot be measured is simply judged on its landmark alone.
     }
 
     results.push({ href, text, inFooterRegion: inLandmark || inLowerPage });

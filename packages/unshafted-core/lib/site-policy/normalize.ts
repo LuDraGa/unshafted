@@ -204,7 +204,9 @@ const stripByAttribute = (html: string, pattern: RegExp): string => {
 
   for (let i = 0; i < MAX_STRIP_ITERATIONS; i += 1) {
     const tagPattern = /<([a-zA-Z][a-zA-Z0-9-]*)(\s[^>]*)>/g;
-    let match: RegExpExecArray | null = null;
+    // No initialiser: the loop condition assigns before anything reads it, and seeding it with a
+    // `null` that is never observed only looks like state the loop carries.
+    let match: RegExpExecArray | null;
     let found: { index: number; tag: string; raw: string } | null = null;
 
     while ((match = tagPattern.exec(out)) !== null) {
