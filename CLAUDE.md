@@ -84,6 +84,58 @@ is and why the flow does not fit. Silence is not approval; neither is the change
 A change reaching `main` outside the publish merge also rewrites the live gist if it touches
 `cws/privacy-policy.md`, so it is never only a repo change.
 
+### Branch protection: what is actually configured
+
+This exists because the question *"will merging the publish PR delete `release`?"* gets re-litigated
+roughly every time someone looks at the flow. The answer is **no**, and here is the configuration it
+rests on rather than the reassurance.
+
+The repository has **no rulesets**. Protection is classic branch protection, on two branches:
+
+| | `main` | `release` |
+|---|---|---|
+| Deletion | blocked (`allow_deletions: false`) | blocked (`allow_deletions: false`) |
+| Force push | blocked | blocked |
+| Applies to admins | yes (`enforce_admins: true`) | yes (`enforce_admins: true`) |
+| PR required to push | **yes** | no — direct pushes allowed |
+| Required status checks | none | none |
+
+Repository-wide, **`delete_branch_on_merge` is `true`**. Every merged PR has its head branch deleted
+automatically, which is what you want for `fix/*`, `releasefix/*`, `chore/*` and dependabot branches
+— nobody should be cleaning those up by hand.
+
+**The publish merge is the case that looks dangerous.** Its PR is `release` → `main`, so the head
+branch *is* `release`, and repo-wide auto-delete would otherwise take it. It does not, because GitHub
+skips branches protected against deletion. `release` surviving the publish merge is therefore not a
+property of the flow or of anyone remembering a flag — it is `allow_deletions: false` doing one
+specific job.
+
+**Which is exactly why that setting is load-bearing and must not be relaxed.** If deletion protection
+on `release` is ever turned off, the next publish merge deletes the branch, and GitHub silently
+retargets every open PR that was based on `release` to the default branch — `main`. Mid-cycle `main`
+carries a different tree, so those PRs then show a diff nobody wrote, against a base nobody chose, and
+the retarget produces no notification. The damage is not the missing branch, which is one `git push`
+away; it is the open work quietly re-pointed.
+
+**This is not hypothetical.** It happened on 2026-09-08, before the protection existed: the publish
+merge deleted `release`, and PR #10 — the dependency sweep — was silently retargeted onto `main`,
+which would have put unreviewed dependency changes into the branch whose entire meaning is *what users
+actually have installed*. Protection was added the same day. That is the incident this section exists
+to stop someone from re-enabling.
+
+If it ever does recur, recreate the branch with `git push origin origin/main:refs/heads/release` and
+put each retargeted PR back with `gh pr edit <n> --base release`. Note also that force-pushing
+`release` now requires lifting protection deliberately — which is the point.
+
+Nothing here needs taking on trust. Re-check it in full with:
+
+```bash
+gh api repos/LuDraGa/unshafted --jq '{default_branch,delete_branch_on_merge}' && gh api repos/LuDraGa/unshafted/rulesets && for b in main release; do gh api "repos/LuDraGa/unshafted/branches/$b/protection" --jq "{branch:\"$b\",deletions:.allow_deletions.enabled,force_push:.allow_force_pushes.enabled,admins:.enforce_admins.enabled,pr_required:has(\"required_pull_request_reviews\")}"; done
+```
+
+Verified 2026-09-13. If a future check disagrees with the table above, the settings changed — fix the
+table, and ask whether the change was deliberate.
+
 ## Conventions
 
 - **Execution docs.** Significant or long-tail work gets a doc in `execution-docs/`, named for the
