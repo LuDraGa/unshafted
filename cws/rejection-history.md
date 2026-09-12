@@ -166,9 +166,12 @@ live, so `cws/` claimed 0.7.1 was the published version for a day. Caught and co
 preparing 0.8.1. The lesson is that the standing mirrors go stale silently: nothing in CI reads
 them, and only a person opening the dashboard would notice.
 
-**Approval date is inferred**, from the publish merge `90e5f73` (2026-09-08) — under `CLAUDE.md`'s
-branch model `main` moves only after CWS publishes. Replace with the exact dashboard date when
-someone is next signed in.
+**On the approval date.** It was never read off the dashboard while anyone was signed in, and the
+date this entry used to carry was reverse-engineered from the publish merge `90e5f73`. That
+inference is removed rather than restated with better wording: what is actually known is that 0.8.0
+was approved on the first round and was live by 2026-09-09, because the 0.8.1 round-1 rejection was
+filed against it. The exact date exists on the dashboard and nowhere in this repo, and a merge
+commit is not evidence of what a reviewer did.
 
 ---
 
@@ -242,3 +245,32 @@ was earned the first time.
 **Takeaway.** Every factual claim in listing copy is now checked against the shipped corpus or
 source before it is written, not after it is cited. The listing is metadata, and metadata is judged
 against what the extension actually does when a reviewer installs it.
+
+### Resolution — published 2026-09-13
+
+The rewrite above did not ship behind a package. It went up as a **listing-only update against the
+live 0.8.0 item** — the new description and new graphic assets, no ZIP, because no ZIP was ever
+cited. Submitted 2026-09-11, published 2026-09-13.
+
+Three consequences worth keeping straight, because the version numbers and the copy no longer line
+up:
+
+1. **The citation is closed.** The rectification review asked for is live rather than pending behind
+   an unpublished version. No company whose policies the extension analyses is named anywhere in the
+   published listing.
+2. **The copy drafted for 0.8.1 is live as 0.8.0's.** `store-listing-snapshot.md` is a record of the
+   published listing now, not a draft waiting to be pasted into a dashboard.
+3. **0.8.1 is still unpublished, and its next submission is round 2.** The build was never cited and
+   does not change. `submitted/v0.8.1-r1` was never tagged at the time and will not be created
+   retroactively; the next tag is `submitted/v0.8.1-r2`, against the same ZIP and an already-clean
+   listing.
+
+Both promo tiles (440×280 and 1400×560) went up in the same update, having sat empty since the item
+was created.
+
+**Bookkeeping, this time done on the day.** The 0.8.0 round left `cws/` asserting a stale version for
+a day because its post-approval steps were skipped, and this entry's own preamble draws that lesson.
+This round the reconciliation happened the same day the listing published. Nothing structural
+changed to make that happen — nothing in CI reads these files and only a person opening the
+dashboard would notice a drift — so it is a habit holding rather than a guard working. Recorded in
+issue #66, along with why 0.8.1 ran out of order.

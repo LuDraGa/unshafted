@@ -28,7 +28,37 @@ later is not.
 Produced 2026-09-07 from thirteen source images. Three good assets sit outside the five-slot cap as
 `alt-*`.
 
-### The five upload slots
+### What is actually live
+
+As of the listing-only update published **2026-09-13**. The upload is a manual dashboard action and
+three of the five produced here were taken:
+
+| Live | Asset |
+|---|---|
+| ✅ **tile** | `screenshot-1-site-in-context.jpg` |
+| ✅ | `screenshot-3-any-site-analyse.jpg` |
+| ✅ | `screenshot-4-saved-reports.jpg` |
+| ✅ | an upload-flow shot carried over from the 0.7.x listing — **no repo copy** |
+| ✅ | the second carried-over 0.7.x upload-flow shot — **no repo copy** |
+| ❌ | `screenshot-2-site-verdict-google.jpg` — produced, not uploaded |
+| ❌ | `screenshot-5-bring-your-own-key.jpg` — produced, not uploaded |
+
+Two things follow, and both are worth acting on rather than just noting:
+
+- **This directory mirrors three of the five published screenshots.** The two carried-over captures
+  are live and were never brought into the repo, so `cws/` is an incomplete mirror of the one
+  dashboard section it exists to mirror. Replacing them is better than capturing them, since neither
+  shows a finished analysis — which is the standing gap below.
+- **Nothing live answers "where does the key live".** `screenshot-5-bring-your-own-key.jpg` was built
+  for that question and did not go up, while the published description's privacy block promises the
+  key stays in `chrome.storage.local`. The claim is true and its evidence is sitting here unused.
+
+**Promo tiles: both live.** `promo-small-440x280.jpg` (440×280) and `promo-marquee-1400x560.jpg`
+(1400×560) went up in the same update, having been empty since the item was created.
+
+### The five produced for the set
+
+Three of these are live, per the table above; `-2-` and `-5-` are not.
 
 | File | Source | Why it earns the slot |
 |---|---|---|
@@ -40,19 +70,25 @@ Produced 2026-09-07 from thirteen source images. Three good assets sit outside t
 
 ### Alternates
 
+None of these were uploaded.
+
 | File | Swap it in when |
 |---|---|
 | `alt-drive-backup-disclosure.jpg` | You want the in-product Drive disclosure and the `drive.file` limitation on screen. That is the evidence class that cleared Purple Nickel. Email redacted. |
 | `alt-toolbar-risk-badge.jpg` | You want the toolbar popup tied to the panel: "High risk · 2 documents read · What you agreed to". |
 | `alt-documents-found-wikipedia.jpg` | You prefer a household-name site to Tricentis for discovery. Four cleanly identified legal documents, but **no Analyse affordance**, because the panel only offers analysis for documents same-origin with the page and Wikipedia serves its policies from `foundation.wikimedia.org`. |
 
-### One judgement call left open
+### One judgement call, now made
 
-Slot 1 publishes a **"Very High risk"** verdict about a named company, produced by an unreviewed run
-on the user's own key. The panel labels its own provenance on screen, the finding (mandatory
-individual arbitration) is accurate and unremarkable, and the documents are publicly posted, so this
-is defensible. It is still the most prominent placement in the listing. Swapping slots 1 and 2 puts
-Unshafted's own reviewed corpus analysis on the tile instead, at the cost of the full-bleed frame.
+Slot 1 went up, so the listing now publishes a **"Very High risk"** verdict about a named company,
+produced by an unreviewed run on the user's own key. The panel labels its own provenance on screen,
+the finding (mandatory individual arbitration) is accurate and unremarkable, and the documents are
+publicly posted, so this is defensible — and it is the most prominent placement in the listing.
+
+The alternative was always to put `screenshot-2-site-verdict-google.jpg` on the tile, backing the
+verdict with Unshafted's own reviewed corpus instead of a user run, at the cost of the full-bleed
+frame. That shot did not go up at all, so the alternative is not merely unchosen; it is unavailable
+until someone uploads it.
 
 ### Personal data
 
@@ -85,8 +121,8 @@ points. `screenshot-4-saved-reports.jpg` proves reports exist but never shows on
 description gives upload and site policy equal weight and only one column has real evidence.
 Capturing one result screen is the single biggest improvement available.
 
-**Slots 2 to 5 carry dark margin.** They come from portrait sources, roughly 0.39:1 for the panel
-and 0.75:1 for the popup, against a 1.6:1 canvas. Slot 1 avoided this by being a full browser
+**The portrait-sourced captures carry dark margin.** Roughly 0.39:1 for the panel and 0.75:1 for the
+popup, against a 1.6:1 canvas. Slot 1 avoided this by being a full browser
 window at 1900x935: cropping off-centre to the rightmost 1496x935 hits 1.600 exactly, so it scales
 to the canvas with no padding and no distortion. Recapturing the others the same way, site on the
 left and panel docked on the right, would remove the remaining margin.
