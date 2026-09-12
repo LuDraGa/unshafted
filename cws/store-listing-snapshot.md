@@ -2,12 +2,11 @@
 
 **Item:** Unshafted: AI Contract Risk Analyzer
 **Item ID:** `fpjjdlffjfkdiibljglmgfkbpkkibpia`
-**Version live:** 0.8.0 — approved and published on or before 2026-09-08
-**Snapshot date:** 2026-09-09 — **the copy below is NOT what is live.** It is the corrected draft
-written after the 0.8.1 submission was rejected on Yellow Argon (excessive keywords) the same day.
-The live 0.8.0 listing still carries the rejected brand-list paragraph and will keep carrying it
-until a version publishes behind this text, because the description is a property of the draft.
-Paste it into the dashboard, then submit.
+**Version live:** 0.8.0
+**Snapshot date:** 2026-09-13 — **the copy below is what is live.** It went up as a listing-only
+update against the live 0.8.0 item: submitted 2026-09-11, published 2026-09-13. Nothing here needs
+pasting. The 0.8.1 *package* has still never published, so the copy drafted for 0.8.1 is live as
+0.8.0's, and the next package submission moves no listing surface at all.
 **Source:** Chrome Web Store Developer Dashboard → Store listing
 
 Companion to `privacy-form-snapshot.md`. Captures the public-facing listing copy so the source of truth is in git.
@@ -152,18 +151,32 @@ the opening sentence is doing all the work of covering both halves for anyone wh
 
 ### Screenshots
 
-**Live:** 2 uploaded, both showing the upload flow only.
+**Live: five slots**, as of the 2026-09-13 listing update. Three were replaced in that update; two
+are carried over from the 0.7.x listing. Slot 1 is the tile shown in the listing, and it is the
+in-context capture.
 
-**Planned for this release** (1280×800 or 640×400, JPEG or 24-bit PNG, **no alpha channel**).
-Order is load-bearing: slot 1 is the tile shown in the listing.
+| Shot | Repo copy |
+|---|---|
+| Side panel docked beside a real site it has just read, verdict visible — **the tile** | `store-assets/screenshot-1-site-in-context.jpg` |
+| Uncovered site: discovered document list, consent sentence, **Analyse this site** | `store-assets/screenshot-3-any-site-analyse.jpg` |
+| Saved reports, filenames redacted | `store-assets/screenshot-4-saved-reports.jpg` |
+| Two contract-upload shots predating this set | **none — see below** |
 
-| # | Shot | Why it earns the slot |
-|---|---|---|
-| 1 | Side panel open on a **Very High** covered site (snapchat.com, tiktok.com or coinbase.com), verdict and a named exposure visible | Makes `<all_urls>` self-evident, and shows the product working with zero setup |
-| 2 | Side panel on an **uncovered** site showing the discovered document list | Shows the mechanism honestly, and shows the user choosing |
-| 3 | The `AnalyseConfirm` sheet, with *"runs on your own API key… nothing is sent until you press the button"* legible | Aimed at the reviewer as much as the user: answers the consent question visually |
-| 4 | Contract upload result (reuse the better of the two live shots) | The other half of the two-column story |
-| 5 | Options / onboarding with the BYO-key field | Closes the "where does the key live" question |
+**Two live assets have no repo copy.** The two upload-flow screenshots carried over from the 0.7.x
+listing are published and were never captured into `store-assets/`, so this directory mirrors three
+of the five screenshots a user actually sees. That is a real hole in a directory whose whole claim
+is being the source of truth for a dashboard that cannot be diffed.
+
+**Built and not uploaded.** Both were produced for this set and left out of the upload, which was
+done by hand:
+
+| File | What it would have answered |
+|---|---|
+| `store-assets/screenshot-2-site-verdict-google.jpg` | The verdict in detail, backed by Unshafted's own reviewed corpus rather than a user run. |
+| `store-assets/screenshot-5-bring-your-own-key.jpg` | Where the key lives. `LOCALLY STORED` and `chrome.storage.local` are both legible in it, and the description's privacy block makes a claim about the key that no live screenshot shows. |
+
+The three `alt-*.jpg` files are alternates and were not uploaded either. `store-assets/README.md`
+carries the per-file selection reasoning and the capture recipe.
 
 macOS `screencapture` writes PNG **with** an alpha channel, which CWS rejects. Capture a 16:10
 region so the downscale does not distort (size the window so the captured area is 1600×1000 or
@@ -174,11 +187,12 @@ sips -s format jpeg -s formatOptions 90 -z 800 1280 shot.png --out shot-1280x800
 ```
 
 ### Promo tiles
-- **Small promo tile (440×280):** not uploaded. **Worth doing.** These do not appear on the listing
-  page itself; they feed Google's curated and featured placements on the Store homepage. Absent,
-  nothing is substituted and the item is simply never eligible for those slots.
-- **Marquee promo tile (1400×560):** not uploaded. Low priority, only used if Google features the
-  item.
+- **Small promo tile (440×280):** uploaded — `store-assets/promo-small-440x280.jpg`.
+- **Marquee promo tile (1400×560):** uploaded — `store-assets/promo-marquee-1400x560.jpg`.
+
+Both went up with the 2026-09-13 listing update, having been unfilled since the item was created.
+They do not appear on the listing page itself; they feed Google's curated and featured placements
+on the Store homepage, which the item was simply never eligible for while the slots were empty.
 
 ### Promo video
 - None (both localized and global).
@@ -200,6 +214,13 @@ sips -s format jpeg -s formatOptions 90 -z 800 1280 shot.png --out shot-1280x800
 
 ## Change log
 
+- **2026-09-13** — **This copy went live.** The post-Yellow-Argon rewrite was submitted on
+  2026-09-11 as a **listing-only update against the live 0.8.0 item** — description and graphic
+  assets, no new package — and published on 2026-09-13. Three of the five screenshots were
+  replaced and both promo tiles were filled for the first time. The consequence worth carrying
+  forward: the copy drafted *for* 0.8.1 is now live *as* 0.8.0's, so when the 0.8.1 package is
+  resubmitted it moves no listing surface at all and the rectification review asked for is already
+  published rather than pending behind it.
 - **2026-09-09** — **Description rewritten after the Yellow Argon rejection, and cut to roughly half
   the length of what it replaced.** The bundled-corpus paragraph named ten companies; review quoted
   all ten back as excessive keywords and rejected the 0.8.1 draft. No company whose policies are
@@ -230,7 +251,7 @@ sips -s format jpeg -s formatOptions 90 -z 800 1280 shot.png --out shot-1280x800
   the toolbar badge is a coloured dot rather than a printed grade, and deadlines exist on a minority
   of actions, so the listing says "where a document sets one". The site grade is described as
   covering the site's worst document, which is the in-product tooltip's own wording.
-  **Entered in the draft listing? Not yet — paste before submitting.**
+  **Live since 2026-09-13.**
 
 - **2026-09-07** — Description rewritten for the site-policy release, which adds
   `host_permissions: ['<all_urls>']`. Restructured from upload-first into a balanced two-column
@@ -238,7 +259,8 @@ sips -s format jpeg -s formatOptions 90 -z 800 1280 shot.png --out shot-1280x800
   36-site corpus, which the listing had never mentioned despite it being the only part of the
   product that works with no key and no account; added the cookie-less policy fetch to the privacy
   block. Paired with privacy policy §5, the `Website content` data-usage checkbox, and seven
-  permission justifications. **Entered in the draft listing; not yet submitted for review.**
+  permission justifications. **Shipped with 0.8.0 and approved on the first round** — and its
+  bundled-corpus paragraph is the text Yellow Argon cited four weeks later, unchanged.
 - **2026-05-11** — v0.7.1 approved and published. Purple Nickel cleared.
 - **2026-05-07** — Replaced description with privacy-accurate copy after Purple Nickel re-rejection
   on 0.7.0. Removed the v0.1 "no accounts / no cloud storage / data stays on device" claims that

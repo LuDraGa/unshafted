@@ -2,14 +2,13 @@
 
 **Item:** Unshafted: AI Contract Risk Analyzer
 **Item ID:** `fpjjdlffjfkdiibljglmgfkbpkkibpia`
-**Version live:** 0.8.0 — approved and published on or before 2026-09-08
-**Snapshot date:** 2026-09-09 — **this form is the published state.** Everything below was
+**Version live:** 0.8.0
+**Snapshot date:** 2026-09-13 — **this form is the published state.** Everything below was
 submitted with 0.8.0 and accepted: the rewritten single purpose, `Website content` checked, and
-justifications for all seven permissions including `host_permissions: ['<all_urls>']`.
-
-> The 0.8.0 approval date is inferred from the publish merge `90e5f73` (2026-09-08) — under the
-> branch model in `CLAUDE.md`, `main` moves only after CWS publishes. Worth replacing with the exact
-> dashboard date next time someone is signed in.
+justifications for all seven permissions including `host_permissions: ['<all_urls>']`. The
+listing-only update published on 2026-09-13 changed the description and the graphic assets and did
+not touch this tab, and the 0.8.1 package resubmission changes nothing here either — which is the
+point. This is the approved baseline a resubmission has to stay consistent with.
 **Source:** Chrome Web Store Developer Dashboard → Privacy tab
 
 This file mirrors the values entered in the CWS dashboard's Privacy tab so the source of truth lives in git alongside `privacy-policy.md`. Update this file whenever the dashboard form is changed.
@@ -235,7 +234,9 @@ two match before submitting.
   `chrome.storage.session` and the new site-policy storage; `tabs` widened from the badge lookup
   alone to all three real uses; `activeTab` reworded to stop implying a code path that does not
   exist; `host_permissions` gained the cookie-less fetch. Added the `CEB_POLICY_CDN_URL` warning
-  and the prepared answer on `Web history`. **Not yet submitted for review.**
+  and the prepared answer on `Web history`. **Submitted with 0.8.0 and approved on the first
+  round** — no question was raised on `<all_urls>`, on the data-usage grid, or on any of the seven
+  justifications.
 - **2026-05-05** — Initial snapshot at v0.7.0 resubmission. Captures form state after the Purple
   Nickel hardening pass (Limited Use disclosure, handling section, §6 auth-token enumeration in
   policy).
