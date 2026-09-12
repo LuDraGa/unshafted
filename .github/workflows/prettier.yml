@@ -29,6 +29,13 @@ jobs:
         with:
           config_path: ./.prettierrc
           file_pattern: "*.{js,jsx,ts,tsx,json}"
+          # The action's own default is `latest`, so an unpinned run formats against whatever npm
+          # serves that morning while the repo formats against its lockfile. The day prettier majors,
+          # this goes red on every PR against nobody's change — and it is a required check now, so
+          # that would block dependabot, `releasefix/*`, and the push that refreshes the gist CWS
+          # review reads. Track `pnpm-lock.yaml` by hand: dependabot's `github-actions` ecosystem
+          # bumps `uses:` refs, never a `with:` value.
+          prettier_version: 3.9.6
 
       - name: Prettier Output
         if: ${{ failure() }}
