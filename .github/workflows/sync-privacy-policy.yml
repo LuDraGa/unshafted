@@ -10,6 +10,12 @@ on:
     branches: [main, release]
     paths: [cws/privacy-policy.md]
 
+# `actions/checkout` is the only step here that touches GITHUB_TOKEN. The gist write authenticates
+# with `secrets.GIST_PAT` through a Docker action that takes no token of its own, so `contents: read`
+# is the whole requirement (CodeQL alert 15).
+permissions:
+  contents: read
+
 jobs:
   sync:
     runs-on: ubuntu-latest

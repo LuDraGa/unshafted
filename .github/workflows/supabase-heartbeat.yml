@@ -8,6 +8,11 @@ on:
     - cron: '0 */12 * * *'
   workflow_dispatch:
 
+# Nothing in this workflow reads GITHUB_TOKEN — no checkout, no actions, just `curl` against
+# Supabase with the `SUPABASE_*` secrets. An empty block is therefore the correct floor, not a
+# placeholder for one (CodeQL alert 7).
+permissions: {}
+
 jobs:
   heartbeat:
     runs-on: ubuntu-latest
