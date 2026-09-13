@@ -111,6 +111,26 @@ so the pin is maintained by hand. Replacing the action with the repo's own prett
 and is filed separately; it needs a `format:check` script, and all thirteen packages currently define
 `format` as `prettier . --write` with no check variant.
 
+### Verified, not assumed
+
+The claim that the direct push stops working was checked rather than reasoned about, on a throwaway
+branch given byte-identical protection to `release` — `release` itself was never pushed to. The
+local `--no-ff` merge of a stand-in `dev` branch, pushed straight up, was rejected:
+
+```
+remote: error: GH006: Protected branch update failed for refs/heads/probe/required-checks.
+remote: - 5 of 5 required status checks are expected.
+```
+
+**"Expected", not "failing"** — the checks are absent, because the SHA has never been through a PR.
+That is also the proof that a `push:` trigger cannot rescue the flow: the rejection lands at
+ref-update time, leaving no ref update for such a trigger to fire on.
+
+The replacement was verified in the same pass: a PR into that branch went `BLOCKED` → `CLEAN` as the
+five turned green, merged with *Create a merge commit*, and produced a commit with **two parents** —
+so the `--first-parent` property the trunk path exists for is intact. Probe branches and their
+protection were torn down afterwards; the probe PR survives as closed #72.
+
 ### Settings applied
 
 `strict: false` on both. "Require branches to be up to date" buys nothing when `main` only moves via

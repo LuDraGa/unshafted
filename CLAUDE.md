@@ -42,9 +42,13 @@ cycle it is correctly ahead. One rule, no exceptions.
    It cannot be a local `--no-ff` merge pushed straight up any more, and the reason is worth
    knowing rather than rediscovering: `release` now requires status checks, those are
    evaluated against the SHA being pushed, and a merge commit made locally is a brand-new SHA
-   with no check runs attached — so the push is rejected. Adding a `push:` trigger to the
-   check workflows does not rescue it, because the workflow that would produce those checks
-   only runs once the push lands. See *Required status checks* below.
+   with no check runs attached — so the push is rejected with `GH006: Protected branch update
+   failed … 5 of 5 required status checks are expected`. Note *expected*, not *failing*: the
+   checks are absent, not red. Which is also why a `push:` trigger on the check workflows does
+   not rescue it — the rejection lands at ref-update time, so there is no ref update left for
+   such a trigger to fire on. Verified 2026-09-13 against a throwaway branch carrying identical
+   protection, including that a PR merged with *Create a merge commit* does land and does
+   produce a two-parent merge commit. See *Required status checks* below.
 4. **Submit, and tag what you submitted.** Submit that tree to CWS and tag it
    `submitted/vX.Y.Z-rN` — `-r1` for the first round, `-r2` after a rejection, and so on.
    The branch says what is *intended* for review; the tag says what was actually sent.
