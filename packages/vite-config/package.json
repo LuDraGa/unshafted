@@ -12,7 +12,9 @@
     "clean:node_modules": "rimraf node_modules",
     "clean:bundle": "rimraf dist",
     "clean": "pnpm clean:bundle && pnpm clean:node_modules",
-    "ready": "tsc -b"
+    "ready": "tsc -b",
+    "format": "prettier . --write --ignore-path ../../.prettierignore",
+    "format:check": "prettier . --check --ignore-path ../../.prettierignore"
   },
   "dependencies": {
     "@extension/env": "workspace:*"

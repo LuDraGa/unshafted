@@ -19,6 +19,7 @@
     "lint": "eslint .",
     "lint:fix": "pnpm lint --fix",
     "format": "prettier . --write --ignore-path ../../.prettierignore",
+    "format:check": "prettier . --check --ignore-path ../../.prettierignore",
     "type-check": "tsc --noEmit",
     "postinstall": "pnpm ready"
   },

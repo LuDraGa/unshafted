@@ -68,6 +68,19 @@
       "dependsOn": ["^format"],
       "cache": false
     },
+    /*
+     * The verdict half of `format`, and the one CI runs. No `dependsOn`: checking a package's own
+     * files needs nothing built or formatted first, and `^format` here would make a *check* mutate
+     * the tree it is checking.
+     *
+     * `cache: false` for the reason `lint`, `type-check` and `test` carry it — there is no remote
+     * cache configured, so caching buys nothing in CI while making a stale green possible. Note
+     * the root `format` script also passes prettier's own `--cache`; this deliberately does not.
+     * A fix loop may trust a cache, a required status check may not.
+     */
+    "format:check": {
+      "cache": false
+    },
     "clean:node_modules": {
       "dependsOn": ["^clean:node_modules"],
       "cache": false
