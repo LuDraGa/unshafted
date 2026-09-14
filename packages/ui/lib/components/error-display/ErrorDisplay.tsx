@@ -20,12 +20,14 @@ export const ErrorDisplay = ({ error, resetErrorBoundary }: { error?: unknown; r
       <div className="w-full max-w-md space-y-6">
         <div className="text-center">
           <WarningIcon className="mx-auto h-16 w-16 text-red-600" />
-          <h2 className="mt-4 text-2xl font-semibold text-stone-900">Something broke while loading this view.</h2>
-          <p className="mt-2 text-sm text-stone-600">Check the details below, then try again.</p>
+          <h2 className="mt-4 text-2xl font-semibold text-[var(--unshafted-text)]">
+            Something broke while loading this view.
+          </h2>
+          <p className="mt-2 text-sm text-[var(--unshafted-text-muted)]">Check the details below, then try again.</p>
         </div>
         <div className="overflow-hidden rounded-2xl border border-red-100 bg-white shadow-xs">
           <div className="px-4 py-5">
-            <p className="mb-2 text-sm font-medium text-stone-700">Error details</p>
+            <p className="mb-2 text-sm font-medium text-[var(--unshafted-text-soft)]">Error details</p>
             <div className="overflow-auto rounded-xl bg-red-50 p-4">
               <p className="font-mono text-sm break-all text-red-800">{message || 'Unknown error'}</p>
               {stack && (

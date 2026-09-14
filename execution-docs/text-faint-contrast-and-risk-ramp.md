@@ -15,6 +15,7 @@ that change; #59 is just what made them visible.
 | #62 — dead risk tokens | **Split** into [#78](https://github.com/LuDraGa/unshafted/issues/78) (naming decision) and [#79](https://github.com/LuDraGa/unshafted/issues/79) (deletion); #62 closed |
 | `execution-docs/tailwind-4-palette.md` corrected | **Done** |
 | [#80](https://github.com/LuDraGa/unshafted/issues/80) — the utility half | **Done** — 20 call sites routed through the token |
+| [#81](https://github.com/LuDraGa/unshafted/issues/81) — the rest of the text ramp | **Done** — 33 sites converted, 6 named tiers, 7 tone-map halves deliberately left |
 | `pnpm build` / `type-check` / `test` / `lint` / `prettier` | **All green** |
 
 ---
@@ -206,17 +207,77 @@ Both pages declare `@source './'`, and the built CSS confirms it:
 present in all three page stylesheets, with **zero** occurrences of `stone-500` left in any of
 them — which also confirms nothing else was relying on the shade.
 
-## Raised, not done here
+## #81 — naming the ramp that was already there
 
-**[#81](https://github.com/LuDraGa/unshafted/issues/81) — the tier above.** `text-stone-600` is
-still written as a utility in 7 places while `--unshafted-text-muted` is `var(--color-stone-600)`.
-No contrast problem — stone-600 is 6.13:1 on the darkest ground — but it is the same mechanism that
-produced #61 and #80, still loaded: change the muted token and 27 token sites move while 7 utility
-sites do not. Converting them is a visual no-op, since the token already *is* that shade.
+#81 proposed converting `text-stone-600` and floated `text-stone-900` alongside, hoping for the
+rule *"text colour comes from a token, never from a shade utility."* Surveying the whole ramp first
+changed the shape of the job twice.
 
-Not folded in here because #80's scope was the failing colour, and widening a fix to a tier that is
-not failing is how a change stops being reviewable. `text-stone-900` has the same relationship to
-`--unshafted-text` and belongs in the same sweep.
+**The count in #81 was wrong: 8 `text-stone-600` sites, not 7.** I had grepped `pages/` and missed
+`packages/ui/lib/components/error-display/ErrorDisplay.tsx`, which is shared by the popup and
+options pages.
+
+**And the rule was not reachable as stated.** The utility ramp had *six* levels; the token ramp had
+three. Converting only the tiers that already had tokens would have left 20 sites on bare shades and
+the rule still false:
+
+| shade | uses | token before | token now |
+|---|---:|---|---|
+| `stone-950` | 6 | none | `--unshafted-text-strong` |
+| `stone-900` | 8 | `--unshafted-text` | unchanged |
+| `stone-700` | 12 | none | `--unshafted-text-soft` |
+| `stone-600` | 8 | `--unshafted-text-muted` | unchanged |
+| `stone-400` | 2 | none | `--unshafted-glyph-faint` |
+| `stone-800` | 1 | — | stays a shade, see below |
+| `stone-50` | 3 | — | stays a shade, see below |
+
+So the tiers were *named*, not invented: every new token holds exactly the shade its call sites
+already carried. The design decision was vocabulary; the values did not move, which is what let a
+change this wide land in a version already waiting on CWS review.
+
+### `--unshafted-glyph-faint` is not called `text-*` on purpose
+
+stone-400 is **2.36:1** on the app's own paper. Parking it at the bottom of the text ramp as
+`--unshafted-text-ghost` would have been tidier and would have been a trap: the next person needing
+something lighter than faint reaches for the tier below it and ships 2.36:1 body copy. Its only job
+is the options chevron glyph — a decorative affordance beside a label that carries the meaning — so
+it is named for that and sits outside the ramp. There is no tier below `faint`.
+
+### Seven sites are staying as shades, and that is the point
+
+Not every `text-stone-*` is a text colour. Seven are one half of a background/foreground **tone
+pair**, where the two shades are chosen against each other:
+
+```
+SEVERITY_TONE  low: 'bg-stone-200 text-stone-700'   (ResultCards.tsx:22)
+SEVERITY_TONE  low: 'bg-stone-100 text-stone-700'   (presentation.ts:34)
+options toggle      'bg-stone-100 text-stone-700'   (Options.tsx:408)
+SiteStrip Low  'border-stone-200 bg-stone-50 text-stone-800'
+3 × 'bg-stone-900 … text-stone-50'                  (dark pills and the avatar)
+```
+
+Tokenising the foreground half alone would couple a severity chip to the *text* ramp, so darkening
+body copy later would drag severity-low text with it, away from the background it was picked
+against. #59 established that tone maps live in utility-land precisely so they stay single-encoded;
+these are consistent with that, not exceptions to it.
+
+The working rule, which is what the next person actually needs: **a shade utility that sets text on
+inherited ground becomes a token; a shade utility that is half of a colour pair stays a shade.**
+
+### Verified as a genuine no-op, not asserted as one
+
+The claim "naming changed no pixels" is checkable, so it was checked rather than reasoned about.
+The built stylesheets from before the change were kept and compared against the rebuild:
+
+- Every new token resolves to exactly the shade it replaced — `--unshafted-text-strong` →
+  `oklch(14.7% .004 49.25)`, which is what `.text-stone-950` emitted.
+- No theme variable went missing. This was the real risk: `--unshafted-text-strong:
+  var(--color-stone-950)` resolves to *nothing* if v4 stops emitting that theme var, and the text
+  would silently fall back to inherited colour rather than erroring.
+- The set of resolved colours in each page is **identical** — popup 76 before and after, options 43,
+  side panel 55, with no colour gained and none lost.
+- The only `.text-stone-*` rules still emitted are `50`, `700` and `800`, exactly matching the seven
+  tone-pair halves left behind.
 
 ## Verification
 

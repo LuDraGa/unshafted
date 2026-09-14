@@ -69,7 +69,24 @@
   --unshafted-surface-strong: rgba(255, 252, 247, 0.96);
   --unshafted-border: rgba(121, 113, 107, 0.18);
   --unshafted-border-strong: rgba(121, 113, 107, 0.28);
+  /*
+   * The text ramp, darkest first. Six levels, because the pages were already using six — this is
+   * the ramp that existed as bare `text-stone-*` utilities, named rather than invented (#81).
+   *
+   * Every value here is the shade those utilities already carried, so naming them changed no
+   * pixels. What it changes is that there is now one place to adjust a tier, instead of a token
+   * that moves and a scattering of utilities that do not — the failure that produced #61 and #80.
+   *
+   * Contrast on the app's darkest ground (`--unshafted-bg-warm`, #efe5d6), which is the one that
+   * matters because both shells end there: strong 15.85, text 14.03, soft 8.25, muted 6.13,
+   * faint 4.65. All clear AA for normal text.
+   *
+   * `--unshafted-glyph-faint` is deliberately NOT in that list and deliberately not named
+   * `text-*`. See below.
+   */
+  --unshafted-text-strong: var(--color-stone-950);
   --unshafted-text: var(--color-stone-900);
+  --unshafted-text-soft: var(--color-stone-700);
   --unshafted-text-muted: var(--color-stone-600);
   /*
    * NOT a Tailwind reference, and the one deliberate exception to the rule above.
@@ -95,6 +112,19 @@
    * Measured against the gradient endpoint rather than the token, which is the step #61 skipped.
    */
   --unshafted-text-faint: oklch(51% 0.013 58.071);
+  /*
+   * NOT a text colour, which is why it is not called one.
+   *
+   * stone-400 is 2.36:1 on the app's own paper — it would fail AA for normal text by a factor of
+   * two, and it is not close enough to fix by nudging. Its only job is the options chevron glyph,
+   * a decorative affordance next to a label that carries the actual meaning.
+   *
+   * Naming it `--unshafted-text-ghost` and parking it at the bottom of the ramp above would have
+   * been tidier and would have been a trap: the next person needing something lighter than faint
+   * would reach for the next tier down, and ship 2.36:1 body copy. There is no tier below faint,
+   * and this token is not one.
+   */
+  --unshafted-glyph-faint: var(--color-stone-400);
   --unshafted-brand: var(--color-amber-800);
   --unshafted-brand-soft: rgba(255, 251, 235, 0.62);
   --unshafted-action: var(--color-gray-800);

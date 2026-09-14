@@ -214,7 +214,7 @@ const ProfileMenu = ({
           <div className="mt-2 rounded-xl border border-stone-200 bg-stone-50 px-3 py-2">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold text-stone-950">Drive backup</p>
+                <p className="text-xs font-semibold text-[var(--unshafted-text-strong)]">Drive backup</p>
                 <p className="text-[11px] text-[var(--unshafted-text-faint)]">
                   {driveBackupEnabled ? 'On for new scans' : 'Off'}
                 </p>
@@ -228,7 +228,7 @@ const ProfileMenu = ({
                 <span />
               </button>
             </div>
-            <p className="mt-2 text-[11px] leading-4 text-stone-600">
+            <p className="mt-2 text-[11px] leading-4 text-[var(--unshafted-text-muted)]">
               When on, your uploaded contract file and analysis JSON go to an &ldquo;Unshafted&rdquo; folder in your own
               Google Drive (<code className="rounded bg-stone-200/60 px-1 py-px text-[10px]">drive.file</code> scope —
               we cannot read other Drive files).{' '}
@@ -240,7 +240,9 @@ const ProfileMenu = ({
                 Privacy policy
               </a>
             </p>
-            {syncNotice ? <p className="mt-2 text-[11px] leading-4 text-stone-600">{syncNotice}</p> : null}
+            {syncNotice ? (
+              <p className="mt-2 text-[11px] leading-4 text-[var(--unshafted-text-muted)]">{syncNotice}</p>
+            ) : null}
             {pendingCurrentBackup ? (
               <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-2 text-[11px] text-amber-900">
                 <p className="font-semibold">Back up current report?</p>
@@ -1154,7 +1156,7 @@ const Popup = () => {
                   <button className="popup-link-button" onClick={() => setSelectedHistory(null)} type="button">
                     Back to current scan
                   </button>
-                  <p className="mt-1 text-xs text-stone-600">
+                  <p className="mt-1 text-xs text-[var(--unshafted-text-muted)]">
                     {storageStateCopy[selectedHistory.storageState]} · {formatReportDate(selectedHistory.createdAt)}
                   </p>
                 </div>
@@ -1265,8 +1267,10 @@ const Popup = () => {
           <section className="popup-history-panel" aria-label="Recent analyses">
             <div className="popup-history-panel-header">
               <div>
-                <p className="text-base font-semibold text-stone-950">History</p>
-                <p className="text-xs text-stone-600">Latest {Math.min(recentHistory.length, 5)} saved reports</p>
+                <p className="text-base font-semibold text-[var(--unshafted-text-strong)]">History</p>
+                <p className="text-xs text-[var(--unshafted-text-muted)]">
+                  Latest {Math.min(recentHistory.length, 5)} saved reports
+                </p>
               </div>
               <div className="flex items-center gap-2">
                 {session ? (
@@ -1320,7 +1324,9 @@ const Popup = () => {
                   <article key={record.id} className="popup-history-row">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
-                        <p className="line-clamp-1 font-semibold text-stone-950">{record.source.name}</p>
+                        <p className="line-clamp-1 font-semibold text-[var(--unshafted-text-strong)]">
+                          {record.source.name}
+                        </p>
                         <p className="mt-1 text-[var(--unshafted-text-faint)]">
                           {formatReportDate(record.createdAt)} ·{' '}
                           {record.deepAnalysis ? 'Detailed report' : 'Quick scan only'}

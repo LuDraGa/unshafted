@@ -389,7 +389,9 @@ const Options = () => {
         <section className="options-panel">
           <div className="space-y-3">
             <p className="options-eyebrow">Unshafted</p>
-            <h1 className="text-xl font-semibold tracking-[-0.02em] text-stone-950">Bring your own key</h1>
+            <h1 className="text-xl font-semibold tracking-[-0.02em] text-[var(--unshafted-text-strong)]">
+              Bring your own key
+            </h1>
           </div>
 
           <div className="mt-7 grid gap-5">
@@ -464,10 +466,10 @@ const Options = () => {
             <details className="options-disclosure">
               <summary>
                 <span>How to get a key</span>
-                <span className="options-chevron text-stone-400">&#9662;</span>
+                <span className="options-chevron text-[var(--unshafted-glyph-faint)]">&#9662;</span>
               </summary>
               <div className="mt-3 space-y-3">
-                <p className="text-sm leading-5 text-stone-700">{setupHelp.copy}</p>
+                <p className="text-sm leading-5 text-[var(--unshafted-text-soft)]">{setupHelp.copy}</p>
                 <div className="flex flex-wrap gap-2">
                   {setupHelp.links.map(link => (
                     <a className="options-help-link" href={link.href} target="_blank" rel="noreferrer" key={link.href}>
@@ -519,7 +521,7 @@ const Options = () => {
           <details className="options-advanced mt-8 rounded-2xl border border-stone-200 bg-white/60 p-5">
             <summary className="flex cursor-pointer list-none items-center justify-between">
               <span className="options-label">Advanced</span>
-              <span className="options-chevron text-stone-400">&#9662;</span>
+              <span className="options-chevron text-[var(--unshafted-glyph-faint)]">&#9662;</span>
             </summary>
             <hr className="mt-4 border-stone-200" />
             <div className="mt-5 grid gap-5">
