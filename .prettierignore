@@ -33,3 +33,9 @@ chrome-extension/manifest.js
 # Invisible until now because the CI check's `*.{js,jsx,ts,tsx,json}` pattern was root-anchored and
 # never read these directories (#69).
 packages/unshafted-core/test/fixtures/
+
+# pnpm's lockfile. Generated, enormous, and rewritten wholesale by every install — formatting it
+# would be undone by the next `pnpm install` and would turn an already-unreadable diff into a
+# worse one. It only ever appeared in prettier's sights because nothing had recursively checked
+# the repository root until #69; it was never a deliberate inclusion (#75).
+pnpm-lock.yaml
