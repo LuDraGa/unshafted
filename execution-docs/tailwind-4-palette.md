@@ -149,6 +149,16 @@ One pair is below AA both before and after: `--unshafted-text-faint` (stone-500)
 → 4.37. That is a pre-existing condition this change neither caused nor fixed —
 [#61](https://github.com/LuDraGa/unshafted/issues/61).
 
+> **Correction, v0.8.1.** "Warm paper" everywhere in this table means `--unshafted-bg`, `#f8f4ee`.
+> That is the token, and for most of these pairs it is also the pixel. It is not the pixel for
+> `--unshafted-text-faint`. The popup and panel shells are
+> `linear-gradient(180deg, #f7f2ea 0%, var(--unshafted-bg-warm) 100%)`, and faint text's two most
+> visible sites — the popup's sticky footer and the panel's `mt-auto` privacy line — are pinned to
+> the bottom of that gradient, on `--unshafted-bg-warm` (`#efe5d6`). There stone-500 is **3.84:1**,
+> not 4.37. The table measured against the token rather than the painted ground, so it understated
+> the one failure it found. Every other row's ground is a card surface or a shade pair and is
+> unaffected. Fixed in 0.8.1 — see `execution-docs/text-faint-contrast-and-risk-ramp.md`.
+
 ## How it was verified
 
 Same three-layer method as the migration, minus the parts that only mattered for a build change.
@@ -224,3 +234,9 @@ The migration's scratch scripts were gone, so these were rebuilt and are worth k
 - [#62](https://github.com/LuDraGa/unshafted/issues/62) — `--unshafted-risk-medium-*` and
   `--unshafted-risk-high-*` have no consumers anywhere. Six dead tokens, carried forward here so the
   ramp stays coherent rather than half-migrated, but they should probably go.
+
+**Both resolved in 0.8.1.** #61 is fixed: the real worst case was 3.84:1 on `#efe5d6`, not 4.37 on
+`#f8f4ee`, and `--unshafted-text-faint` is now `oklch(51% 0.013 58.071)`. #62 turned out to be two
+decisions wearing one issue number and was split — the token family is a *status* palette, not a
+risk ramp, which is why its middle never found a consumer. See
+`execution-docs/text-faint-contrast-and-risk-ramp.md`.

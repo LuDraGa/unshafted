@@ -71,7 +71,30 @@
   --unshafted-border-strong: rgba(121, 113, 107, 0.28);
   --unshafted-text: var(--color-stone-900);
   --unshafted-text-muted: var(--color-stone-600);
-  --unshafted-text-faint: var(--color-stone-500);
+  /*
+   * NOT a Tailwind reference, and the one deliberate exception to the rule above.
+   *
+   * stone-500 was 4.37:1 on `--unshafted-bg`, already under AA for normal text (#61). But
+   * `--unshafted-bg` is not what this token gets painted on. The popup shell and the panel shell
+   * are both `linear-gradient(180deg, #f7f2ea 0%, var(--unshafted-bg-warm) 100%)`, and the two
+   * most visible faint-text sites are pinned to the bottom of that gradient — the popup's sticky
+   * footer, which is `position: sticky; bottom: 0` over `background: inherit`, and the panel's
+   * `mt-auto` privacy line at 10px. Their real ground is #efe5d6, where stone-500 is 3.84:1. So
+   * the pair #61 measured is not the failing pair, and it is not the worst one either.
+   *
+   * stone-600 fixes the number by deleting the token: it is already `--unshafted-text-muted`'s
+   * value, so faint and muted would render identically, and the pairs that exist in order to
+   * differ — `.popup-doc-strip-meta` directly above `.popup-doc-strip-skeleton` — would stop
+   * differing. Tailwind has no stone between 500 and 600, so clearing AA while keeping three
+   * distinct text tiers takes a value of the project's own, at the same standing as the warm
+   * paper it sits on.
+   *
+   * This is stone-500's own chroma and hue held fixed at lower lightness — #6c645f, so the token
+   * still reads as the same neutral, just deep enough to land. It clears AA on every ground the
+   * app actually paints: 4.65 on #efe5d6, 5.29 on `--unshafted-bg`, 5.61 on the card surface.
+   * Measured against the gradient endpoint rather than the token, which is the step #61 skipped.
+   */
+  --unshafted-text-faint: oklch(51% 0.013 58.071);
   --unshafted-brand: var(--color-amber-800);
   --unshafted-brand-soft: rgba(255, 251, 235, 0.62);
   --unshafted-action: var(--color-gray-800);
