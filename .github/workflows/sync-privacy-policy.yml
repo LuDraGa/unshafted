@@ -10,6 +10,16 @@ on:
     branches: [main, release]
     paths: [cws/privacy-policy.md]
 
+  # Manual re-sync, because the `paths` filter above means a change to *this workflow* does not
+  # republish anything — only an edit to the policy itself does. Without this, fixing the sync and
+  # verifying the fix are separated by however long it is until someone next touches the policy.
+  #
+  # Caveat worth knowing before reaching for it: GitHub only offers `workflow_dispatch` for a
+  # workflow present on the **default branch**. This file reaches `main` at the publish merge, so
+  # between now and then the button does not exist and `gh workflow run` will not find it. That is
+  # GitHub's rule, not a mistake here.
+  workflow_dispatch:
+
 # `actions/checkout` is the only step here that touches GITHUB_TOKEN. The gist write authenticates
 # with `secrets.GIST_PAT` through a Docker action that takes no token of its own, so `contents: read`
 # is the whole requirement (CodeQL alert 15).
@@ -28,4 +38,13 @@ jobs:
           auth: ${{ secrets.GIST_PAT }}
           gist_url: https://gist.github.com/LuDraGa/782b874f1e7fe0076fb2bf1509937e95
           gist_title: privacy-policy.md
+          # Required by the action, and not optional in the way an omitted input usually is. Its
+          # `entrypoint.sh` interpolates this straight into the PATCH body as
+          # `{"description": "$4", ...}` unconditionally, so leaving it out did not skip the field
+          # — it wrote an empty string over the gist's description on every single sync. The gist
+          # read `"description": ""` because of exactly this (#70).
+          #
+          # Keep it plain ASCII with no double quotes: the entrypoint escapes `"` and nothing else,
+          # so a backslash or a newline here would produce malformed JSON and fail the patch.
+          gist_description: Unshafted privacy policy - published from cws/privacy-policy.md in LuDraGa/unshafted
           github_file: cws/privacy-policy.md
