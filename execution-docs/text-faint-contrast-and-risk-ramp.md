@@ -14,6 +14,7 @@ that change; #59 is just what made them visible.
 | #61 — faint text below AA | **Done** |
 | #62 — dead risk tokens | **Split** into [#78](https://github.com/LuDraGa/unshafted/issues/78) (naming decision) and [#79](https://github.com/LuDraGa/unshafted/issues/79) (deletion); #62 closed |
 | `execution-docs/tailwind-4-palette.md` corrected | **Done** |
+| [#80](https://github.com/LuDraGa/unshafted/issues/80) — `text-stone-500` hard-coded in 22 places | **Raised, not done** — the token fix does not reach the utility half |
 | `pnpm build` / `type-check` / `test` / `lint` / `prettier` | **Run by hand before the version PR** |
 
 ---
@@ -141,6 +142,19 @@ deletion is mechanical once that is settled, and unsafe before it.
 #62 is closed as superseded by the two.
 
 ---
+
+## Raised, not done here
+
+**[#80](https://github.com/LuDraGa/unshafted/issues/80) — the utility half.** Fixing the token does
+not fix `text-stone-500`, which is written directly in 22 places across the popup and options pages.
+`Popup.tsx:1380` is the clearest failure: "Showing latest 5 reports.", last element in
+`.popup-history-panel`, whose gradient also ends on `--unshafted-bg-warm` — 3.84:1, exactly the
+defect #61 describes, untouched by #61's fix. `.options-shell` is a third unmeasured gradient
+(`→ #f0e7da`, stone-500 at 3.91).
+
+This is #59's own warning recurring one surface over: one value, two encodings, only one of which
+moves when the value is fixed. Not folded into this change because routing 22 call sites through
+tokens is a judgement per site, not a sweep — some may mean `--unshafted-text-muted`.
 
 ## Verification
 
