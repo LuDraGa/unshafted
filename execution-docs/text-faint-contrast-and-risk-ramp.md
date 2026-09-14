@@ -345,6 +345,13 @@ byte-identical. The emitted rules resolve as intended:
 `.popup-chip-severity-medium .popup-chip-count` is `amber-900` on `amber-200`, `-high` is
 `rose-900` on `rose-200`.
 
+The colour-set diff reads `color:` / `background:` declarations, so it cannot see custom-property
+declarations and says nothing about what #79's deletion removed from the theme. Checked separately:
+the six dead tokens were the sole reference for `orange-800` and `red-200`, which dropped from all
+three pages, plus `orange-50` and `orange-200` in options specifically, which has no risk surfaces.
+`orange-900` and `red-800` stay — `RISK_TONE` and `ErrorDisplay` respectively. Worth stating because
+"the risk tokens are gone, so orange and red are gone" is the obvious inference and it is false.
+
 ## Raised, not done here
 
 **[#82](https://github.com/LuDraGa/unshafted/issues/82) — risk tone is encoded four times.** The
