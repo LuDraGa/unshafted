@@ -137,6 +137,8 @@ which blocks every merge.
       a bad file in `packages/shared` *and* in `chrome-extension` → both reported, exit 1; a bad
       root `tsconfig.json` → caught by the root half, exit 1
 - [x] `pnpm format` (`--write`) run across all 14 — test fixtures untouched, tree unchanged
-- [ ] Context reports green on a real PR
+- [x] Context reports green on a real PR — #74. All five required contexts report exactly once
+      and pass; the `Prettier Check` log confirms `Running format:check in 14 packages` plus the
+      root half, so the green is the new coverage rather than a vacuous pass
 - [x] Follow-up filed for the 13 unformatted root/`.github` YAML files — #75 (which also has to
       ignore `pnpm-lock.yaml`, generated and only in the list because nothing had ever looked)
