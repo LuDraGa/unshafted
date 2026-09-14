@@ -53,15 +53,15 @@
 }
 
 .panel-freshness[data-state='current'] {
-  border-color: var(--unshafted-risk-low-border);
-  background: var(--unshafted-risk-low-bg);
-  color: var(--unshafted-risk-low-text);
+  border-color: var(--unshafted-ok-border);
+  background: var(--unshafted-ok-bg);
+  color: var(--unshafted-ok-text);
 }
 
 .panel-freshness[data-state='changed'] {
-  border-color: var(--color-violet-200);
-  background: var(--color-violet-50);
-  color: var(--color-violet-800);
+  border-color: var(--unshafted-changed-border);
+  background: var(--unshafted-changed-bg);
+  color: var(--unshafted-changed-text);
 }
 
 /*

@@ -31,9 +31,9 @@ export const RISK_TONE: Record<SitePolicyAnalysis['riskLevel'], string> = {
 };
 
 export const SEVERITY_TONE: Record<Exposure['severity'], string> = {
-  low: 'bg-stone-100 text-stone-700',
-  medium: 'bg-amber-100 text-amber-900',
-  high: 'bg-rose-100 text-rose-900',
+  low: 'bg-[var(--unshafted-severity-low-bg)] text-[var(--unshafted-severity-low-text)]',
+  medium: 'bg-[var(--unshafted-severity-medium-bg)] text-[var(--unshafted-severity-medium-text)]',
+  high: 'bg-[var(--unshafted-severity-high-bg)] text-[var(--unshafted-severity-high-text)]',
 };
 
 /**

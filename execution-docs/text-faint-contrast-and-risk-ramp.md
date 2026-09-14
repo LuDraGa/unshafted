@@ -16,6 +16,9 @@ that change; #59 is just what made them visible.
 | `execution-docs/tailwind-4-palette.md` corrected | **Done** |
 | [#80](https://github.com/LuDraGa/unshafted/issues/80) — the utility half | **Done** — 20 call sites routed through the token |
 | [#81](https://github.com/LuDraGa/unshafted/issues/81) — the rest of the text ramp | **Done** — 33 sites converted, 6 named tiers, 7 tone-map halves deliberately left |
+| [#78](https://github.com/LuDraGa/unshafted/issues/78) — status vs risk naming | **Done** — `ok`/`changed`/`guidance`/`danger`, severity split out and unified |
+| [#79](https://github.com/LuDraGa/unshafted/issues/79) — six dead tokens | **Done** — deleted |
+| [#82](https://github.com/LuDraGa/unshafted/issues/82) — risk tone encoded four times | **Raised, not done** — needs a semantic decision, not a dedupe |
 | `pnpm build` / `type-check` / `test` / `lint` / `prettier` | **All green** |
 
 ---
@@ -278,6 +281,84 @@ The built stylesheets from before the change were kept and compared against the 
   side panel 55, with no colour gained and none lost.
 - The only `.text-stone-*` rules still emitted are `50`, `700` and `800`, exactly matching the seven
   tone-pair halves left behind.
+
+## #78 and #79 — naming the status palette, and what that exposed
+
+#79 was the easy half: the six `--unshafted-risk-medium-*` / `--unshafted-risk-high-*` tokens had no
+consumers and are deleted.
+
+#78 proposed renaming `risk-low` to something honest and keeping `guidance` and `danger` as they
+were. Reading the consumers first showed that would have fixed a third of the problem.
+
+### `guidance` and `danger` were doing two jobs
+
+Nine consumers, and only three of them are notices:
+
+| consumer | what it is |
+|---|---|
+| `.popup-alert-guidance`, `.popup-alert-danger`, `.options-help-card` | genuine notices — keep `guidance` / `danger` |
+| `.popup-accordion-count.severity-{medium,high}` | **severity** |
+| `.popup-chip-severity-{medium,high} .popup-chip-count` | **severity** |
+| `.popup-lens-tab[data-severity='{medium,high}'] .popup-lens-count` | **severity** |
+
+So six of the nine were the CSS-side severity ramp wearing the notice palette's names.
+
+### Which made severity triple-encoded, and the three disagreed
+
+| | popup `severityClasses` | panel `SEVERITY_TONE` | the badges, via `guidance`/`danger` |
+|---|---|---|---|
+| low | stone-200 / stone-700 | stone-**100** / stone-700 | — |
+| medium | amber-100 / amber-900 | amber-100 / amber-900 | amber-**200** / amber-**800** |
+| high | rose-100 / rose-900 | rose-100 / rose-900 | rose-**200** / rose-**800** |
+
+Three answers for one scale, and the two utility maps did not even agree with each other on `low`.
+
+### Unified at `-200`/`-900`, and why not the majority `-100`
+
+The obvious move is the utility maps' `-100` backgrounds: two of the three encodings already used
+them, and they measure better in isolation — 9.43 / 8.13 / 8.00 against 8.19 / 7.28 / 6.78.
+
+They are still wrong here. A count badge carrying **no** severity is `--unshafted-selection-soft`,
+which is `stone-200`. `amber-100` is *lighter* than `stone-200`, so a medium-severity badge would
+have come out paler than a badge with no severity at all — visual weight inverted against meaning.
+At `-200` every severity badge matches the neutral badge's weight and differs only in hue, which is
+what the badge design was already doing before it had a name.
+
+Text takes the utility maps' `-900` rather than the badges' `-800`, which is the half the badges had
+wrong: 5.70 → 7.28 for medium, 5.59 → 6.78 for high. Every level clears AA with room.
+
+No `-border` tokens and no `severity-low` CSS rule, because nothing consumes them. Six tokens had
+just died of precisely that.
+
+### The vocabulary now
+
+`ok` (was `risk-low`) · `changed` (was raw `--color-violet-*` — the one freshness state with no
+token at all) · `guidance` · `danger` · `severity-{low,medium,high}`. Risk is not in that list, and
+that is the whole point of #78: risk grading is `RISK_TONE`, and nothing else.
+
+### Verified
+
+Built stylesheets kept from before and diffed. **No colour was gained on any page.** The only losses
+are severity's old `-100` backgrounds — popup lost `amber-100`; side panel lost `amber-100`,
+`rose-100` and `stone-100` — which is the intended change and nothing besides. Options is
+byte-identical. The emitted rules resolve as intended:
+`.popup-chip-severity-medium .popup-chip-count` is `amber-900` on `amber-200`, `-high` is
+`rose-900` on `rose-200`.
+
+## Raised, not done here
+
+**[#82](https://github.com/LuDraGa/unshafted/issues/82) — risk tone is encoded four times.** The
+same pattern one axis over, and worse. `presentation.ts` and `Popup.tsx` agree; `ResultCards.tsx`
+differs by a border shade; `SiteStrip.tsx` renders Low as **grey** where everywhere else it is
+**green**, and High as **rose** where everywhere else it is **orange** — the same colour that strip
+uses for Very High, so the two top grades are nearly indistinguishable there and clearly distinct
+everywhere else.
+
+Not folded in here because it cannot be settled by taking the majority, the way severity could. It
+asks whether Low means *safe* or *nothing to say* — a claim about a policy, not a choice of shade.
+
+**[#81](https://github.com/LuDraGa/unshafted/issues/81)** is done; nothing else outstanding from
+#61, #62, #78, #79 or #80.
 
 ## Verification
 

@@ -470,13 +470,13 @@
 }
 
 .popup-accordion-count.severity-high {
-  background: var(--unshafted-danger-border);
-  color: var(--unshafted-danger-text);
+  background: var(--unshafted-severity-high-bg);
+  color: var(--unshafted-severity-high-text);
 }
 
 .popup-accordion-count.severity-medium {
-  background: var(--unshafted-guidance-border);
-  color: var(--unshafted-guidance-text);
+  background: var(--unshafted-severity-medium-bg);
+  color: var(--unshafted-severity-medium-text);
 }
 
 .popup-alert {
@@ -513,8 +513,8 @@
 }
 
 .popup-status-pill-ready {
-  background: var(--unshafted-risk-low-bg);
-  color: var(--unshafted-risk-low-text);
+  background: var(--unshafted-ok-bg);
+  color: var(--unshafted-ok-text);
 }
 
 /* ── Re-run link (inline) ── */
@@ -617,13 +617,13 @@
 }
 
 .popup-chip-severity-high .popup-chip-count {
-  background: var(--unshafted-danger-border);
-  color: var(--unshafted-danger-text);
+  background: var(--unshafted-severity-high-bg);
+  color: var(--unshafted-severity-high-text);
 }
 
 .popup-chip-severity-medium .popup-chip-count {
-  background: var(--unshafted-guidance-border);
-  color: var(--unshafted-guidance-text);
+  background: var(--unshafted-severity-medium-bg);
+  color: var(--unshafted-severity-medium-text);
 }
 
 .popup-chip-panel {
@@ -758,13 +758,13 @@
 }
 
 .popup-lens-tab[data-severity='high']:not([aria-selected='true']) .popup-lens-count {
-  background: var(--unshafted-danger-border);
-  color: var(--unshafted-danger-text);
+  background: var(--unshafted-severity-high-bg);
+  color: var(--unshafted-severity-high-text);
 }
 
 .popup-lens-tab[data-severity='medium']:not([aria-selected='true']) .popup-lens-count {
-  background: var(--unshafted-guidance-border);
-  color: var(--unshafted-guidance-text);
+  background: var(--unshafted-severity-medium-bg);
+  color: var(--unshafted-severity-medium-text);
 }
 
 /* ── v0.10: Lens panel ── */

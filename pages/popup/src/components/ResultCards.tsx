@@ -19,9 +19,9 @@ const verdictToneClasses: Record<VerdictTone, string> = {
 };
 
 const severityClasses: Record<Severity, string> = {
-  low: 'bg-stone-200 text-stone-700',
-  medium: 'bg-amber-100 text-amber-900',
-  high: 'bg-rose-100 text-rose-900',
+  low: 'bg-[var(--unshafted-severity-low-bg)] text-[var(--unshafted-severity-low-text)]',
+  medium: 'bg-[var(--unshafted-severity-medium-bg)] text-[var(--unshafted-severity-medium-text)]',
+  high: 'bg-[var(--unshafted-severity-high-bg)] text-[var(--unshafted-severity-high-text)]',
 };
 
 const RiskBadge = ({ label }: { label: VerdictTone }) => (
