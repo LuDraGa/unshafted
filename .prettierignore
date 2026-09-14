@@ -13,3 +13,23 @@ corpus/manifest.json
 corpus/curated.json
 corpus/analysis-index.json
 chrome-extension/public/policy-corpus.json
+
+# `tsc` output, emitted from `manifest.ts` by the `ready` script (`pre-build.tsconfig.json` sets
+# `outDir: "./"`), and gitignored. Prettier does not read `.gitignore`, so it has to be named here
+# or anyone who has run a build gets a red `format:check` locally against a file CI never sees —
+# the local/CI divergence this check exists to remove. Formatting it would also be undone by the
+# next `pnpm ready` regardless.
+chrome-extension/manifest.js
+
+# Site-policy normalizer fixtures. These are read byte-for-byte by `site-policy.test.ts` and
+# `policy-diff.test.ts`, and the `stable/` pairs exist to assert that *cosmetic* markup differences
+# hash identically — the filenames are the test plan: `whitespace-minified`, `attribute-noise`,
+# `entity-encoding`, `wrapper-divs`, `nav-markup`.
+#
+# Formatting them normalises away precisely the differences under test. The pairs would not go red;
+# they would become trivially identical and the suite would keep passing while asserting nothing,
+# which is worse. Same reasoning as the generated corpus above: the shape is the fixture's business.
+#
+# Invisible until now because the CI check's `*.{js,jsx,ts,tsx,json}` pattern was root-anchored and
+# never read these directories (#69).
+packages/unshafted-core/test/fixtures/

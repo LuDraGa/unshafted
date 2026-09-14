@@ -1,7 +1,7 @@
 {
   "name": "@extension/corpus-tools",
   "version": "0.8.1",
-  "description": "Site-policy corpus capture — maintainer tooling, never shipped to users",
+  "description": "Site-policy corpus capture \u2014 maintainer tooling, never shipped to users",
   "type": "module",
   "private": true,
   "scripts": {
@@ -9,7 +9,9 @@
     "capture": "node --import tsx capture.ts",
     "report": "node --import tsx report.ts",
     "build-bundle": "node --import tsx build-bundle.ts",
-    "calibrate": "node --import tsx calibrate-site-policy-prompt.ts"
+    "calibrate": "node --import tsx calibrate-site-policy-prompt.ts",
+    "format": "prettier . --write --ignore-path ../../.prettierignore",
+    "format:check": "prettier . --check --ignore-path ../../.prettierignore"
   },
   "devDependencies": {
     "@extension/tsconfig": "workspace:*"

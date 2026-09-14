@@ -17,29 +17,36 @@ permissions:
 
 jobs:
   prettier:
+    # Wired into branch protection on `main` and `release` as a required context, and the context
+    # name is the job name. Renaming this job does not rename the requirement — it stops the
+    # required check from ever reporting, which blocks every merge on both branches.
     name: Prettier Check
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v7
 
-      - name: Run Prettier
-        id: prettier-run
-        uses: rutajdash/prettier-cli-action@v1.0.2
-        with:
-          config_path: ./.prettierrc
-          file_pattern: "*.{js,jsx,ts,tsx,json}"
-          # The action's own default is `latest`, so an unpinned run formats against whatever npm
-          # serves that morning while the repo formats against its lockfile. The day prettier majors,
-          # this goes red on every PR against nobody's change — and it is a required check now, so
-          # that would block dependabot, `releasefix/*`, and the push that refreshes the gist CWS
-          # review reads. Track `pnpm-lock.yaml` by hand: dependabot's `github-actions` ecosystem
-          # bumps `uses:` refs, never a `with:` value.
-          prettier_version: 3.9.6
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
 
-      - name: Prettier Output
-        if: ${{ failure() }}
-        shell: bash
-        run: |
-          echo "The following files aren't formatted properly:"
-          echo "${{steps.prettier-run.outputs.prettier_output}}"
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: '.nvmrc'
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --prefer-offline
+
+      # The repo's own prettier, from the lockfile, the way `lint`, `test`, `type-check` and
+      # `build` already run the repo's own tooling. This replaced `rutajdash/prettier-cli-action`,
+      # whose whole body was `npm install --global prettier@latest` — a required status check
+      # formatting against whatever npm served that morning, while the repo formatted against its
+      # lockfile. Pinning the action's input worked but had to be re-pinned by hand forever, because
+      # dependabot's `github-actions` ecosystem bumps `uses:` refs and never a `with:` value (#69).
+      #
+      # It also only ever checked the repository root: its `*.{js,jsx,ts,tsx,json}` pattern is
+      # root-anchored, so nothing under `packages/`, `pages/`, `chrome-extension/` or `tools/` was
+      # read at all. This is the first revision of this job that checks the workspace.
+      - name: Check formatting
+        run: pnpm format:check

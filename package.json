@@ -23,6 +23,7 @@
     "lint": "turbo lint --continue",
     "lint:fix": "turbo lint:fix --continue",
     "format": "turbo format --continue -- --cache --cache-location node_modules/.cache/.prettiercache",
+    "format:check": "turbo format:check --continue && prettier \"*.{js,jsx,ts,tsx,json}\" --check",
     "prepare": "husky",
     "copy-env": "bash bash-scripts/copy_env.sh",
     "set-global-env": "bash bash-scripts/set_global_env.sh",

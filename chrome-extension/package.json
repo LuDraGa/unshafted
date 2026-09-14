@@ -14,7 +14,8 @@
     "dev": "vite build --mode development",
     "lint": "eslint .",
     "lint:fix": "pnpm lint --fix",
-    "prettier": "prettier . --write --ignore-path ../.prettierignore",
+    "format": "prettier . --write --ignore-path ../.prettierignore",
+    "format:check": "prettier . --check --ignore-path ../.prettierignore",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {

@@ -3,5 +3,9 @@
   "version": "0.8.1",
   "description": "chrome extension - tsconfig",
   "private": true,
-  "sideEffects": false
+  "sideEffects": false,
+  "scripts": {
+    "format": "prettier . --write --ignore-path ../../.prettierignore",
+    "format:check": "prettier . --check --ignore-path ../../.prettierignore"
+  }
 }
