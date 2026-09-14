@@ -142,3 +142,98 @@ which blocks every merge.
       root half, so the green is the new coverage rather than a vacuous pass
 - [x] Follow-up filed for the 13 unformatted root/`.github` YAML files — #75 (which also has to
       ignore `pnpm-lock.yaml`, generated and only in the list because nothing had ever looked)
+
+---
+
+# Part 2: the YAML, and the ignore-path trap (#75)
+
+Branch `chore/format-repo-yaml`, cut from `release`. Closes #75, which Part 1 deferred.
+
+Decision taken: **`pnpm-lock.yaml` is ignored, the `.github/**` YAML is formatted.**
+
+## The trap that nearly made this change enormous
+
+The first recursive listing looked like ~13 files. Running it as
+
+```
+prettier . --list-different --ignore-path .prettierignore
+```
+
+returned **several hundred** instead — the whole generated `corpus/` tree, `.claude/settings.local.json`,
+`.turbo/preferences/tui.json`.
+
+Prettier 3 defaults `--ignore-path` to **two** files, `.gitignore` *and* `.prettierignore`. Passing
+the flag explicitly does not add to that list, it **replaces** it — so naming `.prettierignore`
+silently switched `.gitignore` off, and `corpus/*` (gitignored, line 32) came flooding in.
+
+This matters well beyond the listing: it is the reason the root check must be plain
+`prettier . --check` with **no** `--ignore-path` at all. Had the widened script been written the
+obvious way, CI would have started demanding that hundreds of generated corpus artefacts be
+formatted.
+
+It is also the explanation for `chrome-extension/manifest.js` in Part 1. The per-package scripts
+*do* pass `--ignore-path ../../.prettierignore` — they have to, since prettier resolves the path
+relative to cwd and there is no ignore file inside each package — so they run with `.gitignore`
+disabled, which is why a gitignored build artefact showed up there and needed naming explicitly.
+
+**Known asymmetry, left deliberately:** per-package checks are therefore stricter than the root
+pass (they ignore `.gitignore`). Strictness on that side is the safe direction — it over-reports
+rather than silently skipping — and everything it currently over-reports is named in
+`.prettierignore`. Harmonising it would mean a second `--ignore-path` in all 14 packages, which is
+a different change from this one.
+
+## The root scripts are now one recursive pass each
+
+Part 1 left `format:check` as `turbo format:check --continue && prettier "*.{js,jsx,ts,tsx,json}" --check`
+— turbo for the packages, a root-anchored glob for the root files. That could not express "and the
+`.github` tree too" without another hand-maintained glob, which is precisely the drift #75 exists to
+end. Both halves collapse to a single recursive invocation:
+
+```
+format        prettier . --write --cache --cache-location node_modules/.cache/.prettiercache
+format:check  prettier . --check
+```
+
+Coverage is now "every file not named in `.gitignore` or `.prettierignore`", which needs no
+maintenance as directories are added. It is also *faster* than the turbo version it replaces —
+2.0s against 2.5s — because it is one process rather than fourteen.
+
+The per-package `format` / `format:check` scripts and the turbo tasks stay. They are the way to
+work inside one package; the root pass is the authoritative one for CI.
+
+Kept symmetric on purpose: `format:check` must never be able to flag something `format` cannot fix.
+
+## Verifying the reflow changed nothing that matters
+
+The worry with formatting eleven workflow files is that prettier reflows something load-bearing.
+Rather than eyeballing it, every file was parsed to JSON before and after and the two structures
+compared:
+
+> **SEMANTICS IDENTICAL** — all 11 YAML files parse to byte-identical structures before and after.
+
+Comment lines added or removed by the reformat: **0** and **0**.
+
+What actually changed is quote style (`"npm"` → `'npm'`, following `.prettierrc`'s own
+`singleQuote: true`) and flow-collection spacing (`[ closed ]` → `[closed]`), plus one line of
+trailing whitespace. Notably prettier left the `on:` key unquoted, so no YAML 1.1 boolean question
+was introduced.
+
+`sync-privacy-policy.yml` and `test-and-type-check.yml` needed no changes — the two most recently
+edited workflows were already conformant.
+
+## Status
+
+- [x] `pnpm-lock.yaml` ignored, with the reasoning inline; confirmed it is genuinely *ignored*
+      (passes with the ignore file, flagged without it) rather than coincidentally clean
+- [x] 11 YAML files + `.prettierrc` formatted
+- [x] Reflow proven semantics-preserving by before/after parse comparison; no comments touched
+- [x] Root scripts widened to a single recursive pass, `format` and `format:check` symmetric
+- [x] **Red path:** probes planted at the root, in `.github/workflows/`, in `chrome-extension/`
+      and in `packages/shared/` — all four reported, exit 1
+- [x] **Ignored stays ignored:** `corpus/` and `pnpm-lock.yaml` flagged 0 times
+- [ ] Green on a real PR
+
+Note for review: `greetings.yml` and `cancel-other-workflows-on-close.yml` are
+`pull_request_target`, so GitHub runs the **base branch's** copy of them. This PR's own checks
+therefore do not exercise the reformatted versions of those two; their proof is the parse
+comparison above, not a green tick.

@@ -16,15 +16,15 @@
 #    it; if updates start feeling overdue, that is the number to look at.
 version: 2
 updates:
-  - package-ecosystem: "npm"
+  - package-ecosystem: 'npm'
     target-branch: 'release'
-    directory: "/"
+    directory: '/'
     schedule:
-      interval: "daily"
+      interval: 'daily'
     open-pull-requests-limit: 5
     labels:
-      - "dependencies"
-      - "npm"
+      - 'dependencies'
+      - 'npm'
     groups:
       dev-dependencies:
         dependency-type: development
@@ -42,15 +42,15 @@ updates:
       #
       # This entry is tied to the Node pin, not to a bug: lift it in the same change that moves
       # `.nvmrc` to a new major line, and let the types follow the runtime in one commit.
-      - dependency-name: "@types/node"
-        update-types: ["version-update:semver-major"]
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
 
-  - package-ecosystem: "github-actions"
+  - package-ecosystem: 'github-actions'
     target-branch: 'release'
-    directory: "/"
+    directory: '/'
     schedule:
-      interval: "daily"
+      interval: 'daily'
     open-pull-requests-limit: 5
     labels:
-      - "dependencies"
-      - "github-actions"
+      - 'dependencies'
+      - 'github-actions'
