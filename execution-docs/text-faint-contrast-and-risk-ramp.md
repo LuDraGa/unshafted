@@ -14,8 +14,8 @@ that change; #59 is just what made them visible.
 | #61 — faint text below AA | **Done** |
 | #62 — dead risk tokens | **Split** into [#78](https://github.com/LuDraGa/unshafted/issues/78) (naming decision) and [#79](https://github.com/LuDraGa/unshafted/issues/79) (deletion); #62 closed |
 | `execution-docs/tailwind-4-palette.md` corrected | **Done** |
-| [#80](https://github.com/LuDraGa/unshafted/issues/80) — `text-stone-500` hard-coded in 22 places | **Raised, not done** — the token fix does not reach the utility half |
-| `pnpm build` / `type-check` / `test` / `lint` / `prettier` | **Run by hand before the version PR** |
+| [#80](https://github.com/LuDraGa/unshafted/issues/80) — the utility half | **Done** — 20 call sites routed through the token |
+| `pnpm build` / `type-check` / `test` / `lint` / `prettier` | **All green** |
 
 ---
 
@@ -143,18 +143,80 @@ deletion is mechanical once that is settled, and unsafe before it.
 
 ---
 
+## #80 — the utility half, done in the same version
+
+Fixing the token does not fix `text-stone-500`, which was written straight into the class lists.
+This is #59's own warning recurring one surface over: one value, two encodings, only one of which
+moves when the value is fixed.
+
+**20 call sites**, not the 22 first reported — that count was lines-with-matches inflated by a
+miscount, and #80 has been corrected.
+
+| file | sites |
+|---|---:|
+| `pages/popup/src/components/ResultCards.tsx` | 10 |
+| `pages/popup/src/Popup.tsx` | 6 |
+| `pages/options/src/Options.tsx` | 2 |
+| `pages/popup/src/components/SiteStrip.tsx` | 1 |
+| `pages/popup/src/components/AnalysisWorkspace.tsx` | 1 |
+
+### All 20 meant faint, and that is checkable rather than a matter of taste
+
+#80 guessed some sites would turn out to mean `--unshafted-text-muted`. None do, and the reason is
+structural: `text-stone-600` is *already* in use as its own utility, 7 times in the popup. The two
+tiers were being spelled separately all along, so `text-stone-500` is unambiguously the faint tier
+and every site converts to `text-[var(--unshafted-text-faint)]` — the spelling the side panel
+already uses 18 times.
+
+The 10px uppercase tracked eyebrows (`Parties`, `Topics`, `Summary`, the history row's storage
+state) had the clearest precedent of all: `AnalysisView.tsx:82` and `DocumentCard.tsx:51` render
+exactly that pattern through the faint token already.
+
+### Two sites were failing AA, and one was not on a gradient
+
+| site | ground | before | after |
+|---|---|---:|---:|
+| `Popup.tsx:1307` "Checking Drive…" | `.popup-history-panel-body`, gradient end `#efe5d6` | 3.84 ❌ | 4.65 ✅ |
+| `Popup.tsx:1380` "Showing latest 5 reports." | same | 3.84 ❌ | 4.65 ✅ |
+| `ResultCards.tsx:459` `· {role}` | `bg-stone-100/80` composited on the lens panel | **4.43 ❌** | 5.36 ✅ |
+
+The third is the one worth noting: it is not a gradient at all. A tinted pill on a translucent
+panel composites down to `#f0eeec`-ish, and stone-500 lands at 4.43 — under AA for a reason that
+has nothing to do with the shell. It would not have been found by looking at gradients, only by
+resolving each site's actual composited ground.
+
+The remaining 17 sit on card surfaces and passed already, between 4.58 and 4.75 — margins of
+0.08–0.25 over the threshold on text as small as 10px. They now sit between 5.36 and 5.75.
+
+### Verified in the built stylesheets, because this failure mode is silent
+
+`global.css` runs `@import 'tailwindcss' source(none)`, so nothing is scanned unless an `@source`
+says so, and `SidePanel.css` carries an explicit warning that a class Tailwind cannot see fails
+silently rather than loudly. `text-[var(--unshafted-*)]` had **never** been used in the popup or
+options pages before this change — only in the side panel — so whether it would be emitted there
+was a real question, not a formality.
+
+Both pages declare `@source './'`, and the built CSS confirms it:
+
+```
+.text-\[var\(--unshafted-text-faint\)\]{color:var(--unshafted-text-faint)}
+--unshafted-text-faint:oklch(51% .013 58.071)
+```
+
+present in all three page stylesheets, with **zero** occurrences of `stone-500` left in any of
+them — which also confirms nothing else was relying on the shade.
+
 ## Raised, not done here
 
-**[#80](https://github.com/LuDraGa/unshafted/issues/80) — the utility half.** Fixing the token does
-not fix `text-stone-500`, which is written directly in 22 places across the popup and options pages.
-`Popup.tsx:1380` is the clearest failure: "Showing latest 5 reports.", last element in
-`.popup-history-panel`, whose gradient also ends on `--unshafted-bg-warm` — 3.84:1, exactly the
-defect #61 describes, untouched by #61's fix. `.options-shell` is a third unmeasured gradient
-(`→ #f0e7da`, stone-500 at 3.91).
+**[#81](https://github.com/LuDraGa/unshafted/issues/81) — the tier above.** `text-stone-600` is
+still written as a utility in 7 places while `--unshafted-text-muted` is `var(--color-stone-600)`.
+No contrast problem — stone-600 is 6.13:1 on the darkest ground — but it is the same mechanism that
+produced #61 and #80, still loaded: change the muted token and 27 token sites move while 7 utility
+sites do not. Converting them is a visual no-op, since the token already *is* that shade.
 
-This is #59's own warning recurring one surface over: one value, two encodings, only one of which
-moves when the value is fixed. Not folded into this change because routing 22 call sites through
-tokens is a judgement per site, not a sweep — some may mean `--unshafted-text-muted`.
+Not folded in here because #80's scope was the failing colour, and widening a fix to a tier that is
+not failing is how a change stops being reviewable. `text-stone-900` has the same relationship to
+`--unshafted-text` and belongs in the same sweep.
 
 ## Verification
 
@@ -166,3 +228,12 @@ both card surfaces.
 The failing sites were found by reading what each `--unshafted-text-faint` consumer actually sits
 on, not by trusting the token name — which is the step #61 and the palette doc both skipped, and the
 reason the reported figure was 4.37 rather than 3.84.
+
+For #80 the same method found a failure that gradients would not explain: `ResultCards.tsx:459`
+sits on `bg-stone-100/80` over a translucent lens panel, and only compositing that stack shows 4.43.
+Grounds were resolved per call site — gradient endpoints, `rgba()` surfaces composited in order, and
+tinted pills composited over whatever they sit on — rather than per token.
+
+`pnpm build`, `pnpm type-check` (12 tasks), `pnpm test` (14 tasks), `pnpm lint` (11 tasks) and
+`prettier --check .` all pass. The built stylesheets were then read directly, because `source(none)`
+means an unscanned class fails silently rather than erroring.

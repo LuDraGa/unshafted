@@ -445,10 +445,10 @@ const Options = () => {
                   {showApiKey ? 'Hide' : 'Show'}
                 </button>
               </div>
-              <p className="text-[11px] leading-5 text-stone-500">
+              <p className="text-[11px] leading-5 text-[var(--unshafted-text-faint)]">
                 {isOpenAI ? 'Starts with sk-proj-' : 'Starts with sk-or-'} · stays in chrome.storage.local
               </p>
-              <p className="text-[11px] leading-5 text-stone-500">
+              <p className="text-[11px] leading-5 text-[var(--unshafted-text-faint)]">
                 Your key never leaves your device except to authorize requests directly with the provider you chose.
                 Contract text is sent only to that provider.{' '}
                 <a

@@ -321,7 +321,7 @@ export const AnalysisWorkspace = ({
             <p className="text-xs font-semibold text-stone-900">{LOADING_STEPS[stepIndex]}</p>
             <RiskBadge label={toVerdictTone(currentAnalysis.quickScan?.roughRiskLevel ?? 'Medium')} />
           </div>
-          <p className="mt-1 text-[11px] text-stone-500">
+          <p className="mt-1 text-[11px] text-[var(--unshafted-text-faint)]">
             Reviewing as {selectedRole}. Closing the popup is fine — this runs in the background.
           </p>
         </section>

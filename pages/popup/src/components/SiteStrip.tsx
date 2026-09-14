@@ -124,7 +124,7 @@ export const SiteStrip = () => {
       <section className="mb-4 flex items-center gap-3 rounded-2xl border border-stone-200 bg-stone-50 px-3 py-2">
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-stone-700">{state.hostname}</p>
-          <p className="text-xs text-stone-500">Not analysed — you can still read its policies</p>
+          <p className="text-xs text-[var(--unshafted-text-faint)]">Not analysed — you can still read its policies</p>
         </div>
         <button
           className="flex-shrink-0 rounded-xl border border-stone-300 bg-white px-3 py-1.5 text-xs font-semibold text-stone-700 transition hover:bg-stone-100"

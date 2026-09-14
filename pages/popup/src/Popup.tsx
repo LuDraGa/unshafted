@@ -210,12 +210,14 @@ const ProfileMenu = ({
       </button>
       {menuOpen ? (
         <div className="popup-profile-menu">
-          <p className="truncate text-[11px] font-semibold text-stone-500">{email}</p>
+          <p className="truncate text-[11px] font-semibold text-[var(--unshafted-text-faint)]">{email}</p>
           <div className="mt-2 rounded-xl border border-stone-200 bg-stone-50 px-3 py-2">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold text-stone-950">Drive backup</p>
-                <p className="text-[11px] text-stone-500">{driveBackupEnabled ? 'On for new scans' : 'Off'}</p>
+                <p className="text-[11px] text-[var(--unshafted-text-faint)]">
+                  {driveBackupEnabled ? 'On for new scans' : 'Off'}
+                </p>
               </div>
               <button
                 className={`popup-switch ${driveBackupEnabled ? 'popup-switch-on' : ''}`}
@@ -1304,7 +1306,7 @@ const Popup = () => {
               </div>
             </div>
             <div className="popup-history-panel-body">
-              {historySyncing ? <p className="text-xs text-stone-500">Checking Drive...</p> : null}
+              {historySyncing ? <p className="text-xs text-[var(--unshafted-text-faint)]">Checking Drive...</p> : null}
               {recentHistory.length === 0 ? (
                 <div className="popup-empty-panel">
                   Run a quick scan to save your first report.
@@ -1319,7 +1321,7 @@ const Popup = () => {
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
                         <p className="line-clamp-1 font-semibold text-stone-950">{record.source.name}</p>
-                        <p className="mt-1 text-stone-500">
+                        <p className="mt-1 text-[var(--unshafted-text-faint)]">
                           {formatReportDate(record.createdAt)} ·{' '}
                           {record.deepAnalysis ? 'Detailed report' : 'Quick scan only'}
                         </p>
@@ -1331,7 +1333,7 @@ const Popup = () => {
                         {record.deepAnalysis?.overallRiskLevel ?? record.quickScan.roughRiskLevel}
                       </span>
                     </div>
-                    <p className="mt-2 text-[11px] font-semibold tracking-[0.16em] text-stone-500 uppercase">
+                    <p className="mt-2 text-[11px] font-semibold tracking-[0.16em] text-[var(--unshafted-text-faint)] uppercase">
                       {storageStateCopy[record.storageState]}
                     </p>
                     <div className="mt-2 flex flex-wrap gap-3">
@@ -1377,7 +1379,7 @@ const Popup = () => {
                 );
               })}
               {history.length > 5 ? (
-                <p className="text-center text-[11px] text-stone-500">Showing latest 5 reports.</p>
+                <p className="text-center text-[11px] text-[var(--unshafted-text-faint)]">Showing latest 5 reports.</p>
               ) : null}
             </div>
           </section>

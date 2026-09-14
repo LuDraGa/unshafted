@@ -195,7 +195,9 @@ const FindingBody = ({ item }: { item: DetailedFinding }) => (
     <p>
       <strong className="text-stone-900">Why it matters.</strong> {item.whyItMatters}
     </p>
-    {item.reference?.label ? <p className="text-[11px] text-stone-500">Reference: {item.reference.label}</p> : null}
+    {item.reference?.label ? (
+      <p className="text-[11px] text-[var(--unshafted-text-faint)]">Reference: {item.reference.label}</p>
+    ) : null}
   </>
 );
 
@@ -203,7 +205,9 @@ const QuickFlagBody = ({ item }: { item: QuickScanResult['redFlags'][number] }) 
   <>
     <p>{item.reason}</p>
     {item.reference?.quote ? <QuoteBlock text={item.reference.quote} /> : null}
-    {item.reference?.label ? <p className="text-[11px] text-stone-500">Reference: {item.reference.label}</p> : null}
+    {item.reference?.label ? (
+      <p className="text-[11px] text-[var(--unshafted-text-faint)]">Reference: {item.reference.label}</p>
+    ) : null}
   </>
 );
 
@@ -291,7 +295,9 @@ const buildAsksLens = (quick: QuickScanResult, deep: DeepAnalysisResult | null |
                     <strong className="text-stone-900">Fallback.</strong> {item.fallback}
                   </p>
                 ) : null}
-                {item.targetClause ? <p className="text-[11px] text-stone-500">Target: {item.targetClause}</p> : null}
+                {item.targetClause ? (
+                  <p className="text-[11px] text-[var(--unshafted-text-faint)]">Target: {item.targetClause}</p>
+                ) : null}
               </CollapsibleItem>
             ))}
             {deep.suggestedEdits.map(item => (
@@ -408,7 +414,7 @@ const buildEvidenceLens = (deep: DeepAnalysisResult | null | undefined): LensDef
             severity={item.severity}>
             <p>{item.whyItMatters}</p>
             {item.reference?.label ? (
-              <p className="text-[11px] text-stone-500">Reference: {item.reference.label}</p>
+              <p className="text-[11px] text-[var(--unshafted-text-faint)]">Reference: {item.reference.label}</p>
             ) : null}
           </CollapsibleItem>
         ))}
@@ -429,7 +435,7 @@ const buildWinsLens = (deep: DeepAnalysisResult | null | undefined): LensDef | n
           <CollapsibleItem key={`win-${item.title}`} title={item.title}>
             <p>{item.whyItHelps}</p>
             {item.reference?.label ? (
-              <p className="text-[11px] text-stone-500">Reference: {item.reference.label}</p>
+              <p className="text-[11px] text-[var(--unshafted-text-faint)]">Reference: {item.reference.label}</p>
             ) : null}
           </CollapsibleItem>
         ))}
@@ -449,14 +455,16 @@ const buildDocLens = (
     <div className="space-y-3 px-3 py-2 text-xs leading-5 text-stone-700">
       {quick.parties.length > 0 ? (
         <div>
-          <p className="text-[10px] font-semibold tracking-[0.18em] text-stone-500 uppercase">Parties</p>
+          <p className="text-[10px] font-semibold tracking-[0.18em] text-[var(--unshafted-text-faint)] uppercase">
+            Parties
+          </p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {quick.parties.map(p => (
               <span
                 key={`${p.name}-${p.role}`}
                 className="rounded-full bg-stone-100/80 px-2.5 py-1 text-xs text-stone-700">
                 <span className="font-semibold text-stone-950">{p.name}</span>
-                <span className="text-stone-500"> · {p.role}</span>
+                <span className="text-[var(--unshafted-text-faint)]"> · {p.role}</span>
               </span>
             ))}
           </div>
@@ -464,7 +472,9 @@ const buildDocLens = (
       ) : null}
       {quick.topics.length > 0 ? (
         <div>
-          <p className="text-[10px] font-semibold tracking-[0.18em] text-stone-500 uppercase">Topics</p>
+          <p className="text-[10px] font-semibold tracking-[0.18em] text-[var(--unshafted-text-faint)] uppercase">
+            Topics
+          </p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {quick.topics.map(t => (
               <span
@@ -477,10 +487,12 @@ const buildDocLens = (
         </div>
       ) : null}
       <div>
-        <p className="text-[10px] font-semibold tracking-[0.18em] text-stone-500 uppercase">Summary</p>
+        <p className="text-[10px] font-semibold tracking-[0.18em] text-[var(--unshafted-text-faint)] uppercase">
+          Summary
+        </p>
         <p className="mt-1">{deep?.plainEnglishSummary ?? quick.summary}</p>
       </div>
-      <p className="text-[11px] text-stone-500">
+      <p className="text-[11px] text-[var(--unshafted-text-faint)]">
         {quick.documentType} · Reviewed as {reviewedAs}
       </p>
     </div>
