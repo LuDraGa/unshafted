@@ -1,0 +1,388 @@
+# `--unshafted-text-faint` contrast, and splitting the risk-token issue
+
+Version: **0.8.1** (`dev/v0.8.1`). Covers [#61](https://github.com/LuDraGa/unshafted/issues/61),
+done here, and [#62](https://github.com/LuDraGa/unshafted/issues/62), split rather than done.
+
+Both were raised by #59, the OKLCH palette adoption, which measured every foreground/background
+pair in the app and grepped every consumer of the `--unshafted-*` risk family. Neither is caused by
+that change; #59 is just what made them visible.
+
+## Status
+
+| | |
+|---|---|
+| #61 — faint text below AA | **Done** |
+| #62 — dead risk tokens | **Split** into [#78](https://github.com/LuDraGa/unshafted/issues/78) (naming decision) and [#79](https://github.com/LuDraGa/unshafted/issues/79) (deletion); #62 closed |
+| `execution-docs/tailwind-4-palette.md` corrected | **Done** |
+| [#80](https://github.com/LuDraGa/unshafted/issues/80) — the utility half | **Done** — 20 call sites routed through the token |
+| [#81](https://github.com/LuDraGa/unshafted/issues/81) — the rest of the text ramp | **Done** — 33 sites converted, 6 named tiers, 7 tone-map halves deliberately left |
+| [#78](https://github.com/LuDraGa/unshafted/issues/78) — status vs risk naming | **Done** — `ok`/`changed`/`guidance`/`danger`, severity split out and unified |
+| [#79](https://github.com/LuDraGa/unshafted/issues/79) — six dead tokens | **Done** — deleted |
+| [#82](https://github.com/LuDraGa/unshafted/issues/82) — risk tone encoded four times | **Raised, not done** — needs a semantic decision, not a dedupe |
+| `pnpm build` / `type-check` / `test` / `lint` / `prettier` | **All green** |
+
+---
+
+## #61 — the reported pair was not the failing pair
+
+#61 says `--unshafted-text-faint` (stone-500) is 4.37:1 on `#f8f4ee`, against AA's 4.5:1 for normal
+text. That is true, and it is not the worst case.
+
+`#f8f4ee` is `--unshafted-bg`. It is the token, and for most of the palette doc's table it is also
+the pixel. It is not the pixel here. Both shells are a gradient:
+
+```css
+/* Popup.css:5, SidePanel.css:22 */
+linear-gradient(180deg, #f7f2ea 0%, var(--unshafted-bg-warm) 100%)
+```
+
+`--unshafted-bg-warm` is `#efe5d6`, and the two most visible faint-text sites are pinned to the
+bottom of that gradient, which is exactly where it is darkest:
+
+- `.popup-sticky-footer` — `position: sticky; bottom: 0` over `background: inherit` (`Popup.css:37`)
+- the side panel's `mt-auto` privacy line, *"Nothing about the site you are on leaves this
+  browser"*, at `text-[10px]` (`SidePanel.tsx:282`)
+
+Neither is large text, so the 4.5:1 threshold applies without relief.
+
+| ground | what it is | stone-500 |
+|---|---|---:|
+| `#efe5d6` | `--unshafted-bg-warm`, gradient end — **the real ground** | **3.84** |
+| `#f8f4ee` | `--unshafted-bg`, the figure #61 quotes | 4.37 |
+| `#fefbf5` | `--unshafted-surface` composited on paper | 4.63 |
+
+So the token fails by more than reported, and it fails on the copy that makes the product's central
+privacy promise.
+
+### Why not stone-600
+
+The obvious fix is one shade darker, which #61 anticipated and flagged as possibly too dark. It is
+worse than too dark — it is a silent deletion. `--unshafted-text-muted` is *already*
+`var(--color-stone-600)`. Setting faint to the same value collapses a three-level text ramp into
+two, and the places that exist in order to differ stop differing:
+
+```css
+.popup-doc-strip-meta      { color: var(--unshafted-text-muted); }  /* Popup.css:655 */
+.popup-doc-strip-skeleton  { color: var(--unshafted-text-faint); }  /* Popup.css:661 */
+```
+
+Those are adjacent rules on adjacent elements. Tailwind has no stone between 500 and 600, so
+clearing AA while keeping three tiers means a value that is not a Tailwind shade.
+
+### What it became
+
+```css
+--unshafted-text-faint: oklch(51% 0.013 58.071);  /* #6c645f */
+```
+
+stone-500's own chroma and hue, held fixed, at lower lightness — so it still reads as the same
+neutral rather than a new colour, just deep enough to land.
+
+| ground | before | after |
+|---|---:|---:|
+| `#efe5d6` — gradient end | 3.84 ❌ | **4.65** ✅ |
+| `#f8f4ee` — `--unshafted-bg` | 4.37 ❌ | **5.29** ✅ |
+| `#fefbf5` — card surface | 4.63 ✅ | **5.61** ✅ |
+| `#fffcf7` — surface-strong | 4.68 ✅ | **5.66** ✅ |
+
+It sits between muted (stone-600, `#57534d`) and the old faint, so the ramp keeps three visibly
+distinct steps.
+
+### The rule it bends, deliberately
+
+`packages/ui/global.css` carries a rule from #59 with no exceptions stated: *a bare hex that names a
+Tailwind shade is written as `var(--color-<shade>)`*. The point of that rule is that risk must not
+be encoded twice and drift — it is about shades that exist in Tailwind being spelled two ways.
+
+This value is not a Tailwind shade at all, so there is no second spelling to drift from. It takes
+the same standing the warm paper already has: *"colours that are not Tailwind shades — `#f8f4ee` and
+its neighbours — are the project's own."* The reasoning is written into the token's comment, next to
+the value, rather than only here.
+
+### Ruled out
+
+- **stone-600** — collapses faint into muted, above.
+- **Shift the whole ramp** (faint→600, muted→700) — stays Tailwind-pure and keeps three tiers, but
+  darkens every muted-text site in the app to fix two faint ones. The blast radius is the wrong
+  shape for the defect.
+- **Lighten the gradient end** — moves the app's signature warm ground to accommodate its faintest
+  text. Backwards.
+
+---
+
+## #62 — one issue number, two decisions
+
+#62 reports six dead tokens (`--unshafted-risk-medium-*`, `--unshafted-risk-high-*`) and, as a
+secondary note, that the two risk encodings are *offset* — token half one hue step hotter in the
+middle, one shade lighter in the text. It suggests resolving the offset before deleting.
+
+Grepping the live consumers says the offset is not a drift to reconcile. It is two different things
+that were never the same thing:
+
+| token | what it actually paints |
+|---|---|
+| `--unshafted-risk-low-*` | `.panel-freshness[data-state='current']` — a snapshot being **fresh** |
+| `--unshafted-risk-low-*` | `.popup-status-pill-ready` — an analysis being **ready** |
+| `--unshafted-guidance-*` | amber notices in `Popup.css`, `Options.css` |
+| `--unshafted-danger-*` | destructive actions and error states in `Popup.css` |
+
+None of that is risk. Meanwhile `RISK_TONE` in `pages/side-panel/src/lib/presentation.ts` is keyed
+on `SitePolicyAnalysis['riskLevel']`, the real four-value domain type, and it grades every risk
+surface in the product through utilities.
+
+So the token family is a **status palette wearing risk's name** — ok / notice / destructive — and
+the "middle of the ramp" was never going to find a consumer, because nothing in the token half
+grades anything. That is the finding, and it changes what deleting means: the six tokens are not a
+half-finished ramp to complete or abandon, they are levels of a ramp that does not exist here.
+
+Which is why it splits. The naming decision is a judgement about what these tokens are for; the
+deletion is mechanical once that is settled, and unsafe before it.
+
+- **[#78](https://github.com/LuDraGa/unshafted/issues/78) — the decision:** name the token family
+  for the status palette it is, and leave risk grading solely to `RISK_TONE`.
+- **[#79](https://github.com/LuDraGa/unshafted/issues/79) — the cleanup:** delete the six dead
+  tokens. Blocked by #78, mechanical after it.
+
+#62 is closed as superseded by the two.
+
+---
+
+## #80 — the utility half, done in the same version
+
+Fixing the token does not fix `text-stone-500`, which was written straight into the class lists.
+This is #59's own warning recurring one surface over: one value, two encodings, only one of which
+moves when the value is fixed.
+
+**20 call sites**, not the 22 first reported — that count was lines-with-matches inflated by a
+miscount, and #80 has been corrected.
+
+| file | sites |
+|---|---:|
+| `pages/popup/src/components/ResultCards.tsx` | 10 |
+| `pages/popup/src/Popup.tsx` | 6 |
+| `pages/options/src/Options.tsx` | 2 |
+| `pages/popup/src/components/SiteStrip.tsx` | 1 |
+| `pages/popup/src/components/AnalysisWorkspace.tsx` | 1 |
+
+### All 20 meant faint, and that is checkable rather than a matter of taste
+
+#80 guessed some sites would turn out to mean `--unshafted-text-muted`. None do, and the reason is
+structural: `text-stone-600` is *already* in use as its own utility, 7 times in the popup. The two
+tiers were being spelled separately all along, so `text-stone-500` is unambiguously the faint tier
+and every site converts to `text-[var(--unshafted-text-faint)]` — the spelling the side panel
+already uses 18 times.
+
+The 10px uppercase tracked eyebrows (`Parties`, `Topics`, `Summary`, the history row's storage
+state) had the clearest precedent of all: `AnalysisView.tsx:82` and `DocumentCard.tsx:51` render
+exactly that pattern through the faint token already.
+
+### Two sites were failing AA, and one was not on a gradient
+
+| site | ground | before | after |
+|---|---|---:|---:|
+| `Popup.tsx:1307` "Checking Drive…" | `.popup-history-panel-body`, gradient end `#efe5d6` | 3.84 ❌ | 4.65 ✅ |
+| `Popup.tsx:1380` "Showing latest 5 reports." | same | 3.84 ❌ | 4.65 ✅ |
+| `ResultCards.tsx:459` `· {role}` | `bg-stone-100/80` composited on the lens panel | **4.43 ❌** | 5.36 ✅ |
+
+The third is the one worth noting: it is not a gradient at all. A tinted pill on a translucent
+panel composites down to `#f0eeec`-ish, and stone-500 lands at 4.43 — under AA for a reason that
+has nothing to do with the shell. It would not have been found by looking at gradients, only by
+resolving each site's actual composited ground.
+
+The remaining 17 sit on card surfaces and passed already, between 4.58 and 4.75 — margins of
+0.08–0.25 over the threshold on text as small as 10px. They now sit between 5.36 and 5.75.
+
+### Verified in the built stylesheets, because this failure mode is silent
+
+`global.css` runs `@import 'tailwindcss' source(none)`, so nothing is scanned unless an `@source`
+says so, and `SidePanel.css` carries an explicit warning that a class Tailwind cannot see fails
+silently rather than loudly. `text-[var(--unshafted-*)]` had **never** been used in the popup or
+options pages before this change — only in the side panel — so whether it would be emitted there
+was a real question, not a formality.
+
+Both pages declare `@source './'`, and the built CSS confirms it:
+
+```
+.text-\[var\(--unshafted-text-faint\)\]{color:var(--unshafted-text-faint)}
+--unshafted-text-faint:oklch(51% .013 58.071)
+```
+
+present in all three page stylesheets, with **zero** occurrences of `stone-500` left in any of
+them — which also confirms nothing else was relying on the shade.
+
+## #81 — naming the ramp that was already there
+
+#81 proposed converting `text-stone-600` and floated `text-stone-900` alongside, hoping for the
+rule *"text colour comes from a token, never from a shade utility."* Surveying the whole ramp first
+changed the shape of the job twice.
+
+**The count in #81 was wrong: 8 `text-stone-600` sites, not 7.** I had grepped `pages/` and missed
+`packages/ui/lib/components/error-display/ErrorDisplay.tsx`, which is shared by the popup and
+options pages.
+
+**And the rule was not reachable as stated.** The utility ramp had *six* levels; the token ramp had
+three. Converting only the tiers that already had tokens would have left 20 sites on bare shades and
+the rule still false:
+
+| shade | uses | token before | token now |
+|---|---:|---|---|
+| `stone-950` | 6 | none | `--unshafted-text-strong` |
+| `stone-900` | 8 | `--unshafted-text` | unchanged |
+| `stone-700` | 12 | none | `--unshafted-text-soft` |
+| `stone-600` | 8 | `--unshafted-text-muted` | unchanged |
+| `stone-400` | 2 | none | `--unshafted-glyph-faint` |
+| `stone-800` | 1 | — | stays a shade, see below |
+| `stone-50` | 3 | — | stays a shade, see below |
+
+So the tiers were *named*, not invented: every new token holds exactly the shade its call sites
+already carried. The design decision was vocabulary; the values did not move, which is what let a
+change this wide land in a version already waiting on CWS review.
+
+### `--unshafted-glyph-faint` is not called `text-*` on purpose
+
+stone-400 is **2.36:1** on the app's own paper. Parking it at the bottom of the text ramp as
+`--unshafted-text-ghost` would have been tidier and would have been a trap: the next person needing
+something lighter than faint reaches for the tier below it and ships 2.36:1 body copy. Its only job
+is the options chevron glyph — a decorative affordance beside a label that carries the meaning — so
+it is named for that and sits outside the ramp. There is no tier below `faint`.
+
+### Seven sites are staying as shades, and that is the point
+
+Not every `text-stone-*` is a text colour. Seven are one half of a background/foreground **tone
+pair**, where the two shades are chosen against each other:
+
+```
+SEVERITY_TONE  low: 'bg-stone-200 text-stone-700'   (ResultCards.tsx:22)
+SEVERITY_TONE  low: 'bg-stone-100 text-stone-700'   (presentation.ts:34)
+options toggle      'bg-stone-100 text-stone-700'   (Options.tsx:408)
+SiteStrip Low  'border-stone-200 bg-stone-50 text-stone-800'
+3 × 'bg-stone-900 … text-stone-50'                  (dark pills and the avatar)
+```
+
+Tokenising the foreground half alone would couple a severity chip to the *text* ramp, so darkening
+body copy later would drag severity-low text with it, away from the background it was picked
+against. #59 established that tone maps live in utility-land precisely so they stay single-encoded;
+these are consistent with that, not exceptions to it.
+
+The working rule, which is what the next person actually needs: **a shade utility that sets text on
+inherited ground becomes a token; a shade utility that is half of a colour pair stays a shade.**
+
+### Verified as a genuine no-op, not asserted as one
+
+The claim "naming changed no pixels" is checkable, so it was checked rather than reasoned about.
+The built stylesheets from before the change were kept and compared against the rebuild:
+
+- Every new token resolves to exactly the shade it replaced — `--unshafted-text-strong` →
+  `oklch(14.7% .004 49.25)`, which is what `.text-stone-950` emitted.
+- No theme variable went missing. This was the real risk: `--unshafted-text-strong:
+  var(--color-stone-950)` resolves to *nothing* if v4 stops emitting that theme var, and the text
+  would silently fall back to inherited colour rather than erroring.
+- The set of resolved colours in each page is **identical** — popup 76 before and after, options 43,
+  side panel 55, with no colour gained and none lost.
+- The only `.text-stone-*` rules still emitted are `50`, `700` and `800`, exactly matching the seven
+  tone-pair halves left behind.
+
+## #78 and #79 — naming the status palette, and what that exposed
+
+#79 was the easy half: the six `--unshafted-risk-medium-*` / `--unshafted-risk-high-*` tokens had no
+consumers and are deleted.
+
+#78 proposed renaming `risk-low` to something honest and keeping `guidance` and `danger` as they
+were. Reading the consumers first showed that would have fixed a third of the problem.
+
+### `guidance` and `danger` were doing two jobs
+
+Nine consumers, and only three of them are notices:
+
+| consumer | what it is |
+|---|---|
+| `.popup-alert-guidance`, `.popup-alert-danger`, `.options-help-card` | genuine notices — keep `guidance` / `danger` |
+| `.popup-accordion-count.severity-{medium,high}` | **severity** |
+| `.popup-chip-severity-{medium,high} .popup-chip-count` | **severity** |
+| `.popup-lens-tab[data-severity='{medium,high}'] .popup-lens-count` | **severity** |
+
+So six of the nine were the CSS-side severity ramp wearing the notice palette's names.
+
+### Which made severity triple-encoded, and the three disagreed
+
+| | popup `severityClasses` | panel `SEVERITY_TONE` | the badges, via `guidance`/`danger` |
+|---|---|---|---|
+| low | stone-200 / stone-700 | stone-**100** / stone-700 | — |
+| medium | amber-100 / amber-900 | amber-100 / amber-900 | amber-**200** / amber-**800** |
+| high | rose-100 / rose-900 | rose-100 / rose-900 | rose-**200** / rose-**800** |
+
+Three answers for one scale, and the two utility maps did not even agree with each other on `low`.
+
+### Unified at `-200`/`-900`, and why not the majority `-100`
+
+The obvious move is the utility maps' `-100` backgrounds: two of the three encodings already used
+them, and they measure better in isolation — 9.43 / 8.13 / 8.00 against 8.19 / 7.28 / 6.78.
+
+They are still wrong here. A count badge carrying **no** severity is `--unshafted-selection-soft`,
+which is `stone-200`. `amber-100` is *lighter* than `stone-200`, so a medium-severity badge would
+have come out paler than a badge with no severity at all — visual weight inverted against meaning.
+At `-200` every severity badge matches the neutral badge's weight and differs only in hue, which is
+what the badge design was already doing before it had a name.
+
+Text takes the utility maps' `-900` rather than the badges' `-800`, which is the half the badges had
+wrong: 5.70 → 7.28 for medium, 5.59 → 6.78 for high. Every level clears AA with room.
+
+No `-border` tokens and no `severity-low` CSS rule, because nothing consumes them. Six tokens had
+just died of precisely that.
+
+### The vocabulary now
+
+`ok` (was `risk-low`) · `changed` (was raw `--color-violet-*` — the one freshness state with no
+token at all) · `guidance` · `danger` · `severity-{low,medium,high}`. Risk is not in that list, and
+that is the whole point of #78: risk grading is `RISK_TONE`, and nothing else.
+
+### Verified
+
+Built stylesheets kept from before and diffed. **No colour was gained on any page.** The only losses
+are severity's old `-100` backgrounds — popup lost `amber-100`; side panel lost `amber-100`,
+`rose-100` and `stone-100` — which is the intended change and nothing besides. Options is
+byte-identical. The emitted rules resolve as intended:
+`.popup-chip-severity-medium .popup-chip-count` is `amber-900` on `amber-200`, `-high` is
+`rose-900` on `rose-200`.
+
+The colour-set diff reads `color:` / `background:` declarations, so it cannot see custom-property
+declarations and says nothing about what #79's deletion removed from the theme. Checked separately:
+the six dead tokens were the sole reference for `orange-800` and `red-200`, which dropped from all
+three pages, plus `orange-50` and `orange-200` in options specifically, which has no risk surfaces.
+`orange-900` and `red-800` stay — `RISK_TONE` and `ErrorDisplay` respectively. Worth stating because
+"the risk tokens are gone, so orange and red are gone" is the obvious inference and it is false.
+
+## Raised, not done here
+
+**[#82](https://github.com/LuDraGa/unshafted/issues/82) — risk tone is encoded four times.** The
+same pattern one axis over, and worse. `presentation.ts` and `Popup.tsx` agree; `ResultCards.tsx`
+differs by a border shade; `SiteStrip.tsx` renders Low as **grey** where everywhere else it is
+**green**, and High as **rose** where everywhere else it is **orange** — the same colour that strip
+uses for Very High, so the two top grades are nearly indistinguishable there and clearly distinct
+everywhere else.
+
+Not folded in here because it cannot be settled by taking the majority, the way severity could. It
+asks whether Low means *safe* or *nothing to say* — a claim about a policy, not a choice of shade.
+
+**[#81](https://github.com/LuDraGa/unshafted/issues/81)** is done; nothing else outstanding from
+#61, #62, #78, #79 or #80.
+
+## Verification
+
+Contrast computed by converting Tailwind v4's OKLCH source values (`node_modules/tailwindcss/theme.css`)
+to sRGB and applying WCAG 2.x relative luminance, with `rgba()` surfaces composited over the paper
+first. Grounds measured are the four the app paints: both gradient endpoints, `--unshafted-bg`, and
+both card surfaces.
+
+The failing sites were found by reading what each `--unshafted-text-faint` consumer actually sits
+on, not by trusting the token name — which is the step #61 and the palette doc both skipped, and the
+reason the reported figure was 4.37 rather than 3.84.
+
+For #80 the same method found a failure that gradients would not explain: `ResultCards.tsx:459`
+sits on `bg-stone-100/80` over a translucent lens panel, and only compositing that stack shows 4.43.
+Grounds were resolved per call site — gradient endpoints, `rgba()` surfaces composited in order, and
+tinted pills composited over whatever they sit on — rather than per token.
+
+`pnpm build`, `pnpm type-check` (12 tasks), `pnpm test` (14 tasks), `pnpm lint` (11 tasks) and
+`prettier --check .` all pass. The built stylesheets were then read directly, because `source(none)`
+means an unscanned class fails silently rather than erroring.

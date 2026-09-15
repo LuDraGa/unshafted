@@ -126,13 +126,11 @@ WCAG 2.1 ratio against the actual painted colours:
 | `amber-900` on `amber-100` | `SEVERITY_TONE` medium | 8.15 | 8.13 | −0.02 |
 | `rose-900` on `rose-100` | `SEVERITY_TONE` high | 7.97 | 8.00 | +0.03 |
 | `rose-950` on `rose-100` | panel alert | 13.02 | 13.08 | +0.05 |
-| `rose-800` on `rose-50` | `--unshafted-danger-*` (token half) | 7.30 | 7.21 | −0.09 |
+| `rose-800` on `rose-50` | `--unshafted-danger-*` | 7.30 | 7.21 | −0.09 |
 | `rose-700` on warm paper | popup danger menu item | 5.74 | 5.50 | **−0.23** |
-| `emerald-800` on `emerald-50` | `--unshafted-risk-low-*` (token half) | 7.29 | 7.23 | −0.07 |
-| `amber-800` on `amber-50` | `--unshafted-guidance-*` (token half) | 6.84 | 6.84 | −0.00 |
+| `emerald-800` on `emerald-50` | `--unshafted-ok-*` (was `risk-low`, #78) | 7.29 | 7.23 | −0.07 |
+| `amber-800` on `amber-50` | `--unshafted-guidance-*` | 6.84 | 6.84 | −0.00 |
 | `amber-800` on warm paper | `--unshafted-brand` | 6.47 | 6.47 | −0.00 |
-| `orange-800` on `orange-50` | `--unshafted-risk-medium-*` | 6.88 | 6.94 | +0.06 |
-| `red-800` on `red-50` | `--unshafted-risk-high-*` | 7.60 | 7.64 | +0.04 |
 | `violet-800` on `violet-50` | panel freshness "changed" | 8.19 | 8.36 | +0.17 |
 | `violet-700` / `violet-900` on card | panel "changed" caption / body | 6.94 / 10.70 | 7.13 / 10.77 | +0.19 / +0.07 |
 | `amber-700` on warm paper | inline link | 4.58 | 4.59 | +0.01 |
@@ -148,6 +146,16 @@ a text pair because its only site is a 64px `WarningIcon`, a non-text graphic ne
 One pair is below AA both before and after: `--unshafted-text-faint` (stone-500) on warm paper, 4.38
 → 4.37. That is a pre-existing condition this change neither caused nor fixed —
 [#61](https://github.com/LuDraGa/unshafted/issues/61).
+
+> **Correction, v0.8.1.** "Warm paper" everywhere in this table means `--unshafted-bg`, `#f8f4ee`.
+> That is the token, and for most of these pairs it is also the pixel. It is not the pixel for
+> `--unshafted-text-faint`. The popup and panel shells are
+> `linear-gradient(180deg, #f7f2ea 0%, var(--unshafted-bg-warm) 100%)`, and faint text's two most
+> visible sites — the popup's sticky footer and the panel's `mt-auto` privacy line — are pinned to
+> the bottom of that gradient, on `--unshafted-bg-warm` (`#efe5d6`). There stone-500 is **3.84:1**,
+> not 4.37. The table measured against the token rather than the painted ground, so it understated
+> the one failure it found. Every other row's ground is a card surface or a shade pair and is
+> unaffected. Fixed in 0.8.1 — see `execution-docs/text-faint-contrast-and-risk-ramp.md`.
 
 ## How it was verified
 
@@ -187,7 +195,8 @@ look like. Every one of the 16 distinct moves in the richest case is a v3→v4 s
 `americanexpress.com` is the useful fixture: its four documents land on High, High, Medium and Low,
 so a single screen exercises three risk tones at once. `tiktok.com` supplies Very High. Both halves
 move together on that screen — `#064e3b → #004f3b` is the token half
-(`--unshafted-risk-low-text`), `#881337 → #8b0836` is the utility half (`text-rose-900`).
+(`--unshafted-risk-low-text`, since renamed `--unshafted-ok-text` — #78), `#881337 → #8b0836` is
+the utility half (`text-rose-900`).
 
 ### 3. Rendered UI, before and after
 
@@ -224,3 +233,16 @@ The migration's scratch scripts were gone, so these were rebuilt and are worth k
 - [#62](https://github.com/LuDraGa/unshafted/issues/62) — `--unshafted-risk-medium-*` and
   `--unshafted-risk-high-*` have no consumers anywhere. Six dead tokens, carried forward here so the
   ramp stays coherent rather than half-migrated, but they should probably go.
+
+> **Note, v0.8.1.** The two `--unshafted-risk-medium-*` / `--unshafted-risk-high-*` rows are gone
+> from the table above because the tokens are gone ([#79](https://github.com/LuDraGa/unshafted/issues/79)),
+> and `--unshafted-risk-low-*` is now `--unshafted-ok-*`
+> ([#78](https://github.com/LuDraGa/unshafted/issues/78)). Severity moved off `guidance`/`danger`
+> onto its own tokens at `-200`/`-900`, which raises the badge half from 5.70/5.59 to 7.28/6.78 —
+> see `execution-docs/text-faint-contrast-and-risk-ramp.md`.
+
+**Both resolved in 0.8.1.** #61 is fixed: the real worst case was 3.84:1 on `#efe5d6`, not 4.37 on
+`#f8f4ee`, and `--unshafted-text-faint` is now `oklch(51% 0.013 58.071)`. #62 turned out to be two
+decisions wearing one issue number and was split — the token family is a *status* palette, not a
+risk ramp, which is why its middle never found a consumer. See
+`execution-docs/text-faint-contrast-and-risk-ramp.md`.

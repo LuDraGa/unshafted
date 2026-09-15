@@ -19,9 +19,9 @@ const verdictToneClasses: Record<VerdictTone, string> = {
 };
 
 const severityClasses: Record<Severity, string> = {
-  low: 'bg-stone-200 text-stone-700',
-  medium: 'bg-amber-100 text-amber-900',
-  high: 'bg-rose-100 text-rose-900',
+  low: 'bg-[var(--unshafted-severity-low-bg)] text-[var(--unshafted-severity-low-text)]',
+  medium: 'bg-[var(--unshafted-severity-medium-bg)] text-[var(--unshafted-severity-medium-text)]',
+  high: 'bg-[var(--unshafted-severity-high-bg)] text-[var(--unshafted-severity-high-text)]',
 };
 
 const RiskBadge = ({ label }: { label: VerdictTone }) => (
@@ -46,8 +46,8 @@ const SeverityBadge = ({ severity }: { severity: Severity }) => (
 
 const SectionHeader = ({ title, subtitle }: { title: string; subtitle?: string }) => (
   <div className="space-y-1">
-    <h2 className="text-base font-semibold tracking-[-0.03em] text-stone-950">{title}</h2>
-    {subtitle ? <p className="text-xs text-stone-600">{subtitle}</p> : null}
+    <h2 className="text-base font-semibold tracking-[-0.03em] text-[var(--unshafted-text-strong)]">{title}</h2>
+    {subtitle ? <p className="text-xs text-[var(--unshafted-text-muted)]">{subtitle}</p> : null}
   </div>
 );
 
@@ -190,12 +190,14 @@ const FindingBody = ({ item }: { item: DetailedFinding }) => (
   <>
     {item.reference?.quote ? <QuoteBlock text={item.reference.quote} /> : null}
     <p>
-      <strong className="text-stone-900">What this means.</strong> {item.whatItMeans}
+      <strong className="text-[var(--unshafted-text)]">What this means.</strong> {item.whatItMeans}
     </p>
     <p>
-      <strong className="text-stone-900">Why it matters.</strong> {item.whyItMatters}
+      <strong className="text-[var(--unshafted-text)]">Why it matters.</strong> {item.whyItMatters}
     </p>
-    {item.reference?.label ? <p className="text-[11px] text-stone-500">Reference: {item.reference.label}</p> : null}
+    {item.reference?.label ? (
+      <p className="text-[11px] text-[var(--unshafted-text-faint)]">Reference: {item.reference.label}</p>
+    ) : null}
   </>
 );
 
@@ -203,7 +205,9 @@ const QuickFlagBody = ({ item }: { item: QuickScanResult['redFlags'][number] }) 
   <>
     <p>{item.reason}</p>
     {item.reference?.quote ? <QuoteBlock text={item.reference.quote} /> : null}
-    {item.reference?.label ? <p className="text-[11px] text-stone-500">Reference: {item.reference.label}</p> : null}
+    {item.reference?.label ? (
+      <p className="text-[11px] text-[var(--unshafted-text-faint)]">Reference: {item.reference.label}</p>
+    ) : null}
   </>
 );
 
@@ -288,16 +292,18 @@ const buildAsksLens = (quick: QuickScanResult, deep: DeepAnalysisResult | null |
                 <p>{item.why}</p>
                 {item.fallback ? (
                   <p>
-                    <strong className="text-stone-900">Fallback.</strong> {item.fallback}
+                    <strong className="text-[var(--unshafted-text)]">Fallback.</strong> {item.fallback}
                   </p>
                 ) : null}
-                {item.targetClause ? <p className="text-[11px] text-stone-500">Target: {item.targetClause}</p> : null}
+                {item.targetClause ? (
+                  <p className="text-[11px] text-[var(--unshafted-text-faint)]">Target: {item.targetClause}</p>
+                ) : null}
               </CollapsibleItem>
             ))}
             {deep.suggestedEdits.map(item => (
               <CollapsibleItem key={`edit-${item.title}`} title={item.title}>
                 <p>
-                  <strong className="text-stone-900">Edit.</strong> {item.plainEnglishEdit}
+                  <strong className="text-[var(--unshafted-text)]">Edit.</strong> {item.plainEnglishEdit}
                 </p>
                 <p>{item.why}</p>
               </CollapsibleItem>
@@ -306,7 +312,7 @@ const buildAsksLens = (quick: QuickScanResult, deep: DeepAnalysisResult | null |
               <CollapsibleItem key={`miss-${item.title}`} title={`Missing: ${item.title}`}>
                 <p>{item.whyMissingMatters}</p>
                 <p>
-                  <strong className="text-stone-900">Common fix.</strong> {item.commonFix}
+                  <strong className="text-[var(--unshafted-text)]">Common fix.</strong> {item.commonFix}
                 </p>
               </CollapsibleItem>
             ))}
@@ -369,7 +375,7 @@ const buildObligationsLens = (quick: QuickScanResult): LensDef | null => {
     label: 'Obligations',
     count: quick.keyObligations.length,
     content: (
-      <ul className="list-disc space-y-1.5 px-3 py-2 pl-7 text-xs leading-5 text-stone-700">
+      <ul className="list-disc space-y-1.5 px-3 py-2 pl-7 text-xs leading-5 text-[var(--unshafted-text-soft)]">
         {quick.keyObligations.map(item => (
           <li key={item}>{item}</li>
         ))}
@@ -408,7 +414,7 @@ const buildEvidenceLens = (deep: DeepAnalysisResult | null | undefined): LensDef
             severity={item.severity}>
             <p>{item.whyItMatters}</p>
             {item.reference?.label ? (
-              <p className="text-[11px] text-stone-500">Reference: {item.reference.label}</p>
+              <p className="text-[11px] text-[var(--unshafted-text-faint)]">Reference: {item.reference.label}</p>
             ) : null}
           </CollapsibleItem>
         ))}
@@ -429,7 +435,7 @@ const buildWinsLens = (deep: DeepAnalysisResult | null | undefined): LensDef | n
           <CollapsibleItem key={`win-${item.title}`} title={item.title}>
             <p>{item.whyItHelps}</p>
             {item.reference?.label ? (
-              <p className="text-[11px] text-stone-500">Reference: {item.reference.label}</p>
+              <p className="text-[11px] text-[var(--unshafted-text-faint)]">Reference: {item.reference.label}</p>
             ) : null}
           </CollapsibleItem>
         ))}
@@ -446,17 +452,19 @@ const buildDocLens = (
   id: 'doc',
   label: 'Doc',
   content: (
-    <div className="space-y-3 px-3 py-2 text-xs leading-5 text-stone-700">
+    <div className="space-y-3 px-3 py-2 text-xs leading-5 text-[var(--unshafted-text-soft)]">
       {quick.parties.length > 0 ? (
         <div>
-          <p className="text-[10px] font-semibold tracking-[0.18em] text-stone-500 uppercase">Parties</p>
+          <p className="text-[10px] font-semibold tracking-[0.18em] text-[var(--unshafted-text-faint)] uppercase">
+            Parties
+          </p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {quick.parties.map(p => (
               <span
                 key={`${p.name}-${p.role}`}
-                className="rounded-full bg-stone-100/80 px-2.5 py-1 text-xs text-stone-700">
-                <span className="font-semibold text-stone-950">{p.name}</span>
-                <span className="text-stone-500"> · {p.role}</span>
+                className="rounded-full bg-stone-100/80 px-2.5 py-1 text-xs text-[var(--unshafted-text-soft)]">
+                <span className="font-semibold text-[var(--unshafted-text-strong)]">{p.name}</span>
+                <span className="text-[var(--unshafted-text-faint)]"> · {p.role}</span>
               </span>
             ))}
           </div>
@@ -464,12 +472,14 @@ const buildDocLens = (
       ) : null}
       {quick.topics.length > 0 ? (
         <div>
-          <p className="text-[10px] font-semibold tracking-[0.18em] text-stone-500 uppercase">Topics</p>
+          <p className="text-[10px] font-semibold tracking-[0.18em] text-[var(--unshafted-text-faint)] uppercase">
+            Topics
+          </p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {quick.topics.map(t => (
               <span
                 key={t}
-                className="rounded-full border border-stone-200 bg-white/80 px-2.5 py-1 text-[11px] font-semibold text-stone-700">
+                className="rounded-full border border-stone-200 bg-white/80 px-2.5 py-1 text-[11px] font-semibold text-[var(--unshafted-text-soft)]">
                 {t}
               </span>
             ))}
@@ -477,10 +487,12 @@ const buildDocLens = (
         </div>
       ) : null}
       <div>
-        <p className="text-[10px] font-semibold tracking-[0.18em] text-stone-500 uppercase">Summary</p>
+        <p className="text-[10px] font-semibold tracking-[0.18em] text-[var(--unshafted-text-faint)] uppercase">
+          Summary
+        </p>
         <p className="mt-1">{deep?.plainEnglishSummary ?? quick.summary}</p>
       </div>
-      <p className="text-[11px] text-stone-500">
+      <p className="text-[11px] text-[var(--unshafted-text-faint)]">
         {quick.documentType} · Reviewed as {reviewedAs}
       </p>
     </div>
@@ -503,7 +515,7 @@ const buildCaveatsLens = (
     label: 'Caveats',
     count: total,
     content: (
-      <div className="space-y-2 px-2 py-2 text-xs leading-5 text-stone-700">
+      <div className="space-y-2 px-2 py-2 text-xs leading-5 text-[var(--unshafted-text-soft)]">
         {extraction.map(note => (
           <div
             key={`ex-${note}`}
@@ -519,7 +531,7 @@ const buildCaveatsLens = (
         {assumptions.map(note => (
           <div
             key={`as-${note}`}
-            className="rounded-xl border border-stone-200 bg-stone-100/80 px-3 py-2 text-stone-600">
+            className="rounded-xl border border-stone-200 bg-stone-100/80 px-3 py-2 text-[var(--unshafted-text-muted)]">
             {note}
           </div>
         ))}

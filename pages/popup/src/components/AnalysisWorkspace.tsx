@@ -304,7 +304,7 @@ export const AnalysisWorkspace = ({
 
       {/* Quick scan running indicator (small status line below skeleton) */}
       {isQuickRunning && !quickScan ? (
-        <div className="flex items-center gap-2 px-1 text-xs text-stone-600">
+        <div className="flex items-center gap-2 px-1 text-xs text-[var(--unshafted-text-muted)]">
           <div className="popup-spinner" />
           <p>{LOADING_STEPS[stepIndex]}</p>
         </div>
@@ -318,10 +318,10 @@ export const AnalysisWorkspace = ({
         <section className="rounded-xl border border-stone-200 bg-white/80 px-3 py-2.5">
           <div className="flex items-center gap-2">
             <div className="popup-spinner" />
-            <p className="text-xs font-semibold text-stone-900">{LOADING_STEPS[stepIndex]}</p>
+            <p className="text-xs font-semibold text-[var(--unshafted-text)]">{LOADING_STEPS[stepIndex]}</p>
             <RiskBadge label={toVerdictTone(currentAnalysis.quickScan?.roughRiskLevel ?? 'Medium')} />
           </div>
-          <p className="mt-1 text-[11px] text-stone-500">
+          <p className="mt-1 text-[11px] text-[var(--unshafted-text-faint)]">
             Reviewing as {selectedRole}. Closing the popup is fine — this runs in the background.
           </p>
         </section>

@@ -69,9 +69,62 @@
   --unshafted-surface-strong: rgba(255, 252, 247, 0.96);
   --unshafted-border: rgba(121, 113, 107, 0.18);
   --unshafted-border-strong: rgba(121, 113, 107, 0.28);
+  /*
+   * The text ramp, darkest first. Six levels, because the pages were already using six — this is
+   * the ramp that existed as bare `text-stone-*` utilities, named rather than invented (#81).
+   *
+   * Every value here is the shade those utilities already carried, so naming them changed no
+   * pixels. What it changes is that there is now one place to adjust a tier, instead of a token
+   * that moves and a scattering of utilities that do not — the failure that produced #61 and #80.
+   *
+   * Contrast on the app's darkest ground (`--unshafted-bg-warm`, #efe5d6), which is the one that
+   * matters because both shells end there: strong 15.85, text 14.03, soft 8.25, muted 6.13,
+   * faint 4.65. All clear AA for normal text.
+   *
+   * `--unshafted-glyph-faint` is deliberately NOT in that list and deliberately not named
+   * `text-*`. See below.
+   */
+  --unshafted-text-strong: var(--color-stone-950);
   --unshafted-text: var(--color-stone-900);
+  --unshafted-text-soft: var(--color-stone-700);
   --unshafted-text-muted: var(--color-stone-600);
-  --unshafted-text-faint: var(--color-stone-500);
+  /*
+   * NOT a Tailwind reference, and the one deliberate exception to the rule above.
+   *
+   * stone-500 was 4.37:1 on `--unshafted-bg`, already under AA for normal text (#61). But
+   * `--unshafted-bg` is not what this token gets painted on. The popup shell and the panel shell
+   * are both `linear-gradient(180deg, #f7f2ea 0%, var(--unshafted-bg-warm) 100%)`, and the two
+   * most visible faint-text sites are pinned to the bottom of that gradient — the popup's sticky
+   * footer, which is `position: sticky; bottom: 0` over `background: inherit`, and the panel's
+   * `mt-auto` privacy line at 10px. Their real ground is #efe5d6, where stone-500 is 3.84:1. So
+   * the pair #61 measured is not the failing pair, and it is not the worst one either.
+   *
+   * stone-600 fixes the number by deleting the token: it is already `--unshafted-text-muted`'s
+   * value, so faint and muted would render identically, and the pairs that exist in order to
+   * differ — `.popup-doc-strip-meta` directly above `.popup-doc-strip-skeleton` — would stop
+   * differing. Tailwind has no stone between 500 and 600, so clearing AA while keeping three
+   * distinct text tiers takes a value of the project's own, at the same standing as the warm
+   * paper it sits on.
+   *
+   * This is stone-500's own chroma and hue held fixed at lower lightness — #6c645f, so the token
+   * still reads as the same neutral, just deep enough to land. It clears AA on every ground the
+   * app actually paints: 4.65 on #efe5d6, 5.29 on `--unshafted-bg`, 5.61 on the card surface.
+   * Measured against the gradient endpoint rather than the token, which is the step #61 skipped.
+   */
+  --unshafted-text-faint: oklch(51% 0.013 58.071);
+  /*
+   * NOT a text colour, which is why it is not called one.
+   *
+   * stone-400 is 2.36:1 on the app's own paper — it would fail AA for normal text by a factor of
+   * two, and it is not close enough to fix by nudging. Its only job is the options chevron glyph,
+   * a decorative affordance next to a label that carries the actual meaning.
+   *
+   * Naming it `--unshafted-text-ghost` and parking it at the bottom of the ramp above would have
+   * been tidier and would have been a trap: the next person needing something lighter than faint
+   * would reach for the next tier down, and ship 2.36:1 body copy. There is no tier below faint,
+   * and this token is not one.
+   */
+  --unshafted-glyph-faint: var(--color-stone-400);
   --unshafted-brand: var(--color-amber-800);
   --unshafted-brand-soft: rgba(255, 251, 235, 0.62);
   --unshafted-action: var(--color-gray-800);
@@ -79,21 +132,60 @@
   --unshafted-selection: var(--color-stone-800);
   --unshafted-selection-soft: var(--color-stone-200);
   --unshafted-focus: rgba(255, 185, 0, 0.18);
+  /*
+   * Status, not risk (#78). These never graded risk — risk grading is `RISK_TONE` in the side
+   * panel's `presentation.ts`, keyed on `SitePolicyAnalysis['riskLevel']`, and it is the only
+   * encoding of it. What these paint is state and intent: a snapshot being fresh, an analysis
+   * being ready, a notice, a destructive action.
+   *
+   * They were called `--unshafted-risk-*` and that name cost something real. It read as a
+   * four-level ramp, so `risk-medium` and `risk-high` were carried along for two releases looking
+   * like an unfinished ramp rather than what they were — levels of a ramp that has no business on
+   * this side of the app. #79 deleted them.
+   */
+  --unshafted-ok-border: var(--color-emerald-200);
+  --unshafted-ok-bg: var(--color-emerald-50);
+  --unshafted-ok-text: var(--color-emerald-800);
+  --unshafted-changed-border: var(--color-violet-200);
+  --unshafted-changed-bg: var(--color-violet-50);
+  --unshafted-changed-text: var(--color-violet-800);
   --unshafted-guidance-border: var(--color-amber-200);
   --unshafted-guidance-bg: var(--color-amber-50);
   --unshafted-guidance-text: var(--color-amber-800);
-  --unshafted-risk-low-border: var(--color-emerald-200);
-  --unshafted-risk-low-bg: var(--color-emerald-50);
-  --unshafted-risk-low-text: var(--color-emerald-800);
-  --unshafted-risk-medium-border: var(--color-orange-200);
-  --unshafted-risk-medium-bg: var(--color-orange-50);
-  --unshafted-risk-medium-text: var(--color-orange-800);
-  --unshafted-risk-high-border: var(--color-red-200);
-  --unshafted-risk-high-bg: var(--color-red-50);
-  --unshafted-risk-high-text: var(--color-red-800);
   --unshafted-danger-border: var(--color-rose-200);
   --unshafted-danger-bg: var(--color-rose-50);
   --unshafted-danger-text: var(--color-rose-800);
+
+  /*
+   * Severity, which is a different axis from both of the above and was encoded THREE times.
+   *
+   * `severityClasses` in the popup's ResultCards, `SEVERITY_TONE` in the panel's presentation.ts,
+   * and — via `guidance`/`danger` doing double duty — the count badges in Popup.css. The three
+   * disagreed: the utility maps painted `amber-100`/`amber-900`, the badges `amber-200`/
+   * `amber-800`, and the two utility maps did not even agree with each other on `low`
+   * (`stone-200` against `stone-100`). One product, one severity scale, three answers.
+   *
+   * This is the single encoding. The `-200` backgrounds win over the utility maps' `-100` for a
+   * reason worth keeping: a count badge with no severity is `--unshafted-selection-soft`, which is
+   * `stone-200`. `amber-100` is *lighter* than `stone-200`, so a medium-severity badge would have
+   * come out paler than a badge carrying no severity at all — weight inverted against meaning. At
+   * `-200` every severity badge matches the neutral one's weight and differs only in hue, which is
+   * what the badge design was already doing before anyone named it.
+   *
+   * Text goes to `-900`, the utility maps' shade rather than the badges' `-800`. That is the half
+   * of the disagreement the badges had wrong: `amber-800` on `amber-200` is 5.70:1 and
+   * `rose-800` on `rose-200` is 5.59, against 7.28 and 6.78 at `-900`. Every level now clears AA
+   * with room — low 8.19, medium 7.28, high 6.78 — where before the badge half sat in the fives.
+   *
+   * No `-border` here, and no `severity-low` rule in Popup.css, because nothing consumes them.
+   * Six tokens just died of exactly that (#79); adding four more on speculation repeats it.
+   */
+  --unshafted-severity-low-bg: var(--color-stone-200);
+  --unshafted-severity-low-text: var(--color-stone-700);
+  --unshafted-severity-medium-bg: var(--color-amber-200);
+  --unshafted-severity-medium-text: var(--color-amber-900);
+  --unshafted-severity-high-bg: var(--color-rose-200);
+  --unshafted-severity-high-text: var(--color-rose-900);
   --unshafted-radius-card: 20px;
   --unshafted-shadow-card: 0 16px 40px rgba(28, 25, 23, 0.06);
 }
