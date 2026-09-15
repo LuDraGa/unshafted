@@ -277,6 +277,9 @@ importers:
       '@extension/storage':
         specifier: workspace:*
         version: link:../storage
+      '@extension/unshafted-core':
+        specifier: workspace:*
+        version: link:../unshafted-core
       clsx:
         specifier: ^2.1.1
         version: 2.1.1

@@ -1,4 +1,5 @@
 import { resolveCoveredHostname, resolveHostnameAnalyses } from '@extension/shared';
+import { RISK_TONE } from '@extension/ui';
 import { domainRiskSummary } from '@extension/unshafted-core';
 import { useEffect, useState } from 'react';
 import type { RiskLevel } from '@extension/unshafted-core';
@@ -28,14 +29,6 @@ import type { RiskLevel } from '@extension/unshafted-core';
  * ZERO NETWORK (AD-2 / D11). Both lookups below read extension-local assets through
  * `chrome.runtime.getURL`. Nothing keyed by the user's domain leaves the browser.
  */
-
-/** Matches the badge's four tints in spirit; the popup has room for words, so it uses them too. */
-const RISK_TONE: Record<RiskLevel, string> = {
-  Low: 'border-stone-200 bg-stone-50 text-stone-800',
-  Medium: 'border-amber-200 bg-amber-50 text-amber-900',
-  High: 'border-rose-200 bg-rose-50 text-rose-900',
-  'Very High': 'border-rose-300 bg-rose-100 text-rose-950',
-};
 
 type StripState =
   | { kind: 'hidden' }

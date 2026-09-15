@@ -1,4 +1,5 @@
-import { cn } from '@extension/ui';
+import { RISK_TONE, cn } from '@extension/ui';
+import { toVerdictTone } from '@extension/unshafted-core';
 import { useMemo, useState } from 'react';
 import type {
   CurrentAnalysis,
@@ -6,17 +7,10 @@ import type {
   DetailedFinding,
   HistoryRecord,
   QuickScanResult,
+  RiskLevel,
 } from '@extension/unshafted-core';
 
 type Severity = 'low' | 'medium' | 'high';
-type VerdictTone = 'LOW' | 'CAUTION' | 'HIGH' | 'DANGER';
-
-const verdictToneClasses: Record<VerdictTone, string> = {
-  LOW: 'border-emerald-300 bg-emerald-50 text-emerald-900',
-  CAUTION: 'border-amber-300 bg-amber-50 text-amber-900',
-  HIGH: 'border-orange-300 bg-orange-50 text-orange-900',
-  DANGER: 'border-rose-300 bg-rose-50 text-rose-900',
-};
 
 const severityClasses: Record<Severity, string> = {
   low: 'bg-[var(--unshafted-severity-low-bg)] text-[var(--unshafted-severity-low-text)]',
@@ -24,13 +18,22 @@ const severityClasses: Record<Severity, string> = {
   high: 'bg-[var(--unshafted-severity-high-bg)] text-[var(--unshafted-severity-high-text)]',
 };
 
-const RiskBadge = ({ label }: { label: VerdictTone }) => (
+/**
+ * The verdict badge takes the RISK LEVEL, not the word.
+ *
+ * `toVerdictTone` is a pure rename of the same four-value domain — Low→LOW, Medium→CAUTION,
+ * High→HIGH, Very High→DANGER — so a badge given the word had to be given a second colour map
+ * keyed on it, which is how this file ended up with its own copy of the risk ramp, one border
+ * shade off the panel's (#82). Taking the level instead means the word is a label and the colour
+ * comes from the one map, and the caller stops converting a level only for it to be converted back.
+ */
+const RiskBadge = ({ level }: { level: RiskLevel }) => (
   <span
     className={cn(
       'rounded-full border px-3 py-1 text-[11px] font-semibold tracking-[0.18em] uppercase',
-      verdictToneClasses[label],
+      RISK_TONE[level],
     )}>
-    {label}
+    {toVerdictTone(level)}
   </span>
 );
 
@@ -90,10 +93,10 @@ const DocStrip = ({ name, type, partyCount }: { name: string; type?: string; par
   </div>
 );
 
-const CompactVerdict = ({ tone, action, preview }: { tone: VerdictTone; action: string; preview?: string }) => (
+const CompactVerdict = ({ level, action, preview }: { level: RiskLevel; action: string; preview?: string }) => (
   <section className="popup-verdict" data-onboarding-target="summary">
     <div className="popup-verdict-headline">
-      <RiskBadge label={tone} />
+      <RiskBadge level={level} />
       <h2 className="popup-verdict-action">{action}</h2>
     </div>
     {preview ? <p className="popup-verdict-preview">{preview}</p> : null}

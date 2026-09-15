@@ -18,11 +18,30 @@ import type { PolicyIndexEntry } from '@extension/unshafted-core';
 
 const BADGE_TEXT = '•';
 
+/**
+ * The badge grades on the same axis as every other surface, so it grades in the same hue (#82).
+ *
+ * It used to run grey → amber → red → dark red, and `SiteStrip` faithfully matched it, which is
+ * how the popup came to paint Low grey and High rose while the panel painted them green and
+ * orange. Grey is gone from the ramp for a reason beyond consistency: grey means "not analysed",
+ * which is what the strip's uncovered state says, and a badge must never make the absence of a
+ * grade look like a good one.
+ *
+ * SATURATED SHADES, not the tints the surfaces use. This is a filled dot a few pixels wide on
+ * browser chrome we do not control, so it needs chroma rather than a wash — rose-300, rose-400,
+ * rose-600, rose-800, the same hue as `RISK_TONE` taken further down the ramp.
+ *
+ * These are hexes, and `global.css` otherwise requires a Tailwind shade be written as
+ * `var(--color-<shade>)` so risk cannot be encoded twice and drift. That rule cannot reach here:
+ * `chrome.action.setBadgeBackgroundColor` takes a colour, not a stylesheet, and a service worker
+ * has no CSS custom properties to resolve. The shade names are recorded above instead, so the two
+ * halves can still be checked against each other by eye.
+ */
 const BADGE_COLORS: Record<PolicyIndexEntry['riskLevel'], string> = {
-  Low: '#6b7280',
-  Medium: '#d97706',
-  High: '#dc2626',
-  'Very High': '#991b1b',
+  Low: '#ffa1ad',
+  Medium: '#ff637e',
+  High: '#ec003f',
+  'Very High': '#a50036',
 };
 
 type Resolution = Awaited<ReturnType<typeof resolveCoveredHostname>>;
