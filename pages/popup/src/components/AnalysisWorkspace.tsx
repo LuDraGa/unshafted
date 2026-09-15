@@ -14,13 +14,12 @@ import {
   PRIORITY_OPTIONS,
   buildRoleOptions,
   buildSuggestedPriorities,
-  toVerdictTone,
   RUN_QUICK_SCAN_MESSAGE,
   RUN_DEEP_ANALYSIS_MESSAGE,
 } from '@extension/unshafted-core';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Session } from '@extension/supabase';
-import type { CurrentAnalysis, AnalysisMessageResponse } from '@extension/unshafted-core';
+import type { CurrentAnalysis, AnalysisMessageResponse, RiskLevel } from '@extension/unshafted-core';
 
 type PriorityOption = (typeof PRIORITY_OPTIONS)[number];
 
@@ -248,11 +247,9 @@ export const AnalysisWorkspace = ({
   const isDeepRunning = currentAnalysis.status === 'deep-running';
   const showCtaBar = !!quickScan && !deepAnalysis && !isDeepRunning && !isQuickRunning;
 
-  const verdictTone = deepAnalysis
-    ? toVerdictTone(deepAnalysis.overallRiskLevel)
-    : quickScan
-      ? toVerdictTone(quickScan.roughRiskLevel)
-      : 'CAUTION';
+  const verdictLevel: RiskLevel = deepAnalysis
+    ? deepAnalysis.overallRiskLevel
+    : (quickScan?.roughRiskLevel ?? 'Medium');
   const verdictAction = deepAnalysis
     ? getDecisionAction(deepAnalysis.overallRiskLevel)
     : quickScan
@@ -299,7 +296,7 @@ export const AnalysisWorkspace = ({
       {!quickScan && isQuickRunning ? (
         <VerdictSkeleton ariaLabel="Running quick scan" />
       ) : quickScan ? (
-        <CompactVerdict tone={verdictTone} action={verdictAction} preview={verdictPreview} />
+        <CompactVerdict level={verdictLevel} action={verdictAction} preview={verdictPreview} />
       ) : null}
 
       {/* Quick scan running indicator (small status line below skeleton) */}
@@ -319,7 +316,7 @@ export const AnalysisWorkspace = ({
           <div className="flex items-center gap-2">
             <div className="popup-spinner" />
             <p className="text-xs font-semibold text-[var(--unshafted-text)]">{LOADING_STEPS[stepIndex]}</p>
-            <RiskBadge label={toVerdictTone(currentAnalysis.quickScan?.roughRiskLevel ?? 'Medium')} />
+            <RiskBadge level={currentAnalysis.quickScan?.roughRiskLevel ?? 'Medium'} />
           </div>
           <p className="mt-1 text-[11px] text-[var(--unshafted-text-faint)]">
             Reviewing as {selectedRole}. Closing the popup is fine — this runs in the background.

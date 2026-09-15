@@ -1,6 +1,6 @@
+import { RISK_TONE } from '@extension/ui';
 import {
   DOC_TYPE_LABELS,
-  RISK_TONE,
   SEVERITY_TONE,
   describeDeadline,
   formatAnalysedDate,

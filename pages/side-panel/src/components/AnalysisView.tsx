@@ -1,6 +1,7 @@
+import { RISK_TONE } from '@extension/ui';
 import { domainRiskSummary } from '@extension/unshafted-core';
 import { selectOneThing, worstDocument } from '@src/lib/domain-summary';
-import { DOC_TYPE_LABELS, RISK_TONE, describeDeadline } from '@src/lib/presentation';
+import { DOC_TYPE_LABELS, describeDeadline } from '@src/lib/presentation';
 import type { SitePolicyAnalysis } from '@extension/unshafted-core';
 import type { DocumentFreshness } from '@src/hooks/useLivePolicyCheck';
 

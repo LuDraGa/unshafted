@@ -25,7 +25,7 @@ import {
   syncQuickScanToDrive,
   updateProfilePreferences,
 } from '@extension/supabase';
-import { ErrorDisplay, LoadingSpinner, SpotlightTour } from '@extension/ui';
+import { ErrorDisplay, LoadingSpinner, RISK_TONE, SpotlightTour } from '@extension/ui';
 import {
   buildDocumentFromFile,
   configurePdfWorker,
@@ -295,13 +295,6 @@ const storageStateCopy = {
   'drive-backed-up': 'Drive backed up',
   'restored-from-drive': 'Restored from Drive',
 } satisfies Record<HistoryRecord['storageState'], string>;
-
-const riskToneClasses = {
-  Low: 'border-emerald-200 bg-emerald-50 text-emerald-900',
-  Medium: 'border-amber-200 bg-amber-50 text-amber-900',
-  High: 'border-orange-200 bg-orange-50 text-orange-900',
-  'Very High': 'border-rose-200 bg-rose-50 text-rose-900',
-} satisfies Record<HistoryRecord['quickScan']['roughRiskLevel'], string>;
 
 const createReportFilename = (record: HistoryRecord): string =>
   `${record.source.slug || 'unshafted-report'}-${record.createdAt.slice(0, 10)}.md`;
@@ -1334,7 +1327,7 @@ const Popup = () => {
                       </div>
                       <span
                         className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
-                          riskToneClasses[record.deepAnalysis?.overallRiskLevel ?? record.quickScan.roughRiskLevel]
+                          RISK_TONE[record.deepAnalysis?.overallRiskLevel ?? record.quickScan.roughRiskLevel]
                         }`}>
                         {record.deepAnalysis?.overallRiskLevel ?? record.quickScan.roughRiskLevel}
                       </span>

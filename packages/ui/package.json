@@ -26,6 +26,7 @@
   "dependencies": {
     "@extension/shared": "workspace:*",
     "@extension/storage": "workspace:*",
+    "@extension/unshafted-core": "workspace:*",
     "clsx": "^2.1.1",
     "tailwind-merge": "^3.6.0"
   },
