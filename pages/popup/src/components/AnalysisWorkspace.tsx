@@ -267,12 +267,10 @@ export const AnalysisWorkspace = ({
     <div className="space-y-3">
       {/* Error display */}
       {panelError || currentAnalysis?.error ? (
-        <section className="space-y-2 rounded-2xl border border-rose-200 bg-rose-50 px-3 py-3 text-xs text-rose-900">
+        <section className="unshafted-danger-tone space-y-2 rounded-2xl border px-3 py-3 text-xs">
           <p className="font-semibold">Something went wrong</p>
           <p>{panelError || currentAnalysis?.error?.message}</p>
-          {currentAnalysis?.error?.suggestion ? (
-            <p className="text-rose-800">{currentAnalysis.error.suggestion}</p>
-          ) : null}
+          {currentAnalysis?.error?.suggestion ? <p className="opacity-80">{currentAnalysis.error.suggestion}</p> : null}
           {currentAnalysis?.status === 'error' ? (
             <button
               className="popup-secondary-button mt-1 !py-2 !text-xs"

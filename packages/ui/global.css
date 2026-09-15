@@ -152,9 +152,28 @@
   --unshafted-guidance-border: var(--color-amber-200);
   --unshafted-guidance-bg: var(--color-amber-50);
   --unshafted-guidance-text: var(--color-amber-800);
-  --unshafted-danger-border: var(--color-rose-200);
-  --unshafted-danger-bg: var(--color-rose-50);
-  --unshafted-danger-text: var(--color-rose-800);
+  /*
+   * Danger separates from risk by FORM, not hue, and that is forced rather than chosen (#84).
+   *
+   * #82 gave risk the whole rose ramp — one axis, one hue, four tints. This token was
+   * `rose-200 / rose-50 / rose-800`, which the new ramp's Low is *exactly*, so a delete
+   * confirmation and a Low-risk verdict became the same object. They render adjacent in the popup.
+   *
+   * No other hue was available to move to. `ok` holds emerald, `changed` violet, `guidance` amber.
+   * Red is the obvious candidate and is the trap: it sits 11 degrees of hue from rose, so at tint
+   * strength `red-50` is #fef2f2 against `rose-50`'s #fff1f2 — a distinction nobody can see, on
+   * precisely the surfaces where the confusion happens. `ErrorDisplay` had already picked red for
+   * this job, which is how the app came to render two hues for one meaning.
+   *
+   * So the rule is structural, and it is the one thing a grade can never imitate: RISK IS ALWAYS A
+   * TINTED FILL. When the app speaks about itself — a failure, or an action that destroys
+   * something — it never tints. It keeps the page's own surface and states itself with an edge.
+   * A rule down the leading edge carries the weight a fill would have, at 9.30:1 for the text.
+   */
+  --unshafted-danger-border: var(--color-rose-600);
+  --unshafted-danger-bg: var(--unshafted-surface-strong);
+  --unshafted-danger-text: var(--color-rose-900);
+  --unshafted-danger-action: var(--color-rose-700);
 
   /*
    * Severity, which is a different axis from both of the above and was encoded THREE times.
@@ -356,4 +375,40 @@
   50% {
     transform: translateY(-4px) var(--spotlight-arrow-rotate);
   }
+}
+
+/*
+ * The one encoding of danger, as a TONE rather than a component.
+ *
+ * Geometry stays at the call site — radius, padding and text size differ across the eight places
+ * this lands, and a single component class fitted none of them. This is the same division
+ * `RISK_TONE` uses and the same one the `.popup-alert-*` modifiers used before they were deleted:
+ * the class says what something means, the utilities say how big it is.
+ *
+ * `box-shadow` rather than `border-left-width`, so the rule does not change the element's box and
+ * every converted site keeps the geometry it already had.
+ *
+ * BOTH SELECTORS ARE DOUBLED, and that is not a typo. Unlayered beats layered, so these already
+ * win against any `bg-*` / `text-*` utility left on the same element. What they do NOT beat at a
+ * single class is another *unlayered* component rule — and `Popup.css` is full of them, loaded
+ * after this file, at identical specificity. Doubling to (0,2,0) makes these win on specificity
+ * instead of on source order, so a page's own stylesheet cannot silently take the colour back.
+ *
+ * That failure is not hypothetical, it is what this change found. `popup-link-button text-rose-800`
+ * on both "Delete permanently" buttons rendered `--unshafted-brand`, and `popup-menu-item
+ * text-rose-700` on "Sign out" rendered `--unshafted-text`: `.popup-link-button` and
+ * `.popup-menu-item` set `color` unlayered, and the rose utilities sit in `@layer utilities` where
+ * no amount of specificity reaches. Three destructive actions had never once rendered the colour
+ * their class list named, and nothing about the markup showed it.
+ */
+.unshafted-danger-tone.unshafted-danger-tone {
+  border-color: var(--unshafted-danger-border);
+  background: var(--unshafted-danger-bg);
+  color: var(--unshafted-danger-text);
+  box-shadow: inset 3px 0 0 var(--unshafted-danger-border);
+}
+
+/* The destructive verb itself — "Delete permanently", "Sign out". Distinct from the body it sits in. */
+.unshafted-danger-action.unshafted-danger-action {
+  color: var(--unshafted-danger-action);
 }

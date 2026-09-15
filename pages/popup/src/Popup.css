@@ -479,25 +479,18 @@
   color: var(--unshafted-severity-medium-text);
 }
 
-.popup-alert {
-  border: 1px solid var(--unshafted-border);
-  border-radius: 16px;
-  padding: 12px;
-  font-size: 12px;
-  line-height: 1.5;
-}
-
-.popup-alert-guidance {
-  border-color: var(--unshafted-guidance-border);
-  background: var(--unshafted-guidance-bg);
-  color: var(--unshafted-guidance-text);
-}
-
-.popup-alert-danger {
-  border-color: var(--unshafted-danger-border);
-  background: var(--unshafted-danger-bg);
-  color: var(--unshafted-danger-text);
-}
+/*
+ * `.popup-alert`, `.popup-alert-guidance` and `.popup-alert-danger` were deleted here (#84).
+ *
+ * The danger modifier had one consumer, and it moved to `.unshafted-danger-tone` in `global.css`
+ * along with the seven hardcoded rose spellings of the same meaning — including a second copy of
+ * the very same delete-confirmation dialog, written out in utilities twelve hundred lines away
+ * from the one that used this rule.
+ *
+ * The guidance modifier had none, and had not had one for some time; `--unshafted-guidance-*`
+ * survives it through `Options.css`. `.popup-alert` itself only ever supplied geometry to those
+ * two, so it went with them.
+ */
 
 .popup-status-pill {
   display: inline-flex;

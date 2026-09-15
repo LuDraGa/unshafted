@@ -267,7 +267,7 @@ const ProfileMenu = ({
             Clear all local data
           </button>
           <button
-            className="popup-menu-item text-rose-700"
+            className="popup-menu-item unshafted-danger-action"
             onClick={() => {
               setMenuOpen(false);
               onSignOut();
@@ -1175,7 +1175,7 @@ const Popup = () => {
                 </div>
               </section>
               {pendingDeleteReportId === selectedHistory.id ? (
-                <section className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+                <section className="unshafted-danger-tone rounded-2xl border px-4 py-3 text-sm">
                   <p className="font-semibold">Delete this report?</p>
                   <p className="mt-1 text-xs leading-5">
                     This removes it from local recent analyses. If matching Drive files exist, Unshafted will also ask
@@ -1183,7 +1183,7 @@ const Popup = () => {
                   </p>
                   <div className="mt-3 flex flex-wrap gap-3">
                     <button
-                      className="popup-link-button text-rose-800"
+                      className="popup-link-button unshafted-danger-action"
                       onClick={() => void confirmDeleteHistoryRecord(selectedHistory)}
                       type="button">
                       Delete permanently
@@ -1250,9 +1250,7 @@ const Popup = () => {
           )}
 
           {launchError ? (
-            <section className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
-              {launchError}
-            </section>
+            <section className="unshafted-danger-tone mt-4 rounded-2xl border px-4 py-3 text-sm">{launchError}</section>
           ) : null}
         </div>
 
@@ -1356,14 +1354,14 @@ const Popup = () => {
                       </button>
                     </div>
                     {isPendingDelete ? (
-                      <div className="popup-alert popup-alert-danger mt-3">
+                      <div className="unshafted-danger-tone mt-3 rounded-2xl border p-3 text-xs leading-relaxed">
                         <p className="font-semibold">Delete this report?</p>
                         <p className="mt-1">
                           This cannot be undone locally. Matching Drive files will be removed when possible.
                         </p>
                         <div className="mt-3 flex flex-wrap gap-3">
                           <button
-                            className="popup-link-button text-rose-800"
+                            className="popup-link-button unshafted-danger-action"
                             onClick={() => void confirmDeleteHistoryRecord(record)}
                             type="button">
                             Delete permanently
