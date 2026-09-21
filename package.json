@@ -1,6 +1,6 @@
 {
   "name": "unshafted-extension",
-  "version": "0.8.1",
+  "version": "0.8.3",
   "description": "Unshafted Chrome extension MVP",
   "license": "MIT",
   "private": true,
@@ -69,7 +69,7 @@
     "postcss": "^8.5.3",
     "postcss-load-config": "^6.0.1",
     "prettier": "^3.5.3",
-    "prettier-plugin-tailwindcss": "^0.8.1",
+    "prettier-plugin-tailwindcss": "^0.8.3",
     "rimraf": "^6.0.1",
     "run-script-os": "^1.1.6",
     "tailwindcss": "^4.3.3",

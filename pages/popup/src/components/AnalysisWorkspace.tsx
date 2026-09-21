@@ -120,8 +120,11 @@ export const AnalysisWorkspace = ({
   /*
    * Derived, not corrected in an effect. The sheet is open only while the analysis it was opened
    * for is still the current one, so a new analysis closes it in the same render rather than
-   * rendering it open and closing it on the next pass. `showCtaBar` already unmounts the bar once
-   * a deep analysis exists, so that case needs no condition of its own.
+   * rendering it open and closing it on the next pass.
+   *
+   * This used to lean on `showCtaBar` unmounting the bar the moment a deep analysis existed. The
+   * bar now survives deep — see below — so the keying by analysis id is the whole mechanism rather
+   * than a belt beside a brace, and `startDeepAnalysis` closes the sheet explicitly on its way out.
    */
   const scopeOpen = scopeOpenFor !== null && scopeOpenFor === currentAnalysis?.id;
   const autoQuickScanRef = useRef<string | null>(null);
@@ -245,7 +248,20 @@ export const AnalysisWorkspace = ({
   const deepAnalysis = currentAnalysis.deepAnalysis;
   const isQuickRunning = currentAnalysis.status === 'quick-running';
   const isDeepRunning = currentAnalysis.status === 'deep-running';
-  const showCtaBar = !!quickScan && !deepAnalysis && !isDeepRunning && !isQuickRunning;
+  /**
+   * The bar outlives the deep run, and the locked v0.10 spec said it should not.
+   *
+   * That spec called deep "the terminal state" and had the bar vanish with it. Right about the
+   * analysis, wrong about the controls: the cog on this bar is the only route to `ScopeSheet`, so
+   * once it unmounted there was no way to re-read the document as a different party or against
+   * different priorities. The only path left was uploading the same file again.
+   *
+   * Scope is not a property of the run. It is a property of how the reader wants the document read,
+   * and changing their mind about that is ordinary. `handleDeepAnalysis` guards on `deep-running`
+   * and on a missing quick scan, never on a deep result already existing, so a second run simply
+   * overwrites the first.
+   */
+  const showCtaBar = !!quickScan && !isDeepRunning && !isQuickRunning;
 
   const verdictLevel: RiskLevel = deepAnalysis
     ? deepAnalysis.overallRiskLevel
@@ -373,7 +389,7 @@ export const AnalysisWorkspace = ({
           </button>
           {session ? (
             <button type="button" className="popup-cta-action" onClick={() => void startDeepAnalysis()}>
-              Run analysis
+              {deepAnalysis ? 'Re-run analysis' : 'Run analysis'}
             </button>
           ) : (
             <button type="button" className="popup-cta-action" onClick={onSignIn}>

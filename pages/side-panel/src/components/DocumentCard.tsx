@@ -84,12 +84,48 @@ const ActionRow = ({ action }: { action: AvailableAction }) => (
   </div>
 );
 
+/**
+ * A required disclosure the policy does not contain (#86) — and the reason it is shaped like an
+ * `ExposureRow` rather than a tinted panel of its own.
+ *
+ * It used to be `border-rose-200 bg-rose-50`, which after #82 is **risk Low** exactly: the grade
+ * that means the document treats you well, painting a missing statutory notice.
+ *
+ * Which rose replaced it was the decision, and #84 settles only half of it: this is a finding about
+ * the document, not the app talking about itself, so it stays on the tinted side of that wall —
+ * rose, never `.unshafted-danger-tone`. What it does NOT settle is whether the tint belongs on the
+ * fill, and #86's own second requirement — that the row not be lighter than the card around it —
+ * answers that in the negative. The graded element in this card is the summary box above, carrying
+ * `RISK_TONE`: `bg-rose-200` at High, `bg-rose-300` at Very High. `--unshafted-severity-high-bg` is
+ * `rose-200`. Filling this row with it would make the row IDENTICAL to a High summary and LIGHTER
+ * than a Very High one — failing on the documents where a missing disclosure matters most, and
+ * standing a second full-fill rose vocabulary next to the grade fill, which is the collision #82
+ * spent a release removing.
+ *
+ * So the tint goes where every other finding in this file already puts it. `ExposureRow` is a
+ * neutral `.panel-row` with a severity BADGE; only the pill is tinted. This row is now the same
+ * shape, and it cannot compete with the grade on fill weight because it no longer has a fill.
+ *
+ * A consequence worth recording: #86 asked whether `--unshafted-severity-high-border` should
+ * finally exist, since this row would be its first consumer. It should not — there is no border to
+ * tint. #78 declined that token for having no consumer and that reasoning survives intact, which is
+ * the better outcome for a palette three issues into shedding tokens.
+ *
+ * Still buried, and deliberately out of scope: this renders under "Missing disclosures", below
+ * exposures and actions. That is a placement problem, not a colour one.
+ */
 const AbsentDisclosureRow = ({ disclosure }: { disclosure: RequiredDisclosure }) => (
-  <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2">
-    <p className="m-0 text-[13px] leading-snug font-semibold text-rose-900">
-      {disclosure.name} <span className="font-normal">({disclosure.regime})</span>
-    </p>
-    <p className="m-0 mt-1 text-xs leading-relaxed text-rose-800">{disclosure.note}</p>
+  <div className="panel-row">
+    <div className="flex items-start justify-between gap-2">
+      <p className="m-0 text-[13px] leading-snug font-semibold text-[var(--unshafted-text)]">
+        {disclosure.name} <span className="font-normal text-[var(--unshafted-text-muted)]">({disclosure.regime})</span>
+      </p>
+      <span
+        className={`flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${SEVERITY_TONE.high}`}>
+        Missing
+      </span>
+    </div>
+    <p className="m-0 mt-1 text-xs leading-relaxed text-[var(--unshafted-text-muted)]">{disclosure.note}</p>
   </div>
 );
 

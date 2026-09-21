@@ -1,6 +1,6 @@
 import { RISK_TONE, cn } from '@extension/ui';
 import { toVerdictTone } from '@extension/unshafted-core';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import type {
   CurrentAnalysis,
   DeepAnalysisResult,
@@ -107,18 +107,29 @@ const VerdictSkeleton = ({ ariaLabel = 'Loading analysis' }: { ariaLabel?: strin
   <div className="popup-verdict-skeleton" aria-busy="true" aria-label={ariaLabel} />
 );
 
+/**
+ * `name` is the platform's own exclusive accordion (Chrome 120+): siblings sharing a name close
+ * each other, with no state and no handler. Every item in a lens shares one, so a panel can no
+ * longer grow one body taller per item the reader opens — which is the accordion stack the lens
+ * architecture replaced, reintroduced one level down.
+ *
+ * The cost is that two findings cannot be held open side by side. At 440px they were never both
+ * visible anyway, and a panel with no bound on its own height is the more expensive failure.
+ */
 const CollapsibleItem = ({
   title,
   severity,
+  group,
   defaultOpen = false,
   children,
 }: {
   title: string;
   severity?: Severity;
+  group?: string;
   defaultOpen?: boolean;
   children: React.ReactNode;
 }) => (
-  <details className="popup-item" open={defaultOpen || undefined}>
+  <details className="popup-item" name={group} open={defaultOpen || undefined}>
     <summary>
       <span className="popup-item-chevron" aria-hidden="true">
         ▸
@@ -143,6 +154,23 @@ type LensDef = {
   content: React.ReactNode;
 };
 
+/**
+ * The `tablist` roles here were declared from the start and were, until now, a promise the strip
+ * did not keep: a screen reader announced "tab list, Blockers, 1 of 5", a keyboard user reasonably
+ * expected the arrow keys to move, and nothing was listening. Tab instead walked through all five
+ * tabs one at a time before reaching the panel — the behaviour the role exists to replace. An ARIA
+ * role that lies is worse than no role: a plain row of buttons would at least have been honest.
+ *
+ * Both halves of the standard pattern, because either alone is still broken:
+ *
+ *   ROVING TABINDEX — the selected tab is the strip's single tab stop, the rest are -1. Tab enters
+ *   once and leaves once.
+ *
+ *   SELECTION FOLLOWS FOCUS — arrowing to a lens opens it. That is the right trade here only
+ *   because switching costs nothing: no request, no lost state, nothing to protect the reader from
+ *   triggering by passing over it. A tab strip whose panels were expensive would want manual
+ *   activation instead.
+ */
 const LensStrip = ({
   lenses,
   openId,
@@ -151,29 +179,77 @@ const LensStrip = ({
   lenses: LensDef[];
   openId: LensId;
   onChange: (id: LensId) => void;
-}) => (
-  <div className="popup-lens-strip" role="tablist" aria-label="Analysis lens">
-    {lenses.map(lens => {
-      const active = lens.id === openId;
-      return (
-        <button
-          key={lens.id}
-          type="button"
-          role="tab"
-          id={`lens-tab-${lens.id}`}
-          aria-selected={active}
-          aria-controls={`lens-panel-${lens.id}`}
-          data-onboarding-target={lens.onboardingTarget}
-          data-severity={!active && lens.severity ? lens.severity : undefined}
-          className="popup-lens-tab"
-          onClick={() => onChange(lens.id)}>
-          <span>{lens.label}</span>
-          {lens.count !== undefined && lens.count > 0 ? <span className="popup-lens-count">{lens.count}</span> : null}
-        </button>
-      );
-    })}
-  </div>
-);
+}) => {
+  const tabRefs = useRef<Partial<Record<LensId, HTMLButtonElement | null>>>({});
+
+  const activate = (lens: LensDef | undefined) => {
+    if (!lens) return;
+    onChange(lens.id);
+    // The whole strip is mounted, so the target exists and takes focus in this same tick.
+    tabRefs.current[lens.id]?.focus();
+  };
+
+  /*
+   * On each TAB, not on the strip. Events would bubble either way, but the strip is a plain div
+   * with no tabindex — under a roving tabindex it must not be a tab stop — so a handler there
+   * could only ever fire for a keypress that originated on a child anyway. `jsx-a11y` is right to
+   * reject that shape: a key handler on an element that can never hold focus is a handler whose
+   * own element cannot trigger it. The tabs are the focusable things, so the handler belongs there.
+   */
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    const index = lenses.findIndex(lens => lens.id === openId);
+    if (index < 0) return;
+
+    switch (event.key) {
+      case 'ArrowRight':
+        activate(lenses[(index + 1) % lenses.length]);
+        break;
+      case 'ArrowLeft':
+        activate(lenses[(index - 1 + lenses.length) % lenses.length]);
+        break;
+      case 'Home':
+        activate(lenses[0]);
+        break;
+      case 'End':
+        activate(lenses[lenses.length - 1]);
+        break;
+      default:
+        return;
+    }
+
+    // Only reached when a key above matched — Home/End would otherwise scroll the popup.
+    event.preventDefault();
+  };
+
+  return (
+    <div className="popup-lens-strip" role="tablist" aria-label="Analysis lens">
+      {lenses.map(lens => {
+        const active = lens.id === openId;
+        return (
+          <button
+            key={lens.id}
+            type="button"
+            role="tab"
+            id={`lens-tab-${lens.id}`}
+            ref={node => {
+              tabRefs.current[lens.id] = node;
+            }}
+            tabIndex={active ? 0 : -1}
+            aria-selected={active}
+            aria-controls={`lens-panel-${lens.id}`}
+            data-onboarding-target={lens.onboardingTarget}
+            data-severity={!active && lens.severity ? lens.severity : undefined}
+            className="popup-lens-tab"
+            onClick={() => onChange(lens.id)}
+            onKeyDown={handleKeyDown}>
+            <span>{lens.label}</span>
+            {lens.count !== undefined && lens.count > 0 ? <span className="popup-lens-count">{lens.count}</span> : null}
+          </button>
+        );
+      })}
+    </div>
+  );
+};
 
 const LensPanel = ({ lens }: { lens: LensDef }) => (
   <div
@@ -234,6 +310,7 @@ const buildBlockerLens = (quick: QuickScanResult, deep: DeepAnalysisResult | nul
           <>
             {items.map((item, i) => (
               <CollapsibleItem
+                group="lens-blockers"
                 key={`${item.title}-${item.reference?.label ?? i}`}
                 title={item.title}
                 severity={item.severity}
@@ -260,6 +337,7 @@ const buildBlockerLens = (quick: QuickScanResult, deep: DeepAnalysisResult | nul
         <>
           {flags.map((flag, i) => (
             <CollapsibleItem
+              group="lens-blockers"
               key={`${flag.title}-${i}`}
               title={flag.title}
               severity={flag.severity}
@@ -291,7 +369,7 @@ const buildAsksLens = (quick: QuickScanResult, deep: DeepAnalysisResult | null |
         total > 0 ? (
           <>
             {deep.negotiationIdeas.map(item => (
-              <CollapsibleItem key={`neg-${item.ask}`} title={item.ask}>
+              <CollapsibleItem group="lens-asks" key={`neg-${item.ask}`} title={item.ask}>
                 <p>{item.why}</p>
                 {item.fallback ? (
                   <p>
@@ -304,7 +382,7 @@ const buildAsksLens = (quick: QuickScanResult, deep: DeepAnalysisResult | null |
               </CollapsibleItem>
             ))}
             {deep.suggestedEdits.map(item => (
-              <CollapsibleItem key={`edit-${item.title}`} title={item.title}>
+              <CollapsibleItem group="lens-asks" key={`edit-${item.title}`} title={item.title}>
                 <p>
                   <strong className="text-[var(--unshafted-text)]">Edit.</strong> {item.plainEnglishEdit}
                 </p>
@@ -312,7 +390,7 @@ const buildAsksLens = (quick: QuickScanResult, deep: DeepAnalysisResult | null |
               </CollapsibleItem>
             ))}
             {deep.missingProtections.map(item => (
-              <CollapsibleItem key={`miss-${item.title}`} title={`Missing: ${item.title}`}>
+              <CollapsibleItem group="lens-asks" key={`miss-${item.title}`} title={`Missing: ${item.title}`}>
                 <p>{item.whyMissingMatters}</p>
                 <p>
                   <strong className="text-[var(--unshafted-text)]">Common fix.</strong> {item.commonFix}
@@ -320,12 +398,12 @@ const buildAsksLens = (quick: QuickScanResult, deep: DeepAnalysisResult | null |
               </CollapsibleItem>
             ))}
             {deep.questionsToAsk.map(q => (
-              <CollapsibleItem key={`q-${q}`} title={q}>
+              <CollapsibleItem group="lens-asks" key={`q-${q}`} title={q}>
                 <p>Bring this up before signing — get the answer in writing if it materially affects the deal.</p>
               </CollapsibleItem>
             ))}
             {deep.protectionChecklist.map(group => (
-              <CollapsibleItem key={`chk-${group.label}`} title={group.label}>
+              <CollapsibleItem group="lens-asks" key={`chk-${group.label}`} title={group.label}>
                 <ul className="list-disc space-y-1 pl-4">
                   {group.items.map(it => (
                     <li key={it}>{it}</li>
@@ -360,7 +438,7 @@ const buildAsksLens = (quick: QuickScanResult, deep: DeepAnalysisResult | null |
       items.length > 0 ? (
         <>
           {items.map((item, i) => (
-            <CollapsibleItem key={`${item.title}-${i}`} title={item.title}>
+            <CollapsibleItem group="lens-asks" key={`${item.title}-${i}`} title={item.title}>
               <p>{item.detail}</p>
             </CollapsibleItem>
           ))}
@@ -406,12 +484,17 @@ const buildEvidenceLens = (deep: DeepAnalysisResult | null | undefined): LensDef
     content: (
       <>
         {findings.map((item, i) => (
-          <CollapsibleItem key={`ev-${item.title}-${i}`} title={item.title} severity={item.severity}>
+          <CollapsibleItem
+            group="lens-evidence"
+            key={`ev-${item.title}-${i}`}
+            title={item.title}
+            severity={item.severity}>
             <FindingBody item={item} />
           </CollapsibleItem>
         ))}
         {deep.topicConcerns.map(item => (
           <CollapsibleItem
+            group="lens-evidence"
             key={`tc-${item.category}-${item.title}`}
             title={`${item.category}: ${item.title}`}
             severity={item.severity}>
@@ -435,7 +518,7 @@ const buildWinsLens = (deep: DeepAnalysisResult | null | undefined): LensDef | n
     content: (
       <>
         {deep.potentialAdvantages.map(item => (
-          <CollapsibleItem key={`win-${item.title}`} title={item.title}>
+          <CollapsibleItem group="lens-wins" key={`win-${item.title}`} title={item.title}>
             <p>{item.whyItHelps}</p>
             {item.reference?.label ? (
               <p className="text-[11px] text-[var(--unshafted-text-faint)]">Reference: {item.reference.label}</p>

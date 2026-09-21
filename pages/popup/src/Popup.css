@@ -384,100 +384,17 @@
   }
 }
 
-/* ── Verdict strip ── */
-.popup-verdict-strip {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  border: 1px solid var(--unshafted-border);
-  background: var(--unshafted-surface);
-  border-radius: 16px;
-  padding: 10px 14px;
-  backdrop-filter: blur(12px);
-}
-
-.popup-verdict-strip p {
-  flex: 1;
-  margin: 0;
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1.4;
-  color: var(--unshafted-text);
-}
-
-/* ── Accordion sections ── */
-.popup-accordion {
-  border: 1px solid var(--unshafted-border);
-  background: var(--unshafted-surface);
-  border-radius: 16px;
-  backdrop-filter: blur(12px);
-  overflow: hidden;
-}
-
-.popup-accordion + .popup-accordion {
-  margin-top: 6px;
-}
-
-.popup-accordion summary {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
-  cursor: pointer;
-  list-style: none;
-  user-select: none;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--unshafted-text);
-}
-
-.popup-accordion summary::-webkit-details-marker {
-  display: none;
-}
-
-.popup-accordion summary::after {
-  content: '';
-  flex-shrink: 0;
-  width: 14px;
-  height: 14px;
-  margin-left: auto;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2378716c' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: center;
-  transition: transform 200ms ease;
-}
-
-.popup-accordion[open] > summary::after {
-  transform: rotate(180deg);
-}
-
-.popup-accordion .popup-accordion-body {
-  padding: 0 14px 12px;
-}
-
-.popup-accordion-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 20px;
-  height: 20px;
-  border-radius: 10px;
-  padding: 0 6px;
-  font-size: 10px;
-  font-weight: 700;
-  background: var(--unshafted-selection-soft);
-  color: var(--unshafted-text-muted);
-}
-
-.popup-accordion-count.severity-high {
-  background: var(--unshafted-severity-high-bg);
-  color: var(--unshafted-severity-high-text);
-}
-
-.popup-accordion-count.severity-medium {
-  background: var(--unshafted-severity-medium-bg);
-  color: var(--unshafted-severity-medium-text);
-}
+/*
+ * `.popup-verdict-strip*` and the ten `.popup-accordion*` rules were deleted here, for the same
+ * reason and in the same pass as the `.popup-chip*` family below.
+ *
+ * The strip was the verdict before `CompactVerdict`; `.popup-accordion` styled `ResultAccordion`,
+ * which `CollapsibleItem` replaced. `.popup-accordion-count.severity-high|medium` went with it and
+ * were the only rules outside the lens strip reading `--unshafted-severity-*`; the tokens keep
+ * their live consumers in `ResultCards.tsx` and the panel, so nothing is orphaned by this — the
+ * #79 pattern is that a rule's death can strand a token, and that is worth checking at the time
+ * rather than discovering later.
+ */
 
 /*
  * `.popup-alert`, `.popup-alert-guidance` and `.popup-alert-danger` were deleted here (#84).
@@ -526,107 +443,14 @@
   color: var(--unshafted-brand);
 }
 
-/* ── Inline Top Blockers (no accordion wrapper) ── */
-.popup-top-blockers {
-  border-radius: 16px;
-  padding: 12px 14px;
-  background: rgba(255, 252, 247, 0.7);
-  border: 1px solid var(--unshafted-border);
-}
-
-.popup-top-blockers-label {
-  margin: 0;
-  color: var(--unshafted-text-muted);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-}
-
-/* ── Chip row (tab-style single-expand navigation) ── */
-.popup-chip-section {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.popup-chip-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.popup-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border: 1px solid var(--unshafted-border);
-  border-radius: 999px;
-  background: rgba(255, 252, 247, 0.7);
-  color: var(--unshafted-text);
-  padding: 6px 11px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  cursor: pointer;
-  transition:
-    background 140ms ease,
-    border-color 140ms ease,
-    transform 140ms ease;
-}
-
-.popup-chip:hover {
-  transform: translateY(-1px);
-  background: rgba(255, 252, 247, 0.95);
-}
-
-.popup-chip[data-active='true'] {
-  background: var(--unshafted-text);
-  color: var(--unshafted-action-text);
-  border-color: var(--unshafted-text);
-}
-
-.popup-chip[data-active='true']:hover {
-  background: var(--unshafted-text);
-}
-
-.popup-chip-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 18px;
-  height: 18px;
-  border-radius: 9px;
-  padding: 0 5px;
-  background: var(--unshafted-selection-soft);
-  color: var(--unshafted-text-muted);
-  font-size: 10px;
-  font-weight: 700;
-}
-
-.popup-chip[data-active='true'] .popup-chip-count {
-  background: rgba(255, 255, 255, 0.18);
-  color: var(--unshafted-action-text);
-}
-
-.popup-chip-severity-high .popup-chip-count {
-  background: var(--unshafted-severity-high-bg);
-  color: var(--unshafted-severity-high-text);
-}
-
-.popup-chip-severity-medium .popup-chip-count {
-  background: var(--unshafted-severity-medium-bg);
-  color: var(--unshafted-severity-medium-text);
-}
-
-.popup-chip-panel {
-  border: 1px solid var(--unshafted-border);
-  background: var(--unshafted-surface);
-  border-radius: 16px;
-  padding: 12px 14px;
-  backdrop-filter: blur(12px);
-}
-
+/*
+ * `.popup-top-blockers`, `.popup-top-blockers-label` and the nine `.popup-chip*` rules were
+ * deleted here.
+ *
+ * `TopBlockersInline` became the Blockers lens and `ChipRow` became `LensStrip` when v0.10
+ * shipped, and these were left standing to keep that diff readable — recorded as owed rather
+ * than forgotten. Zero `.tsx` consumers at the time of removal, on any surface.
+ */
 /* ── v0.10: Doc strip ── */
 .popup-doc-strip {
   padding: 0 2px;
