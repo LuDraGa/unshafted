@@ -179,6 +179,105 @@
   padding: 9px 11px;
 }
 
+/* ── Browse: the corpus as a list, for a site the reader is not on ── */
+
+.panel-search {
+  width: 100%;
+  border: 1px solid var(--unshafted-border);
+  border-radius: 999px;
+  background: var(--unshafted-surface-strong);
+  padding: 7px 13px;
+  font-size: 12px;
+  color: var(--unshafted-text);
+}
+
+.panel-search::placeholder {
+  color: var(--unshafted-text-faint);
+}
+
+/*
+ * A row is a button, not a div with a click handler. 37 of these are the whole navigation of this
+ * surface, and a keyboard user has to be able to reach every one of them.
+ */
+.panel-browse-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  border: 1px solid var(--unshafted-border);
+  border-radius: 12px;
+  background: rgba(255, 252, 247, 0.62);
+  padding: 9px 11px;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease;
+}
+
+.panel-browse-row:hover {
+  background: var(--unshafted-surface-strong);
+  border-color: var(--unshafted-border-strong);
+}
+
+.panel-browse-domain {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--unshafted-text);
+}
+
+.panel-browse-count {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--unshafted-text-faint);
+}
+
+/*
+ * The `window` marker.
+ *
+ * `--unshafted-selection-soft` on purpose: that is the "count badge carrying no severity" weight,
+ * documented as such in global.css. The marker has to read as INFORMATION, not as a warning — a
+ * warning would be a claim about the site, and this is a claim about what the document contains.
+ * It is also why there is no severity hue here and no `[data-*]` variant waiting to add one.
+ */
+.panel-marker {
+  flex-shrink: 0;
+  border-radius: 999px;
+  padding: 2px 8px;
+  background: var(--unshafted-selection-soft);
+  color: var(--unshafted-text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+/* Header affordance for closing browse, or stepping back out of an opened site. */
+.panel-icon-button {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--unshafted-border);
+  border-radius: 999px;
+  background: rgba(255, 252, 247, 0.9);
+  color: var(--unshafted-text-muted);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 140ms ease;
+}
+
+.panel-icon-button:hover {
+  background: #ede7dc;
+}
+
 .panel-link {
   color: var(--unshafted-brand);
   font-weight: 600;

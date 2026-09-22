@@ -1,7 +1,9 @@
 # "What we've read" — browse view design pass
 
-**Status:** Design settled, nothing built. Written 2026-09-22 against the corpus as it stands
-(82 analyses, 37 domains, `formatVersion` 1).
+**Status:** Built, 2026-09-22 — see [`v0.8.3-browse-view-execution.md`](v0.8.3-browse-view-execution.md)
+for what changed on contact. Written 2026-09-22 against the corpus as it stands (82 analyses,
+37 domains, `formatVersion` 1). **The argument below is kept as written**; where the build diverged,
+a note says so rather than the text being edited to agree with it.
 **Read this with:** `site-policy-part5-side-panel.md` (D1–D16, the panel's settled design) and
 `site-policy-part5-handoff.md` §3, which is where this view was first argued for.
 
@@ -142,6 +144,11 @@ Plain text, `.panel-row`, a document count in the panel's existing idiom (`N doc
 already the header's phrasing). **No risk pill, no gap count, no severity colour.** Opening a row
 replaces the browse list with that domain's existing `DocumentCard` stack.
 
+> **As built, the clocked rows also carry a neutral `window` marker** — see the note at §1 of *Open*
+> below for why this doc's own "typing dissolves the groups" forced it. Everything else in this
+> paragraph holds, and the marker is explicitly not a risk pill: it is the `--unshafted-selection-soft`
+> weight, the "count badge with no severity" token, so it reads as information rather than warning.
+
 The gap count does not render, and that is the §3 constraint doing its job. Where an absent
 disclosure *does* render is where it already renders: inside the opened document, named, with its
 regime, one row per finding. Named findings are honest; a tally is not.
@@ -189,8 +196,16 @@ cannot render under a header naming a site it is not about.
 }
 ```
 
-Measured on the current corpus: **3,412 bytes raw, 646 gzipped.** Three fields, because three fields
-are what the view renders. `worstRiskLevel` is not among them (§4) and neither is an absent count
+Measured on the current corpus as built: **2,770 bytes raw, 414 gzipped.** (The 3,412/646 estimate
+this doc carried before the build existed was high; nothing rested on it.)
+
+**It ships four fields, not three.** `documentTotal` was added while building, because the header
+sentence above — "82 documents across 37 sites" — is not derivable from the rows: summing
+`documentCount` gives **85**, since three documents govern two domains each and each has to be
+counted under both. The sum is right for what it is and wrong for what the header says, so the total
+is carried rather than computed. See `v0.8.3-browse-view-execution.md`.
+
+The other three are what the view renders. `worstRiskLevel` is not among them (§4) and neither is an absent count
 (§3) — and #79 is the standing precedent for not shipping a field with no consumer, having deleted
 six tokens for exactly that.
 
@@ -260,6 +275,14 @@ assumed. It needs the clause vocabulary that Pass 2 is blocked on.
 ---
 
 ## Open, and worth deciding before the component is written
+
+> **All four are decided and the view is built** — see
+> [`v0.8.3-browse-view-execution.md`](v0.8.3-browse-view-execution.md). §2, §3 and §4 went the way
+> this doc leaned. **§1 did not:** the row shows a `window` marker as well as the count. The reason
+> is in the next paragraph but one, and this doc missed the connection — *typing dissolves the
+> groups*, so the group heading is the only thing carrying the clock, and a query removes it. Without
+> a marker the search path silently drops the view's only finding, on the job this doc calls primary.
+> That is a stronger argument than the scannability one below, and it is what changed the answer.
 
 1. **Does the row show anything beyond the document count?** The design says no. The counter-argument
    is that a row of pure text across 37 rows is hard to scan. A non-comparative marker — the word

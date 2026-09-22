@@ -1,6 +1,7 @@
 import '@src/SidePanel.css';
 import { AnalyseConfirm } from '@src/components/AnalyseConfirm';
 import { OneThing, WorstRisk } from '@src/components/AnalysisView';
+import { BrowseView } from '@src/components/BrowseView';
 import { DocumentCard } from '@src/components/DocumentCard';
 import { DocumentReader } from '@src/components/DocumentReader';
 import { LocalAnalysisView } from '@src/components/LocalAnalysisView';
@@ -124,10 +125,12 @@ const UncoveredView = ({
   hostname,
   check,
   loading,
+  onBrowse,
 }: {
   hostname: string;
   check: LivePolicyCheck;
   loading: boolean;
+  onBrowse: () => void;
 }) => {
   const { analyses: localAnalyses, runState, reload } = useLocalAnalyses(hostname);
   /** Null when the sheet is closed; `preselected` is the row the user asked from, if any. */
@@ -176,6 +179,20 @@ const UncoveredView = ({
             We have not analysed this site, so there is no risk level and no findings. You can still read what it makes
             you agree to.
           </p>
+          {/*
+            Entry point 2. The reader has just been told we have not read THIS site, and "here is
+            what we have read" is the correct next sentence — it is the one place the offer answers
+            a question the surface itself just raised.
+
+            Below the copy and above the analyse path on purpose: this is free and reads 82
+            analyses already on disk, whereas "Analyse this site" spends a credit on the user's own
+            key. Cheapest true thing first.
+          */}
+          <div className="mt-2">
+            <button className="panel-button" type="button" onClick={onBrowse}>
+              See what we’ve read
+            </button>
+          </div>
         </section>
       )}
 
@@ -230,8 +247,14 @@ const UncoveredView = ({
  *
  * So this branch grades nothing, discovers nothing and offers no reader. It says why the panel is
  * empty and what would fill it, which is the only true thing available here.
+ *
+ * AND IT IS THE BEST ENTRY POINT IN THE PRODUCT for browsing the corpus, which is the one thing
+ * here that needs no site at all. This is the only surface that is deliberately empty, and D13's
+ * stickiness puts it "one navigation away from every session" — so a reader lands here often, with
+ * nothing to read, holding 82 analyses they cannot see. The corpus is also worth most exactly when
+ * you are NOT on the site: the moment before you sign up.
  */
-const NoSiteView = ({ loading }: { loading: boolean }) => {
+const NoSiteView = ({ loading, onBrowse }: { loading: boolean; onBrowse: () => void }) => {
   // First resolve: we do not yet know whether there is a site, so claim neither way.
   if (loading) return null;
 
@@ -240,17 +263,48 @@ const NoSiteView = ({ loading }: { loading: boolean }) => {
       <p className="m-0 text-xs leading-relaxed text-[var(--unshafted-text-muted)]">
         This is a browser page, not a website. Open a site and the panel will show what it makes you agree to.
       </p>
+      <div className="mt-2">
+        <button className="panel-button" type="button" onClick={onBrowse}>
+          See what we’ve read
+        </button>
+      </div>
     </section>
   );
 };
 
+/**
+ * BROWSE IS A MODE, NOT A FOURTH VIEW, and the difference is structural rather than stylistic.
+ *
+ * The three views below are all functions of the active tab: change the tab, and the right one
+ * renders. Browse is not — it is somewhere the reader went on purpose, about sites they are not on.
+ * If a background navigation could yank them out of it, the panel would be closing itself
+ * mid-sentence, which is precisely the failure D13's sticky availability exists to prevent.
+ *
+ * So browse replaces the whole surface, header included. It cannot render under a header naming a
+ * site it is not about.
+ *
+ * THE TAB HOOKS STAY MOUNTED while browse is open, deliberately. They are what makes "back" return
+ * to the tab-driven view *as it is by then* rather than as it was when the reader left it — if the
+ * tab navigated meanwhile, the panel they come back to is about the page actually in front of them.
+ * Nothing extra is spent for this: those hooks run on every panel open regardless, and browse adds
+ * no network call of its own.
+ */
 const SidePanel = () => {
   const site = useActiveTabSite();
   const { status, domain, analyses } = useDomainAnalyses(site.hostname);
   const check = useLivePolicyCheck(site.tabId, site.url, analyses);
+  const [browsing, setBrowsing] = useState(false);
 
   const covered = domain !== null && analyses.length > 0;
   const loading = status === 'loading' || site.status === 'loading';
+
+  if (browsing) {
+    return (
+      <main className="panel-shell">
+        <BrowseView onClose={() => setBrowsing(false)} />
+      </main>
+    );
+  }
 
   return (
     <main className="panel-shell">
@@ -274,9 +328,9 @@ const SidePanel = () => {
       {covered ? (
         <CoveredView domain={domain} analyses={analyses} check={check} />
       ) : site.hostname === null ? (
-        <NoSiteView loading={loading} />
+        <NoSiteView loading={loading} onBrowse={() => setBrowsing(true)} />
       ) : (
-        <UncoveredView hostname={site.hostname} check={check} loading={loading} />
+        <UncoveredView hostname={site.hostname} check={check} loading={loading} onBrowse={() => setBrowsing(true)} />
       )}
 
       <p className="m-0 mt-auto pt-2 text-[10px] leading-relaxed text-[var(--unshafted-text-faint)]">
