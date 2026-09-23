@@ -34,6 +34,20 @@ export const SEVERITY_TONE: Record<Exposure['severity'], string> = {
 };
 
 /**
+ * Who stands behind a result — the tag that closes the header's meta line. One map so the corpus and
+ * local views cannot drift in label or tone; `SourceTag` renders it.
+ *
+ * Deliberately off the risk ramp: rose grades, and this tags. The corpus tag wears the brand's
+ * dark-and-amber; the local one is grey, because it is a read we did not review.
+ */
+export type ResultSource = 'corpus' | 'local';
+
+export const SOURCE_TAG: Record<ResultSource, { label: string; tone: string }> = {
+  corpus: { label: 'Unshafted', tone: 'border-amber-500/70 bg-zinc-950 text-amber-300 shadow-sm shadow-amber-500/20' },
+  local: { label: 'Local Review', tone: 'border-zinc-400 bg-zinc-200 text-zinc-700' },
+};
+
+/**
  * Deadlines render as the WINDOW a policy grants, never as a countdown.
  *
  * A countdown needs the date the user accepted, which the extension does not know and must not

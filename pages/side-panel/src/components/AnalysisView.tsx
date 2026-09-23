@@ -1,9 +1,10 @@
 import { RISK_TONE } from '@extension/ui';
 import { domainRiskSummary } from '@extension/unshafted-core';
 import { worstDocument } from '@src/lib/domain-summary';
-import { DOC_TYPE_LABELS } from '@src/lib/presentation';
+import { DOC_TYPE_LABELS, SOURCE_TAG } from '@src/lib/presentation';
 import type { SitePolicyAnalysis } from '@extension/unshafted-core';
 import type { DocumentFreshness } from '@src/hooks/useLivePolicyCheck';
+import type { ResultSource } from '@src/lib/presentation';
 
 /**
  * The headline read of a set of analyses — the grade — shared by the corpus view, the local one and
@@ -46,6 +47,11 @@ export const RiskGrade = ({ analyses }: { analyses: readonly SitePolicyAnalysis[
     </span>
   );
 };
+
+/** The source tag that closes the meta line: ours, or a run on the reader's own key. */
+export const SourceTag = ({ source }: { source: ResultSource }) => (
+  <span className={`panel-verdict-tag ${SOURCE_TAG[source].tone}`}>{SOURCE_TAG[source].label}</span>
+);
 
 /**
  * Open Q4: the grade still comes from the bundled worst-of even when that very document has moved.

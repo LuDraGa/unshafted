@@ -1,3 +1,4 @@
+import { SourceTag } from '@src/components/AnalysisView';
 import { formatAnalysedDate } from '@src/lib/presentation';
 import type { SitePolicyAnalysis } from '@extension/unshafted-core';
 import type { DocumentFreshness } from '@src/hooks/useLivePolicyCheck';
@@ -10,6 +11,9 @@ const latestAnalysedAt = (analyses: readonly SitePolicyAnalysis[]): string =>
  * The rollup, as the header's meta line rather than a pill of its own. It describes the title — the
  * site — so it goes where a reader looks for that, and the screen loses one block that was only
  * ever competing with the verdict under it.
+ *
+ * It closes on the source tag — "Unshafted", the corpus's half of the pair `LocalMeta` closes on
+ * "Local Review" — so the same position in the same line always says whose read this is.
  *
  * "Last read on" names the most recent read, which is exactly the date it shows — documents on one
  * site can be read on different days, and each one's own date is in its Documents-lens block.
@@ -40,6 +44,6 @@ export const SiteMeta = ({
   <>
     {grade ? <>{grade} </> : null}
     <span>{analyses.length === 1 ? '1 document read' : `${analyses.length} documents read`}</span>{' '}
-    <span data-freshness={state}>{FRESHNESS_META[state](analyses)}</span>
+    <span data-freshness={state}>{FRESHNESS_META[state](analyses)}</span> <SourceTag source="corpus" />
   </>
 );
