@@ -1,4 +1,4 @@
-import { WorstRisk } from '@src/components/AnalysisView';
+import { RiskGrade } from '@src/components/AnalysisView';
 import { LensCard } from '@src/components/LensCard';
 import { formatAnalysedDate } from '@src/lib/presentation';
 import { useCallback, useMemo } from 'react';
@@ -7,15 +7,15 @@ import type { LocalPolicyAnalysis, SitePolicyAnalysis } from '@extension/unshaft
 /**
  * An analysis the user ran, rendered with the corpus layout and a different signature (S3).
  *
- * The layout is deliberately identical — risk level, then the same lenses — because the inner
+ * The layout is deliberately identical — the grade in the header, then the same lenses — because the inner
  * object IS a `SitePolicyAnalysis` and a second visual language for the same findings would be
  * noise. What must never be identical is the attribution, and that is the whole of what this
  * component adds:
  *
- *  - Who ran it, when, on which model, and that we did not review it. `attributionMeta` is the
- *    header's meta line, so it sits ABOVE the verdict — nobody reads a grade before learning whose
- *    grade it is.
- *  - No freshness claim anywhere. "As we read it" is a claim about us reading the live page, and we
+ *  - Who ran it, when, on which model, and that we did not review it. `LocalMeta` is the header's
+ *    meta line, and the attribution leads it with the grade AFTER it — nobody reads a grade before
+ *    learning whose grade it is.
+ *  - No freshness claim anywhere. "Last read on" is a claim about us reading the documents, and we
  *    did not; every item gets `null` for the same reason.
  *  - The excerpt caveat (S6), directly under the header rather than inside a document, because it
  *    qualifies every finding below it.
@@ -28,11 +28,21 @@ import type { LocalPolicyAnalysis, SitePolicyAnalysis } from '@extension/unshaft
 
 const NO_FRESHNESS = () => null;
 
-/** The header meta line for a site the reader analysed themselves. */
-export const attributionMeta = (analyses: readonly LocalPolicyAnalysis[]): string | null => {
+/** The header meta line for a site the reader analysed themselves: whose analysis, then its grade (S3). */
+export const LocalMeta = ({ analyses }: { analyses: readonly LocalPolicyAnalysis[] }) => {
+  const inner = useMemo(() => analyses.map(local => local.analysis), [analyses]);
   const latest = analyses[0];
   if (!latest) return null;
-  return `Analysed by you on ${formatAnalysedDate(latest.provenance.ranAt)} · ${latest.provenance.model} · not reviewed by Unshafted`;
+
+  return (
+    <>
+      <span>
+        Analysed by you on {formatAnalysedDate(latest.provenance.ranAt)} · {latest.provenance.model} · not reviewed by
+        Unshafted
+      </span>{' '}
+      <RiskGrade analyses={inner} />
+    </>
+  );
 };
 
 export const LocalAnalysisView = ({
@@ -80,8 +90,7 @@ export const LocalAnalysisView = ({
         </p>
       ) : null}
 
-      {/* No freshness record: nothing here was checked against the live page. */}
-      <WorstRisk analyses={inner} freshness={{}} readBy="you" />
+      {/* The grade is in the header's meta line, after the attribution (`LocalMeta`). */}
       <LensCard
         analyses={inner}
         headerOffset={headerOffset}

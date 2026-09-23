@@ -1,4 +1,4 @@
-import { WorstRisk } from '@src/components/AnalysisView';
+import { RiskGrade } from '@src/components/AnalysisView';
 import { BackIcon, CloseIcon } from '@src/components/Icons';
 import { LensCard } from '@src/components/LensCard';
 import { PanelHeader } from '@src/components/PanelHeader';
@@ -287,13 +287,7 @@ const BrowseList = ({
 };
 
 /**
- * Stable empty map. `WorstRisk` reads one key out of it, and a fresh `{}` every render would make
- * it a new prop on every parent render for no reason.
- */
-const NO_FRESHNESS: Record<string, DocumentFreshness> = {};
-
-/**
- * Every document here is exactly `unconfirmed`: "as we read it on <date>". No live check runs, and
+ * Every document here is exactly `unconfirmed`: "last read on <date>". No live check runs, and
  * none could — confirming a document needs the page open in front of you.
  */
 const UNCONFIRMED = (): DocumentFreshness => 'unconfirmed';
@@ -310,7 +304,7 @@ const UNCONFIRMED = (): DocumentFreshness => 'unconfirmed';
  * - `DocumentReader`. It reads the ACTIVE TAB, which here is some other page entirely.
  *
  * The cards render at `unconfirmed`, which is exactly true and already has the right words for it:
- * "As we read it on 4 Sep 2026." No live check runs, and none could — confirming a document needs
+ * "Last read on 4 Sep 2026." No live check runs, and none could — confirming a document needs
  * the page open in front of you.
  */
 const BrowseDomain = ({ domain, onBack }: { domain: string; onBack: () => void }) => {
@@ -334,7 +328,11 @@ const BrowseDomain = ({ domain, onBack }: { domain: string; onBack: () => void }
             <BackIcon />
           </button>
         }
-        meta={analyses.length > 0 ? <SiteMeta analyses={analyses} state="unconfirmed" /> : undefined}
+        meta={
+          analyses.length > 0 ? (
+            <SiteMeta analyses={analyses} state="unconfirmed" grade={<RiskGrade analyses={analyses} />} />
+          ) : undefined
+        }
       />
 
       {status === 'loading' ? (
@@ -349,10 +347,7 @@ const BrowseDomain = ({ domain, onBack }: { domain: string; onBack: () => void }
           We have {domain} on the list but cannot open it. Nothing else in the panel is affected.
         </p>
       ) : (
-        <>
-          <WorstRisk analyses={analyses} freshness={NO_FRESHNESS} />
-          <LensCard analyses={analyses} headerOffset={headerHeight} freshnessOf={UNCONFIRMED} />
-        </>
+        <LensCard analyses={analyses} headerOffset={headerHeight} freshnessOf={UNCONFIRMED} />
       )}
     </>
   );

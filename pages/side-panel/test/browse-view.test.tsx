@@ -160,7 +160,7 @@ describe('browse view', () => {
     // The site reads by concern now; its documents are one lens among them.
     expect(await screen.findByRole('tab', { name: 'Documents, 1' })).toBeTruthy();
     // The honest resting state, and the one the strip would have overwritten with a lie.
-    expect(screen.getByText(/As we read it on/)).toBeTruthy();
+    expect(screen.getByText(/Last read on/)).toBeTruthy();
     expect(screen.queryByText(/Checking against the live page/)).toBeNull();
     expect(screen.queryByText(/verified against the live page/)).toBeNull();
   });

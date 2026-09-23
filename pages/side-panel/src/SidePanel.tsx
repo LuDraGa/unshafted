@@ -1,11 +1,11 @@
 import '@src/SidePanel.css';
 import { AnalyseBar } from '@src/components/AnalyseBar';
-import { WorstRisk } from '@src/components/AnalysisView';
+import { GradeCaveat, RiskGrade } from '@src/components/AnalysisView';
 import { BrowseView } from '@src/components/BrowseView';
 import { DocumentReader, LookAgainTool, discoveredCount } from '@src/components/DocumentReader';
 import { LibraryIcon, PageDocumentsIcon } from '@src/components/Icons';
 import { LensCard } from '@src/components/LensCard';
-import { LocalAnalysisView, attributionMeta } from '@src/components/LocalAnalysisView';
+import { LocalAnalysisView, LocalMeta } from '@src/components/LocalAnalysisView';
 import { Overlay } from '@src/components/Overlay';
 import { PanelHeader, ToolButton } from '@src/components/PanelHeader';
 import { RunOutcome } from '@src/components/RunStatus';
@@ -26,9 +26,10 @@ import type { DocumentFreshness, LivePolicyCheck } from '@src/hooks/useLivePolic
  * zero network and no page access, and it renders before the live check has done anything:
  *
  *  1. `example.com — 3 documents read.` Instant, always true.
- *  2. The worst risk level, naming the document that earned it. Per D1 that is the point of the
- *     product — 36 of 37 domains land on High or Very High, and the finding IS that the products
- *     people use daily are predatory. It does not get buried under a neutral summary.
+ *  2. The worst risk level, naming the document that earned it — a tag in the header's meta line,
+ *     so it stays in view while the reader scrolls. Per D1 that is the point of the product — 36
+ *     of 37 domains land on High or Very High, and the finding IS that the products people use
+ *     daily are predatory. It does not get buried under a neutral summary.
  *  3. The one thing: a window if the domain names one, otherwise the highest-severity exposure.
  *     Not the `summary` — that is prose about a document, and an exposure is a fact about the
  *     reader. It is now the first block of the lens the reader lands on, already open.
@@ -37,7 +38,7 @@ import type { DocumentFreshness, LivePolicyCheck } from '@src/hooks/useLivePolic
  *
  * The live confirmation (D6) is an upgrade layered on top, never a precondition. If it cannot
  * run — and on 7 of 36 domains it structurally cannot — nothing above changes and no error
- * appears. "As we read it on 4 Sep 2026" is the honest resting state.
+ * appears. "Last read on 4 Sep 2026" is the honest resting state.
  */
 
 /** Rollup of the per-document states. Per D3 the document is the real unit; this is a summary. */
@@ -133,7 +134,13 @@ const CoveredView = ({
       <PanelHeader
         ref={headerRef}
         title={domain}
-        meta={<SiteMeta analyses={analyses} state={overallFreshness(analyses, check.freshness)} />}
+        meta={
+          <SiteMeta
+            analyses={analyses}
+            state={overallFreshness(analyses, check.freshness)}
+            grade={<RiskGrade analyses={analyses} />}
+          />
+        }
         tools={
           <>
             <PageDocumentsTool check={check} onOpen={() => setReaderOpen(true)} />
@@ -142,7 +149,7 @@ const CoveredView = ({
         }
       />
 
-      <WorstRisk analyses={analyses} freshness={check.freshness} />
+      <GradeCaveat analyses={analyses} freshness={check.freshness} />
       <LensCard key={domain} analyses={analyses} headerOffset={headerHeight} freshnessOf={freshnessOf} />
 
       {/* P17: covered never spends anything, so the strong claim holds unconditionally here. */}
@@ -233,7 +240,7 @@ const UncoveredView = ({
       <PanelHeader
         ref={headerRef}
         title={hostname}
-        meta={hasResults ? attributionMeta(localAnalyses) : 'Not analysed by Unshafted'}
+        meta={hasResults ? <LocalMeta analyses={localAnalyses} /> : 'Not analysed by Unshafted'}
         tools={
           <>
             {/*

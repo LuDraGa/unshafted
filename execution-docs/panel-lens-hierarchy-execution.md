@@ -129,8 +129,8 @@ refresh control, different placement because it is a different job there.
 ### 3.3 The ladders, applied rather than defined
 
 - **Surfaces:** one Primary per screen — the lens card (covered, local, browse detail), the reader
-  list (uncovered), the site list (browse). The verdict is a tinted *tag* leading one sentence under the header
-  (L7), not a block — the only graded element above the findings. Explanations sit
+  list (uncovered), the site list (browse). The verdict is a tinted *tag* in the header's meta line (L7), not a
+  block — the only graded element above the findings, and sticky with the header. Explanations sit
   on the ground; the reader overlay and CTA bar are Floating.
 - **Buttons, four ranks:** *filled* — only a commit (`Analyse N documents`, `Add a key`, the CTA
   bar's `Analyse…`), at most one visible; *outlined* — a real next step (`Look again` in an empty
@@ -177,7 +177,7 @@ it moves into the header meta line, which is above), and BrowseView's three cons
 | **L4** — tools by placement | shared header with tool slots; On this page overlay (covered, and local results) and in-place reader (uncovered) with Look again as a refresh control; CTA bar with the confirm inside it and run progress; Library in the header | ☑ `PanelHeader`, `Overlay`, `AnalyseBar`, `Icons`, `SiteMeta` |
 | **L5** — browse | back leading; search inside the list card; the `window` marker only in flat search results, where the group heading that explains it is gone | ☑ two browse tests updated to the new contract |
 | **L6** — verification + records | `eslint`, `test`, `Prettier Check`; harness walk of every state at 320 and 400; tests rewritten for items; handover corrections | ☑ except the loaded-extension walk — see §6 |
-| **L7** — verdict and strip, after the director's look at a real local result | the verdict card becomes a risk tag leading its sentence, under the header meta (S3 order kept); the lens strip moves to the floating ground, and browse's search bar with it — same sticky-inside-a-card construct, same ground | ☑ tag keeps `RISK_TONE` fill and 1px border (checked at High: rose-400 / rose-200); verdict 46px against a card of ~96; no overflow at 320 |
+| **L7** — verdict and strip, after the director's look at a real local result | the verdict card becomes a risk tag in the header's meta line — "High risk earned by the privacy policy · 2 documents read · Last read on …" — leading it on corpus views and following the attribution on local ones (S3); the changed-document caveat (Open Q4) is its own line under the header, only when it applies; `unconfirmed` reads "Last read on <date>", which names exactly the latest read it shows; meta dots trail their item so a wrapped line never starts with one. The lens strip moves to the floating ground, and browse's search bar with it | ☑ tag keeps `RISK_TONE` fill and 1px border (checked at High: rose-400 / rose-200); findings start at 104px on a covered site, from ~200 before L7; grade stays in view in the sticky header; no overflow at 320 |
 
 The director runs `pnpm build` and `pnpm type-check`. The harness build here is a watch build into
 the scratchpad — it never writes `dist/`.
@@ -232,3 +232,5 @@ script, in a browser pane that is not painting frames, reports the header transp
 - 2026-09-23 — reviewed before commit; findings in [`panel-lens-review-fixes.md`](panel-lens-review-fixes.md).
   The director asked for the verdict to give the findings back their space and for the strip to
   separate from what scrolls under it — L7 — then to commit, with the review's fixes to follow.
+- 2026-09-23 — L7 second round, on seeing the tag line on google.com: the grade moves into the meta
+  line with the document count, and "As we read them on" becomes "Last read on".

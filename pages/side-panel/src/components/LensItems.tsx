@@ -173,7 +173,7 @@ const FRESHNESS_LINE: Partial<Record<DocumentFreshness, string>> = {
   current: 'Current — verified against the live page',
   changed: 'Changed since we read it',
   /*
-   * `unconfirmed` has no line of its own: the header already says "as we read them on …" for the
+   * `unconfirmed` has no line of its own: the header already says "last read on …" for the
    * site, and the opened block's provenance line carries this document's own date.
    */
 };

@@ -163,7 +163,7 @@ describe('useLivePolicyCheck', () => {
       await new Promise(resolve => setTimeout(resolve, 500));
     });
 
-    // Not an error state: "as we read it on <date>" is the honest default.
+    // Not an error state: "last read on <date>" is the honest default.
     expect(read()).toEqual({ discovering: 'false', discovery: 'refused', freshness: 'unconfirmed', reads: '0' });
     expect(capturePolicyDocument).not.toHaveBeenCalled();
   });

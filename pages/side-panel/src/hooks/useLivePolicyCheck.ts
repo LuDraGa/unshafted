@@ -13,7 +13,7 @@ import type { PolicyDocType, RankedPolicyCandidate, SitePolicyAnalysis } from '@
  *  - This NEVER blocks a render. Every state it produces is additive.
  *  - Failure is not an error state. Chrome refuses injection on its own pages, and 7 of 36
  *    domains host their policies cross-origin where an in-page fetch cannot reach them. Both
- *    land on `unconfirmed`, whose label is "as we read it on <date>" — the honest default, not
+ *    land on `unconfirmed`, whose label is "last read on <date>" — the honest default, not
  *    a warning.
  *  - It runs once per tab and origin. The reason used to be permission: under `activeTab` the
  *    second attempt was the one without the gesture, so re-running downgraded a good `current`
@@ -244,7 +244,7 @@ const useLivePolicyCheck = (
       if (disposed) return;
       update(() => ({ discovery: found, discovering: false }));
 
-      // Nothing readable here. Every document keeps its "as we read it" label and no error shows.
+      // Nothing readable here. Every document keeps its "last read on" label and no error shows.
       if (found.status !== 'discovered') {
         update(() => ({
           freshness: Object.fromEntries(analyses.map(analysis => [analysis.contentHash, 'unconfirmed' as const])),

@@ -61,7 +61,7 @@ the "Window:" prefix is a copy decision, since the Windows lens now owns that wo
 
 ### 6. The local header states one date and model for every document
 
-`attributionMeta` puts the newest run's date and model on the header line for the whole screen.
+`LocalMeta` puts the newest run's date and model on the header line for the whole screen, and the grade now follows it there.
 Local analyses can come from separate runs on different models, and the previous version handled
 that on purpose — it named the latest and said "each card says when it ran". The P10 revision's
 reasoning ("one author, so the header line is true of everything") holds for the author only.
@@ -132,7 +132,7 @@ updating.
 
 `.claude/panel-harness/audit.js` (gitignored) excludes `kind: 'none'` deadline descriptions from
 the no-text-loss check, which is why 5 passed as "0 missing". Its verdict check reads the border off
-`.panel-verdict`; the tone now lives on `.panel-verdict-tag`.
+`.panel-verdict`, which no longer exists; the grade is now `.panel-verdict-tag` inside `.panel-meta`.
 
 ### 18. Comments still name retired components
 

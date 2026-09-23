@@ -150,6 +150,7 @@
   margin: 4px 0 0;
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   column-gap: 6px;
   row-gap: 2px;
   font-size: 12px;
@@ -157,7 +158,13 @@
   color: var(--unshafted-text-muted);
 }
 
-.panel-meta-sep {
+/*
+ * The dot between meta items trails the item before it, so when the line wraps the dot stays at the
+ * end of a line and never starts one. `/ ''` gives it empty alt text: it is decoration, not a word.
+ */
+.panel-meta > :not(:last-child)::after {
+  content: '·' / '';
+  margin-left: 6px;
   color: var(--unshafted-glyph-faint);
 }
 
@@ -314,23 +321,11 @@
 }
 
 /*
- * The graded verdict — a tag leading a sentence, part of the title's zone rather than a zone of its
- * own: 6px under the header, 12px under anything that sits between them (the excerpt note, a run
- * notice). The tag is the one graded element above the findings. Width and style only on it (see
- * the top); `RISK_TONE` owns its fill, border and text colour.
+ * The grade — a tag in the header's meta line, followed by the document that earned it. The tag is
+ * the one graded element above the findings, and it rides the sticky header, so it stays in view.
+ * Width and style only on it (see the top); `RISK_TONE` owns its fill, border and text colour.
  */
-.panel-verdict {
-  margin-top: 12px;
-}
-
-.panel-header + .panel-verdict {
-  margin-top: 6px;
-}
-
-.panel-verdict-line {
-  margin: 0;
-  font-size: 12px;
-  line-height: 1.9;
+.panel-meta-grade {
   color: var(--unshafted-text-soft);
 }
 
@@ -340,15 +335,15 @@
   border-width: 1px;
   border-style: solid;
   border-radius: 999px;
-  padding: 0 9px;
-  font-size: 12px;
-  line-height: 20px;
+  padding: 0 8px;
+  font-size: 11px;
+  line-height: 18px;
   font-weight: 700;
   white-space: nowrap;
 }
 
-.panel-verdict-caveat {
-  margin: 2px 0 0;
+/* Open Q4 — the document behind the grade has moved. Only ever on the covered view. */
+.panel-grade-caveat {
   font-size: 11px;
   line-height: 1.5;
   font-weight: 600;
