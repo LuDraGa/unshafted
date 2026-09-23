@@ -107,6 +107,9 @@ text is in the collapsed summary, and the Windows lens is first and default when
 **Missing carries no count.** BrowseView's constraint 1 — an absent-disclosure tally is a lower
 bound, never a measurement, and invites a comparison the data cannot support — applies the moment
 the reader moves between two sites' panels. Named findings, no number.
+*Reversed 2026-09-23 (director):* Missing is counted like every other lens. Data and Rights are
+lower bounds in exactly the same way and were always counted, and the lone numberless tab read as
+broken rather than principled. The lens intro carries the caveat ("not a full checklist").
 
 **Findings from a changed document** (D7) keep their provenance: the source tag reads as an earlier
 version, and the quote — the checkable part — is in the expanded body.

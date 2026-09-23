@@ -92,12 +92,12 @@ const LensStrip = ({
             aria-selected={active}
             aria-controls={`${baseId}-panel-${lens.id}`}
             // The label and count are two spans, which an accessible name runs together: "Data9".
-            aria-label={lens.count !== null ? `${lens.label}, ${lens.count}` : lens.label}
+            aria-label={`${lens.label}, ${lens.count}`}
             className="panel-lens-tab"
             onClick={() => onChange(lens.id)}
             onKeyDown={handleKeyDown}>
             <span>{lens.label}</span>
-            {lens.count !== null ? <span className="panel-lens-count">{lens.count}</span> : null}
+            <span className="panel-lens-count">{lens.count}</span>
           </button>
         );
       })}

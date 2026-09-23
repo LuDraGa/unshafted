@@ -103,12 +103,12 @@ describe('lenses', () => {
     expect(titles(lenses, 'windows')).not.toContain('A deadline of kind none');
   });
 
-  it('lists only absent disclosures, and never counts them', () => {
+  it('lists only absent disclosures, and counts them like any other lens', () => {
     const lenses = buildLenses([privacy, terms]);
     const missing = lenses.find(lens => lens.id === 'missing')!;
 
     expect(titles(lenses, 'missing')).toEqual(['Retention period']);
-    expect(missing.count).toBeNull();
+    expect(missing.count).toBe(1);
   });
 
   it('keeps each finding attached to the document it came from', () => {

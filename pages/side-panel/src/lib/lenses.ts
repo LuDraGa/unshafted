@@ -69,11 +69,7 @@ export type Lens = {
   label: string;
   /** One sentence saying what the lens holds. It is the section heading the old eyebrows were. */
   intro: string;
-  /**
-   * Null means the lens shows no number at all, which is a decision rather than a missing value.
-   * See `missing` below.
-   */
-  count: number | null;
+  count: number;
   items: LensItem[];
 };
 
@@ -141,15 +137,15 @@ export const buildLenses = (
       id: 'missing',
       label: 'Missing',
       /*
-       * NO COUNT, on the same grounds browse has none. `requiredDisclosures` records what each
-       * analysis found worth recording, not a systematic checklist, so a number here is a lower
-       * bound dressed as a measurement — and the reader carries it from this site's panel to the
-       * next one's, which is exactly the comparison between real companies the data cannot back.
-       * Named findings are honest; a tally is not.
+       * Counted like every other lens. It used to carry no number, on the grounds that
+       * `requiredDisclosures` is what an analysis found rather than a systematic checklist, so a
+       * tally is a lower bound. True — but equally true of Data and Rights, which were counted, and
+       * the one numberless tab read as broken rather than principled. The intro carries the
+       * caveat instead: "the ones the analysis found, not a full checklist".
        */
       intro:
         'Disclosures the law expects and these documents do not make — the ones the analysis found, not a full checklist.',
-      count: null,
+      count: absent.length,
       items: absent.map(({ analysis, value, index }) => ({
         kind: 'missing',
         key: `${analysis.contentHash}:missing:${index}`,

@@ -11,8 +11,8 @@
  *     screen until opened.
  *  3. **One layer.** The lens is chosen sideways and the block is the only thing that opens; a block
  *     containing another disclosure puts the reader two levels deep in one finding.
- *  4. **A missing disclosure gets no control, and the Missing lens gets no number** (P4, and
- *     BrowseView's constraint 1).
+ *  4. **A missing disclosure gets no control** (P4). The Missing lens is counted like the rest; see
+ *     the comment on it in `lenses.ts` for why it once was not.
  *  5. **The strip keeps the popup's keyboard contract** — one tab stop, arrows move and select.
  *  6. **Provenance survives aggregation.** A finding from a changed document says so, next to it.
  *
@@ -152,11 +152,11 @@ describe('lens card', () => {
     }
   });
 
-  it('gives a missing disclosure no control, and the Missing lens no number', () => {
+  it('gives a missing disclosure no control, and counts the Missing lens like the rest', () => {
     renderCard();
 
-    const missingTab = screen.getByRole('tab', { name: 'Missing' });
-    expect(missingTab.textContent).toBe('Missing');
+    const missingTab = screen.getByRole('tab', { name: 'Missing, 1' });
+    expect(missingTab.textContent).toBe('Missing1');
 
     const row = blockFor('Retention period');
     expect(row.tagName).not.toBe('DETAILS');
