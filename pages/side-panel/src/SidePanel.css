@@ -156,6 +156,8 @@
   font-size: 12px;
   line-height: 1.45;
   color: var(--unshafted-text-muted);
+  /* A provider's model id is one long word; it may break rather than widen the column. */
+  overflow-wrap: anywhere;
 }
 
 /*

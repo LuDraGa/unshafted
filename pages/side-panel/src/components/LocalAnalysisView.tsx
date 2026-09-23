@@ -13,8 +13,8 @@ import type { LocalPolicyAnalysis, SitePolicyAnalysis } from '@extension/unshaft
  * component adds:
  *
  *  - Who ran it, when, on which model, and that we did not review it. `LocalMeta` is the header's
- *    meta line, and the attribution leads it with the grade AFTER it — nobody reads a grade before
- *    learning whose grade it is.
+ *    meta line, in the same shape as the corpus one — grade, count, date — with the attribution
+ *    carried IN that line rather than ahead of it (S3 as revised 2026-09-23; see below).
  *  - No freshness claim anywhere. "Last read on" is a claim about us reading the documents, and we
  *    did not; every item gets `null` for the same reason.
  *  - The excerpt caveat (S6), directly under the header rather than inside a document, because it
@@ -28,19 +28,43 @@ import type { LocalPolicyAnalysis, SitePolicyAnalysis } from '@extension/unshaft
 
 const NO_FRESHNESS = () => null;
 
-/** The header meta line for a site the reader analysed themselves: whose analysis, then its grade (S3). */
+/**
+ * The header meta line for a site the reader analysed themselves — the corpus line's shape, stated
+ * for a run on their own key:
+ *
+ *   corpus   High risk earned by the privacy policy · 2 documents read · Last read on 5 Sep 2026
+ *   local    High risk earned by the privacy policy · 2 documents analysed by you ·
+ *            Last analysed on 23 Sep 2026 · gpt-5.4 · not reviewed by Unshafted
+ *
+ * S3, REVISED (director, 2026-09-23). S3 put the attribution ahead of the grade. The two lines
+ * above used to be placed and worded differently for that reason, and the director asked for one
+ * shape. What S3 protects survives the reorder: "analysed by you" and "not reviewed by Unshafted"
+ * are on the grade's own line, a phrase away, never a block away — the grade cannot be read as
+ * ours without reading past who ran it.
+ *
+ * The date is the LATEST run and says so, like "Last read on". Every model that produced a document
+ * here is named, because one site's documents can come from separate runs on different models; each
+ * document's own run is in its Documents-lens block.
+ */
 export const LocalMeta = ({ analyses }: { analyses: readonly LocalPolicyAnalysis[] }) => {
   const inner = useMemo(() => analyses.map(local => local.analysis), [analyses]);
-  const latest = analyses[0];
-  if (!latest) return null;
+  if (analyses.length === 0) return null;
 
+  const lastRan = analyses.reduce(
+    (latest, local) => (local.provenance.ranAt > latest ? local.provenance.ranAt : latest),
+    '',
+  );
+  const models = [...new Set(analyses.map(local => local.provenance.model))].join(', ');
+
+  // Spaces between the spans are for the accessible text; see `SiteMeta`.
   return (
     <>
+      <RiskGrade analyses={inner} />{' '}
       <span>
-        Analysed by you on {formatAnalysedDate(latest.provenance.ranAt)} · {latest.provenance.model} · not reviewed by
-        Unshafted
+        {analyses.length === 1 ? '1 document analysed by you' : `${analyses.length} documents analysed by you`}
       </span>{' '}
-      <RiskGrade analyses={inner} />
+      <span>Last analysed on {formatAnalysedDate(lastRan)}</span> <span>{models}</span>{' '}
+      <span>not reviewed by Unshafted</span>
     </>
   );
 };

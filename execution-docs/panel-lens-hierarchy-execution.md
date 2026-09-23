@@ -160,12 +160,13 @@ refresh control, different placement because it is a different job there.
 | **P13** — three sticky levels | two: header, lens strip | section labels are now lenses |
 | **P1's "Analyse becomes Secondary"** | Analyse moves out of the reading flow into the CTA bar | placement, not rank, separates it now |
 | **C1, the `howTo` half** — an action's `howTo` never hides | the action's name is the closed block; `howTo` opens with it | crisp blocks, as the popup's Asks lens does. C1's *window* half is kept — see §3.1 |
-| **P10's per-card attribution line** | the attribution is the header's meta line for the whole screen, and each document's own line is in its Documents-lens block | a screen only ever shows one author's analyses, so the header line is true of everything on it; S3's "above the verdict" still holds |
+| **P10's per-card attribution line** | the attribution is the header's meta line for the whole screen, and each document's own line is in its Documents-lens block | a screen only ever shows one author's analyses, so the header line is true of everything on it. The line now names the *latest* run date and *every* model (L7), so it is true of date and model as well |
+| **S3's placement** — local attribution renders above the verdict | the grade leads the meta line on every view; on a local result the same line continues "N documents analysed by you · Last analysed on … · model · not reviewed by Unshafted" | director, 2026-09-23 — one shape for the line on every view. What S3 protects is kept: the attribution is on the grade's own line, a phrase after it, never a block away |
 
 **Unchanged and load-bearing:** P4 (missing rows get no control), P5 (flat rows, risk borders at full
 strength, `risk-tone.ts` untouched), P16 (pre-spend facts never behind a control), P17 (footer truth
-per view), P18 (never say a window is open), D5, D7, D14, S3 (local attribution above the verdict —
-it moves into the header meta line, which is above), and BrowseView's three constraints.
+per view), P18 (never say a window is open), D5, D7, D14, S3's substance (a local grade is never
+shown apart from who ran it — its placement is revised above), and BrowseView's three constraints.
 
 ## 5. Units
 
@@ -177,7 +178,7 @@ it moves into the header meta line, which is above), and BrowseView's three cons
 | **L4** — tools by placement | shared header with tool slots; On this page overlay (covered, and local results) and in-place reader (uncovered) with Look again as a refresh control; CTA bar with the confirm inside it and run progress; Library in the header | ☑ `PanelHeader`, `Overlay`, `AnalyseBar`, `Icons`, `SiteMeta` |
 | **L5** — browse | back leading; search inside the list card; the `window` marker only in flat search results, where the group heading that explains it is gone | ☑ two browse tests updated to the new contract |
 | **L6** — verification + records | `eslint`, `test`, `Prettier Check`; harness walk of every state at 320 and 400; tests rewritten for items; handover corrections | ☑ except the loaded-extension walk — see §6 |
-| **L7** — verdict and strip, after the director's look at a real local result | the verdict card becomes a risk tag in the header's meta line — "High risk earned by the privacy policy · 2 documents read · Last read on …" — leading it on corpus views and following the attribution on local ones (S3); the changed-document caveat (Open Q4) is its own line under the header, only when it applies; `unconfirmed` reads "Last read on <date>", which names exactly the latest read it shows; meta dots trail their item so a wrapped line never starts with one. The lens strip moves to the floating ground, and browse's search bar with it | ☑ tag keeps `RISK_TONE` fill and 1px border (checked at High: rose-400 / rose-200); findings start at 104px on a covered site, from ~200 before L7; grade stays in view in the sticky header; no overflow at 320 |
+| **L7** — verdict and strip, after the director's look at a real local result | the verdict card becomes a risk tag in the header's meta line — "High risk earned by the privacy policy · 2 documents read · Last read on …" — leading it on every view, with a local result's attribution in the same line (S3 revised, §4); the changed-document caveat (Open Q4) is its own line under the header, only when it applies; `unconfirmed` reads "Last read on <date>", which names exactly the latest read it shows; meta dots trail their item so a wrapped line never starts with one. The lens strip moves to the floating ground, and browse's search bar with it | ☑ tag keeps `RISK_TONE` fill and 1px border (checked at High: rose-400 / rose-200); findings start at 104px on a covered site, from ~200 before L7; grade stays in view in the sticky header; no overflow at 320 |
 
 The director runs `pnpm build` and `pnpm type-check`. The harness build here is a watch build into
 the scratchpad — it never writes `dist/`.
@@ -234,3 +235,6 @@ script, in a browser pane that is not painting frames, reports the header transp
   separate from what scrolls under it — L7 — then to commit, with the review's fixes to follow.
 - 2026-09-23 — L7 second round, on seeing the tag line on google.com: the grade moves into the meta
   line with the document count, and "As we read them on" becomes "Last read on".
+- 2026-09-23 — L7 third round: the local line was placed and worded differently from the corpus
+  one. It now takes the same shape — grade, "N documents analysed by you", "Last analysed on" — which
+  revises S3's placement (§4) and resolves review item 6.

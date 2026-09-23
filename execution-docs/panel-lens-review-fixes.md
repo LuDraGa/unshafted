@@ -4,8 +4,9 @@
 ([execution doc](panel-lens-hierarchy-execution.md)), reviewed in the harness and against the corpus
 before it was committed.
 
-**Status:** open — nothing here is started. The pass was committed as it stood, plus the compact
-verdict and the darker lens strip; everything below lands after it. 1–5 are the director's priorities.
+**Status:** open — 6 is resolved (by the local meta-line rework); nothing else is started. The pass
+was committed as it stood, plus the compact verdict and the darker lens strip; everything below lands
+after it. 1–5 are the director's priorities.
 
 ---
 
@@ -59,7 +60,10 @@ the "Window:" prefix is a copy decision, since the Windows lens now owns that wo
 
 ## Other findings
 
-### 6. The local header states one date and model for every document
+### 6. The local header states one date and model for every document — **resolved**
+
+Resolved 2026-09-23 when the local meta line took the corpus line's shape: it now reads "Last
+analysed on <latest run>" and names every model that produced a document on the site.
 
 `LocalMeta` puts the newest run's date and model on the header line for the whole screen, and the grade now follows it there.
 Local analyses can come from separate runs on different models, and the previous version handled

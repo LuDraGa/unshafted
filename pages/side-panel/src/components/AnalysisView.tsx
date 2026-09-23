@@ -31,8 +31,8 @@ import type { DocumentFreshness } from '@src/hooks/useLivePolicyCheck';
  * In the header it is sticky, so the grade stays in view while the reader is deep in the findings
  * it summarises.
  *
- * Where it sits in the line is the caller's call and carries S3: on a local result it comes AFTER
- * the attribution, because nobody reads a grade before learning whose grade it is.
+ * It leads the meta line on every view. On a local result the rest of that same line says who ran
+ * it and that we did not review it — S3 as revised; see `LocalMeta`.
  */
 export const RiskGrade = ({ analyses }: { analyses: readonly SitePolicyAnalysis[] }) => {
   const summary = domainRiskSummary(analyses);

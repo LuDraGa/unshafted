@@ -28,7 +28,7 @@ export const SiteMeta = ({
 }: {
   analyses: readonly SitePolicyAnalysis[];
   state: DocumentFreshness;
-  /** The site's grade (`RiskGrade`). Leads the line: on a corpus view we are the ones who read it. */
+  /** The site's grade (`RiskGrade`). Leads the line, as it does on a local result (`LocalMeta`). */
   grade?: ReactNode;
 }) => (
   /*
