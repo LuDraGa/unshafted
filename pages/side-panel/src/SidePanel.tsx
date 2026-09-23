@@ -1,6 +1,7 @@
 import '@src/SidePanel.css';
 import { AnalyseConfirm } from '@src/components/AnalyseConfirm';
 import { OneThing, WorstRisk } from '@src/components/AnalysisView';
+import { BackToTop } from '@src/components/BackToTop';
 import { BrowseView } from '@src/components/BrowseView';
 import { DocumentCard } from '@src/components/DocumentCard';
 import { DocumentReader } from '@src/components/DocumentReader';
@@ -8,6 +9,7 @@ import { LocalAnalysisView } from '@src/components/LocalAnalysisView';
 import { RunOutcome, RunProgress } from '@src/components/RunStatus';
 import { useActiveTabSite } from '@src/hooks/useActiveTabSite';
 import { useDomainAnalyses } from '@src/hooks/useDomainAnalyses';
+import { useElementHeight } from '@src/hooks/useElementHeight';
 import { useLivePolicyCheck } from '@src/hooks/useLivePolicyCheck';
 import { useLocalAnalyses } from '@src/hooks/useLocalAnalyses';
 import { formatAnalysedDate } from '@src/lib/presentation';
@@ -80,26 +82,48 @@ const CoveredView = ({
   domain: string;
   analyses: readonly SitePolicyAnalysis[];
   check: LivePolicyCheck;
-}) => (
-  <>
-    <FreshnessStrip analyses={analyses} freshness={check.freshness} />
-    <WorstRisk analyses={analyses} freshness={check.freshness} />
-    <OneThing analyses={analyses} />
+}) => {
+  const [headerRef, headerHeight] = useElementHeight<HTMLElement>();
 
-    <section className="panel-group">
-      <p className="panel-eyebrow">Every document</p>
-      {analyses.map(analysis => (
-        <DocumentCard
-          key={analysis.contentHash}
-          analysis={analysis}
-          freshness={check.freshness[analysis.contentHash] ?? 'pending'}
-        />
-      ))}
-    </section>
+  return (
+    <>
+      <header ref={headerRef} className="panel-floating top-0 flex flex-col gap-1 pb-2">
+        <div className="flex items-center justify-between gap-2">
+          <h1 className="m-0 min-w-0 text-lg leading-tight font-semibold tracking-tight text-[var(--unshafted-text)]">
+            {domain}
+          </h1>
+          <BackToTop />
+        </div>
+        <p className="m-0 text-xs text-[var(--unshafted-text-muted)]">
+          {analyses.length === 1 ? '1 document read.' : `${analyses.length} documents read.`}
+        </p>
+      </header>
 
-    <DocumentReader domain={domain} analyses={analyses} check={check} />
-  </>
-);
+      <FreshnessStrip analyses={analyses} freshness={check.freshness} />
+      <WorstRisk analyses={analyses} freshness={check.freshness} />
+      <OneThing analyses={analyses} />
+
+      <section className="panel-group">
+        <p className="panel-eyebrow">Every document</p>
+        {analyses.map(analysis => (
+          <DocumentCard
+            key={analysis.contentHash}
+            analysis={analysis}
+            freshness={check.freshness[analysis.contentHash] ?? 'pending'}
+            headerOffset={headerHeight}
+          />
+        ))}
+      </section>
+
+      <DocumentReader domain={domain} analyses={analyses} check={check} />
+
+      {/* P17: covered never spends anything, so the strong claim holds unconditionally here. */}
+      <p className="m-0 mt-auto pt-2 text-[10px] leading-relaxed text-[var(--unshafted-text-faint)]">
+        Nothing about the site you are on leaves this browser.
+      </p>
+    </>
+  );
+};
 
 /**
  * The uncovered site (D15), and from Part 6 the only place in the panel that can spend money.
@@ -124,12 +148,10 @@ const CoveredView = ({
 const UncoveredView = ({
   hostname,
   check,
-  loading,
   onBrowse,
 }: {
   hostname: string;
   check: LivePolicyCheck;
-  loading: boolean;
   onBrowse: () => void;
 }) => {
   const { analyses: localAnalyses, runState, reload } = useLocalAnalyses(hostname);
@@ -161,18 +183,21 @@ const UncoveredView = ({
   const run = runState.domain === hostname ? runState : null;
   const running = run?.status === 'running';
 
-  if (loading) {
-    return (
-      <section className="panel-one-thing">
-        <p className="m-0 text-xs leading-relaxed text-[var(--unshafted-text-muted)]">Reading the current tab…</p>
-      </section>
-    );
-  }
+  const [headerRef, headerHeight] = useElementHeight<HTMLElement>();
 
   return (
     <>
+      <header ref={headerRef} className="panel-floating top-0 flex flex-col gap-1 pb-2">
+        <div className="flex items-center justify-between gap-2">
+          <h1 className="m-0 min-w-0 text-lg leading-tight font-semibold tracking-tight text-[var(--unshafted-text)]">
+            {hostname}
+          </h1>
+          <BackToTop />
+        </div>
+      </header>
+
       {localAnalyses.length > 0 ? (
-        <LocalAnalysisView analyses={localAnalyses} />
+        <LocalAnalysisView analyses={localAnalyses} headerOffset={headerHeight} />
       ) : (
         <section className="panel-one-thing">
           <p className="m-0 text-xs leading-relaxed text-[var(--unshafted-text-muted)]">
@@ -229,6 +254,16 @@ const UncoveredView = ({
         check={check}
         onAnalyse={running ? undefined : candidate => setConfirming({ preselected: candidate.url })}
       />
+
+      {/*
+        P17: this is the paid path regardless of which branch above rendered — saved local results
+        still sit next to a live "run again" offer, and the confirm/run states below it are the
+        same screen, not a different one. Nothing has been sent yet; the wording says what
+        analysing does, not that it already happened.
+      */}
+      <p className="m-0 mt-auto pt-2 text-[10px] leading-relaxed text-[var(--unshafted-text-faint)]">
+        When you analyse, document text goes to your chosen provider. Results can sync to your connected Drive.
+      </p>
     </>
   );
 };
@@ -254,11 +289,15 @@ const UncoveredView = ({
  * nothing to read, holding 82 analyses they cannot see. The corpus is also worth most exactly when
  * you are NOT on the site: the moment before you sign up.
  */
-const NoSiteView = ({ loading, onBrowse }: { loading: boolean; onBrowse: () => void }) => {
-  // First resolve: we do not yet know whether there is a site, so claim neither way.
-  if (loading) return null;
+const NoSiteView = ({ onBrowse }: { onBrowse: () => void }) => (
+  <>
+    <header className="panel-floating top-0 flex items-center justify-between gap-2 pb-2">
+      <h1 className="m-0 min-w-0 text-lg leading-tight font-semibold tracking-tight text-[var(--unshafted-text)]">
+        No site here
+      </h1>
+      <BackToTop />
+    </header>
 
-  return (
     <section className="panel-one-thing">
       <p className="m-0 text-xs leading-relaxed text-[var(--unshafted-text-muted)]">
         This is a browser page, not a website. Open a site and the panel will show what it makes you agree to.
@@ -269,13 +308,50 @@ const NoSiteView = ({ loading, onBrowse }: { loading: boolean; onBrowse: () => v
         </button>
       </div>
     </section>
-  );
-};
+
+    <p className="m-0 mt-auto pt-2 text-[10px] leading-relaxed text-[var(--unshafted-text-faint)]">
+      Nothing about the site you are on leaves this browser.
+    </p>
+  </>
+);
 
 /**
- * BROWSE IS A MODE, NOT A FOURTH VIEW, and the difference is structural rather than stylistic.
+ * D3: loading is its own explicit state, not a fallback title borrowed by whichever view the
+ * panel would otherwise be on. It used to be a string wedged into the shared header —
+ * `domain ?? site.hostname ?? (loading ? 'Reading the current tab…' : 'No site here')` — which
+ * meant "we do not know yet" and "we checked and there is nothing" rendered through the same
+ * conditional, one character apart. `SidePanel` now checks `loading` before it decides which of
+ * the other views applies, so this is the only place that string can come from.
  *
- * The three views below are all functions of the active tab: change the tab, and the right one
+ * The title still prefers the real hostname when the tab itself has already resolved — only the
+ * domain lookup that decides covered/uncovered is still in flight. That preserves what the old
+ * fallback chain did when partially resolved; it did not need to change, only stop living inside
+ * a title meant for something else.
+ */
+const LoadingView = ({ hostname }: { hostname: string | null }) => (
+  <>
+    <header className="panel-floating top-0 flex items-center justify-between gap-2 pb-2">
+      <h1 className="m-0 min-w-0 text-lg leading-tight font-semibold tracking-tight text-[var(--unshafted-text)]">
+        {hostname ?? 'Reading the current tab…'}
+      </h1>
+      <BackToTop />
+    </header>
+
+    <section className="panel-one-thing">
+      <p className="m-0 text-xs leading-relaxed text-[var(--unshafted-text-muted)]">Reading the current tab…</p>
+    </section>
+
+    {/* Nothing has run yet on any path, so the strongest true claim is always the safe one here. */}
+    <p className="m-0 mt-auto pt-2 text-[10px] leading-relaxed text-[var(--unshafted-text-faint)]">
+      Nothing about the site you are on leaves this browser.
+    </p>
+  </>
+);
+
+/**
+ * BROWSE IS A MODE, NOT A FIFTH VIEW, and the difference is structural rather than stylistic.
+ *
+ * The four views below are all functions of the active tab: change the tab, and the right one
  * renders. Browse is not — it is somewhere the reader went on purpose, about sites they are not on.
  * If a background navigation could yank them out of it, the panel would be closing itself
  * mid-sentence, which is precisely the failure D13's sticky availability exists to prevent.
@@ -300,42 +376,37 @@ const SidePanel = () => {
 
   if (browsing) {
     return (
-      <main className="panel-shell">
+      <main className="panel-shell panel-sticky-scope">
         <BrowseView onClose={() => setBrowsing(false)} />
+        <div className="panel-bottom-fade" aria-hidden="true" />
       </main>
     );
   }
 
+  /*
+   * D1/P7: `SidePanel` no longer owns a header or a footer of its own — it only decides which
+   * view is showing, and every view below carries both. `loading` is checked first, ahead of
+   * `covered`, so a still-resolving site can never be misread as either "covered" or "no site
+   * here"; those two are now reachable only once the resolve that would distinguish them is done.
+   *
+   * THE FOOTER USED TO BE ONE SENTENCE COMPUTED HERE, because it was not true on every screen it
+   * rendered on: right on covered and no-site, false on uncovered the moment the reader takes the
+   * offer sitting directly above it. Each view now carries the sentence that is true for it, which
+   * is the same fix P17 already made, just no longer centralised. Browse still never reaches here
+   * — it replaces the whole surface, footer included, per its own comment below.
+   */
   return (
-    <main className="panel-shell">
-      {/* No "This site" label above the domain — the domain is the label. */}
-      <header className="flex flex-col gap-1">
-        <h1 className="m-0 text-lg leading-tight font-semibold tracking-tight text-[var(--unshafted-text)]">
-          {/*
-            "No site here" is a finding, not a placeholder, so it waits for the resolve. Showing it
-            on every panel open — which is what the fallback did while the first query was in
-            flight — flashed a false claim about the site the user is looking at.
-          */}
-          {domain ?? site.hostname ?? (loading ? 'Reading the current tab…' : 'No site here')}
-        </h1>
-        {covered ? (
-          <p className="m-0 text-xs text-[var(--unshafted-text-muted)]">
-            {analyses.length === 1 ? '1 document read.' : `${analyses.length} documents read.`}
-          </p>
-        ) : null}
-      </header>
-
-      {covered ? (
+    <main className="panel-shell panel-sticky-scope">
+      {loading ? (
+        <LoadingView hostname={site.hostname} />
+      ) : covered ? (
         <CoveredView domain={domain} analyses={analyses} check={check} />
       ) : site.hostname === null ? (
-        <NoSiteView loading={loading} onBrowse={() => setBrowsing(true)} />
+        <NoSiteView onBrowse={() => setBrowsing(true)} />
       ) : (
-        <UncoveredView hostname={site.hostname} check={check} loading={loading} onBrowse={() => setBrowsing(true)} />
+        <UncoveredView hostname={site.hostname} check={check} onBrowse={() => setBrowsing(true)} />
       )}
-
-      <p className="m-0 mt-auto pt-2 text-[10px] leading-relaxed text-[var(--unshafted-text-faint)]">
-        Nothing about the site you are on leaves this browser.
-      </p>
+      <div className="panel-bottom-fade" aria-hidden="true" />
     </main>
   );
 };

@@ -40,7 +40,14 @@ const AttributionLine = ({ local }: { local: LocalPolicyAnalysis }) => (
   </p>
 );
 
-export const LocalAnalysisView = ({ analyses }: { analyses: readonly LocalPolicyAnalysis[] }) => {
+export const LocalAnalysisView = ({
+  analyses,
+  headerOffset = 0,
+}: {
+  analyses: readonly LocalPolicyAnalysis[];
+  /** P13: forwarded straight to each `DocumentCard` — this view owns no header of its own. */
+  headerOffset?: number;
+}) => {
   if (analyses.length === 0) return null;
 
   const inner = analyses.map(local => local.analysis);
@@ -73,7 +80,7 @@ export const LocalAnalysisView = ({ analyses }: { analyses: readonly LocalPolicy
         <p className="panel-eyebrow">Every document</p>
         {analyses.map(local => (
           <div key={local.analysis.contentHash} className="flex flex-col gap-1">
-            <DocumentCard analysis={local.analysis} freshness={null} />
+            <DocumentCard analysis={local.analysis} freshness={null} headerOffset={headerOffset} />
             <AttributionLine local={local} />
           </div>
         ))}

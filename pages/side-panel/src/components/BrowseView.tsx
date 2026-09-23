@@ -1,8 +1,10 @@
 import { OneThing, WorstRisk } from '@src/components/AnalysisView';
+import { BackToTop } from '@src/components/BackToTop';
 import { DocumentCard } from '@src/components/DocumentCard';
 import { useBrowseManifest } from '@src/hooks/useBrowseManifest';
 import { useDomainAnalyses } from '@src/hooks/useDomainAnalyses';
-import { useId, useMemo, useState } from 'react';
+import { useElementHeight } from '@src/hooks/useElementHeight';
+import { useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { PolicyBrowseRow } from '@extension/unshafted-core';
 import type { DocumentFreshness } from '@src/hooks/useLivePolicyCheck';
 
@@ -46,10 +48,19 @@ import type { DocumentFreshness } from '@src/hooks/useLivePolicyCheck';
  * groups** — a query produces one flat list, and at that moment the heading that would have
  * explained the word is not on screen. Without this the search path silently drops the one property
  * the view splits the corpus on.
+ *
+ * IT USED TO SAY "depends on when you signed up", which was a second invented fact standing in for
+ * the one D14 already forbids. Not every named window runs from signup: a refund window runs from
+ * the purchase, an objection deadline from the notice, an opt-out from first use. Naming signup as
+ * the anchor told 37 sites' worth of readers to count from a date that, for most of those windows,
+ * is not the date at all. The window's start is a property of the document and we do have it; the
+ * reader's position against it is a property of their life and we do not. The caveat now says
+ * exactly that much and no more.
  */
 const WINDOW_CAVEAT =
   'This site’s documents name a window — an opt-out, a refund, a deadline to object. ' +
-  'Whether yours is open depends on when you signed up, which we do not know.';
+  'Each one runs from an event the document names, and whether yours is open depends on ' +
+  'your own circumstances, which we do not know.';
 
 const documentsLabel = (count: number): string => (count === 1 ? '1 document' : `${count} documents`);
 
@@ -61,7 +72,7 @@ const documentsLabel = (count: number): string => (count === 1 ? '1 document' : 
  * a claim about the site and this is a claim about the document's contents.
  */
 const BrowseRow = ({ row, onOpen }: { row: PolicyBrowseRow; onOpen: (domain: string) => void }) => (
-  <button className="panel-browse-row" type="button" onClick={() => onOpen(row.domain)}>
+  <button className="panel-row panel-browse-row" type="button" onClick={() => onOpen(row.domain)}>
     <span className="panel-browse-domain">{row.domain}</span>
     {row.hasTimeSensitiveAction ? (
       <span className="panel-marker" title={WINDOW_CAVEAT}>
@@ -113,14 +124,27 @@ const BrowseGroup = ({
  * The second group deliberately gets a heading and no explanation. The absence of a named window is
  * not a finding about the site, and dressing it up as one would be the same error as making a
  * section out of absent disclosures.
+ *
+ * `query` is owned by `BrowseView`, not here (P11) — this component unmounts every time a domain
+ * opens, and a query held in its own state would reset on the way back.
  */
 /** Stable empty list, so "not loaded yet" is not a new array identity on every render. */
 const NO_ROWS: readonly PolicyBrowseRow[] = [];
 
-const BrowseList = ({ onOpen, onClose }: { onOpen: (domain: string) => void; onClose: () => void }) => {
+const BrowseList = ({
+  query,
+  onQueryChange,
+  onOpen,
+  onClose,
+}: {
+  query: string;
+  onQueryChange: (value: string) => void;
+  onOpen: (domain: string) => void;
+  onClose: () => void;
+}) => {
   const state = useBrowseManifest();
-  const [query, setQuery] = useState('');
   const searchId = useId();
+  const [titleRef, titleHeight] = useElementHeight<HTMLElement>();
 
   const trimmed = query.trim().toLowerCase();
 
@@ -145,11 +169,12 @@ const BrowseList = ({ onOpen, onClose }: { onOpen: (domain: string) => void; onC
 
   return (
     <>
-      <header className="flex flex-col gap-1">
-        <div className="flex items-start justify-between gap-2">
-          <h1 className="m-0 text-lg leading-tight font-semibold tracking-tight text-[var(--unshafted-text)]">
+      <header ref={titleRef} className="panel-floating top-0 flex flex-col gap-1 pb-2">
+        <div className="flex items-start gap-2">
+          <h1 className="m-0 min-w-0 flex-1 text-lg leading-tight font-semibold tracking-tight text-[var(--unshafted-text)]">
             What we’ve read
           </h1>
+          <BackToTop />
           <button className="panel-icon-button" type="button" onClick={onClose} aria-label="Close the list">
             ✕
           </button>
@@ -186,19 +211,27 @@ const BrowseList = ({ onOpen, onClose }: { onOpen: (domain: string) => void; onC
 
       {state.status === 'ready' ? (
         <>
-          <label className="sr-only" htmlFor={searchId}>
-            Find a site
-          </label>
-          <input
-            id={searchId}
-            className="panel-search"
-            type="search"
-            autoComplete="off"
-            spellCheck={false}
-            placeholder="Find a site"
-            value={query}
-            onChange={event => setQuery(event.target.value)}
-          />
+          {/*
+            P11/P13: search lives in its own sticky header, separate from the title above, so it
+            stays reachable while scrolling past up to 37 rows — this is browse's own Level 2,
+            sitting below the title (Level 1) at that header's actual measured height rather than
+            an assumed one, the same rule P13 applies to a document's sticky summary.
+          */}
+          <header className="panel-floating flex flex-col gap-1 py-2" style={{ top: titleHeight }}>
+            <label className="sr-only" htmlFor={searchId}>
+              Find a site
+            </label>
+            <input
+              id={searchId}
+              className="panel-search"
+              type="search"
+              autoComplete="off"
+              spellCheck={false}
+              placeholder="Find a site"
+              value={query}
+              onChange={event => onQueryChange(event.target.value)}
+            />
+          </header>
 
           {trimmed && matches.length === 0 ? (
             /*
@@ -217,22 +250,30 @@ const BrowseList = ({ onOpen, onClose }: { onOpen: (domain: string) => void; onC
               </p>
             </section>
           ) : trimmed ? (
-            /* Typing dissolves the groups — one flat result list, markers intact. */
-            <section className="panel-group">
-              {matches.map(row => (
-                <BrowseRow key={row.domain} row={row} onOpen={onOpen} />
-              ))}
+            /* Typing dissolves the groups — one flat result list, markers intact, one bordered surface. */
+            <section className="panel-one-thing">
+              <div className="panel-group">
+                {matches.map(row => (
+                  <BrowseRow key={row.domain} row={row} onOpen={onOpen} />
+                ))}
+              </div>
             </section>
           ) : (
-            <>
+            /* P11: all 37 real destinations remain as button rows in one bordered surface. */
+            <section className="panel-one-thing gap-3">
+              {/*
+                The heading says what the DOCUMENT contains, not what the reader can do. "Something
+                you can still do" asserted the window is open — the precise claim D14 says we cannot
+                make, made in a heading standing over 19 sites at once.
+              */}
               <BrowseGroup
-                heading="Something you can still do"
-                explanation="These name a window — an opt-out, a refund, a deadline to object. Whether yours is open depends on when you signed up."
+                heading="Window named in document"
+                explanation="These name a window — an opt-out, a refund, a deadline to object. Each runs from an event the document names, and whether yours is open depends on your own circumstances."
                 rows={clocked}
                 onOpen={onOpen}
               />
               <BrowseGroup heading="Everything else" rows={rest} onOpen={onOpen} />
-            </>
+            </section>
           )}
         </>
       ) : null}
@@ -263,14 +304,16 @@ const NO_FRESHNESS: Record<string, DocumentFreshness> = {};
  */
 const BrowseDomain = ({ domain, onBack }: { domain: string; onBack: () => void }) => {
   const { status, analyses } = useDomainAnalyses(domain);
+  const [headerRef, headerHeight] = useElementHeight<HTMLElement>();
 
   return (
     <>
-      <header className="flex flex-col gap-1">
-        <div className="flex items-start justify-between gap-2">
-          <h1 className="m-0 text-lg leading-tight font-semibold tracking-tight text-[var(--unshafted-text)]">
+      <header ref={headerRef} className="panel-floating top-0 flex flex-col gap-1 pb-2">
+        <div className="flex items-start gap-2">
+          <h1 className="m-0 min-w-0 flex-1 text-lg leading-tight font-semibold tracking-tight text-[var(--unshafted-text)]">
             {domain}
           </h1>
+          <BackToTop />
           <button className="panel-icon-button" type="button" onClick={onBack} aria-label="Back to the list">
             ←
           </button>
@@ -301,7 +344,12 @@ const BrowseDomain = ({ domain, onBack }: { domain: string; onBack: () => void }
           <section className="panel-group">
             <p className="panel-eyebrow">Every document</p>
             {analyses.map(analysis => (
-              <DocumentCard key={analysis.contentHash} analysis={analysis} freshness="unconfirmed" />
+              <DocumentCard
+                key={analysis.contentHash}
+                analysis={analysis}
+                freshness="unconfirmed"
+                headerOffset={headerHeight}
+              />
             ))}
           </section>
         </>
@@ -320,16 +368,41 @@ const BrowseDomain = ({ domain, onBack }: { domain: string; onBack: () => void }
  */
 const BrowseView = ({ onClose }: { onClose: () => void }) => {
   const [opened, setOpened] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
+  /*
+   * P11: back preserves the list's search and scroll within this session; leaving browse discards
+   * both for free, since `onClose` unmounts this whole component and there is then nothing left to
+   * carry over. `query` is state (it drives what `BrowseList` renders); the scroll position is a
+   * ref because restoring it is an imperative act on a DOM node, not something React renders.
+   *
+   * `.panel-shell` is the actual scroll container, and it lives one level up in `SidePanel.tsx` —
+   * reached here via the footer's own parent rather than a prop, since the footer below renders on
+   * every path through this component and is therefore always mounted to read it from.
+   */
+  const listScrollTop = useRef(0);
+  const footerRef = useRef<HTMLParagraphElement>(null);
+
+  const openDomain = (domain: string) => {
+    listScrollTop.current = footerRef.current?.parentElement?.scrollTop ?? 0;
+    setOpened(domain);
+  };
+
+  useLayoutEffect(() => {
+    const shell = footerRef.current?.parentElement;
+    if (!shell) return;
+    // Restore the list's own position on the way back; a freshly opened domain starts at its top.
+    shell.scrollTop = opened === null ? listScrollTop.current : 0;
+  }, [opened]);
 
   return (
     <>
       {opened === null ? (
-        <BrowseList onOpen={setOpened} onClose={onClose} />
+        <BrowseList query={query} onQueryChange={setQuery} onOpen={openDomain} onClose={onClose} />
       ) : (
         <BrowseDomain domain={opened} onBack={() => setOpened(null)} />
       )}
 
-      <p className="m-0 mt-auto pt-2 text-[10px] leading-relaxed text-[var(--unshafted-text-faint)]">
+      <p ref={footerRef} className="m-0 mt-auto pt-2 text-[10px] leading-relaxed text-[var(--unshafted-text-faint)]">
         This list ships with the extension. Nothing here is a network call.
       </p>
     </>

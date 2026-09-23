@@ -1,4 +1,5 @@
 import { RISK_TONE } from '@extension/ui';
+import { useElementHeight } from '@src/hooks/useElementHeight';
 import {
   DOC_TYPE_LABELS,
   SEVERITY_TONE,
@@ -6,6 +7,7 @@ import {
   formatAnalysedDate,
   shortenUrl,
 } from '@src/lib/presentation';
+import { useId, useState } from 'react';
 import type { AvailableAction, Exposure, RequiredDisclosure, SitePolicyAnalysis } from '@extension/unshafted-core';
 import type { DocumentFreshness } from '@src/hooks/useLivePolicyCheck';
 import type { ReactNode } from 'react';
@@ -58,6 +60,66 @@ const ReferenceLine = ({ reference }: { reference: NonNullable<Exposure['referen
   </div>
 );
 
+/** A reference with no quote: the section name is the whole payload, so it just renders. */
+const ReferenceLabel = ({ label }: { label: string }) => (
+  <p className="m-0 mt-1.5 text-[10px] font-semibold tracking-wide text-[var(--unshafted-text-faint)] uppercase">
+    {label}
+  </p>
+);
+
+/**
+ * LAYER TWO, and the only one. The document's own `<details>` is layer one; this is the quiet
+ * control that reveals a finding's elaboration, and nothing nests inside what it opens.
+ *
+ * The constraint this exists to satisfy is that a document must not become 23 chevroned
+ * `<details>`. The median document is 17 rows and the worst is 40, so a collapsible per row —
+ * each with its own marker, its own focus stop and its own open state — would replace one long
+ * page with forty small ones and call it an improvement.
+ *
+ * It is a button rather than a nested `<details>` on purpose: nesting native disclosures inside a
+ * native disclosure gives a screen reader two levels of the same affordance to announce, and gives
+ * the reader a marker that looks identical to the one that opened the document.
+ *
+ * The content stays in the DOM under `hidden` rather than being unmounted. That keeps
+ * `aria-controls` pointing at something real in both states, keeps find-in-page honest about what
+ * the document contains, and means expansion is a single attribute flip — which is what makes
+ * instantaneous expansion the simple option rather than the cheap one.
+ *
+ * `sr-only` carries the finding's own name into the accessible name, because a document with 40
+ * rows otherwise offers 40 controls all called "Why this matters".
+ */
+const FindingReveal = ({ label, finding, children }: { label: string; finding: string; children: ReactNode }) => {
+  const [open, setOpen] = useState(false);
+  const regionId = useId();
+
+  return (
+    <>
+      <button
+        type="button"
+        className="panel-reveal"
+        aria-expanded={open}
+        aria-controls={regionId}
+        onClick={() => setOpen(current => !current)}>
+        {open ? 'Show less' : label}
+        <span className="sr-only"> — {finding}</span>
+      </button>
+      <div id={regionId} hidden={!open}>
+        {children}
+      </div>
+    </>
+  );
+};
+
+/**
+ * THE THREE ROW TYPES DO NOT SPLIT THE SAME WAY, which is why they are three renderers and not one
+ * with a prop. Measured over the real corpus — 83 analyses, 37 domains, 1,445 rows — the exposure
+ * is the only one that divides cleanly down the middle.
+ *
+ * `title` names the thing and `whatItMeans` says what it means for you: 324 characters that have to
+ * survive a collapsed read. `whyItMatters` and the quote are 327 more — 50% of the row — and they
+ * are elaboration on a claim already fully stated above them. Severity stays: it is the one
+ * property that lets a reader skim 40 rows and stop at the right one.
+ */
 const ExposureRow = ({ exposure }: { exposure: Exposure }) => (
   <div className="panel-row">
     <div className="flex items-start justify-between gap-2">
@@ -68,11 +130,31 @@ const ExposureRow = ({ exposure }: { exposure: Exposure }) => (
       </span>
     </div>
     <p className="m-0 mt-1 text-xs leading-relaxed text-[var(--unshafted-text-muted)]">{exposure.whatItMeans}</p>
-    <p className="m-0 mt-1 text-xs leading-relaxed text-[var(--unshafted-text-faint)]">{exposure.whyItMatters}</p>
-    {exposure.reference ? <ReferenceLine reference={exposure.reference} /> : null}
+    {/*
+      Every exposure has a `whyItMatters` — the schema requires it — so every exposure has something
+      real behind the control. There is no branch here for "nothing to reveal" because there is no
+      such exposure.
+    */}
+    <FindingReveal label="Why this matters" finding={exposure.title}>
+      <p className="m-0 mt-1 text-xs leading-relaxed text-[var(--unshafted-text-faint)]">{exposure.whyItMatters}</p>
+      {exposure.reference ? <ReferenceLine reference={exposure.reference} /> : null}
+    </FindingReveal>
   </div>
 );
 
+/**
+ * AN ACTION HIDES ALMOST NOTHING, and applying the exposure's rule to it would gut the row.
+ *
+ * `howTo` is not elaboration on the action — it *is* the action, in the only form that helps:
+ * "opt out" without the steps is a fact, not something you can do. It stays. The deadline stays for
+ * a different reason: 49 actions across the corpus carry a real one, browse splits the whole corpus
+ * on that property, and a deadline the reader has to press a control to see is a deadline the
+ * product has decided not to tell them about.
+ *
+ * So only quoted evidence hides. And where the reference carries a label with no quote, the label
+ * simply renders — a control that opens to show one line of section name is worse than no control,
+ * because the reader pays a click to learn there was nothing behind it.
+ */
 const ActionRow = ({ action }: { action: AvailableAction }) => (
   <div className="panel-row">
     <p className="m-0 text-[13px] leading-snug font-semibold text-[var(--unshafted-text)]">{action.action}</p>
@@ -80,7 +162,13 @@ const ActionRow = ({ action }: { action: AvailableAction }) => (
     {action.deadline ? (
       <p className="m-0 mt-1 text-xs font-semibold text-violet-700">{describeDeadline(action.deadline)}</p>
     ) : null}
-    {action.reference ? <ReferenceLine reference={action.reference} /> : null}
+    {action.reference?.quote ? (
+      <FindingReveal label="The wording this comes from" finding={action.action}>
+        <ReferenceLine reference={action.reference} />
+      </FindingReveal>
+    ) : action.reference ? (
+      <ReferenceLabel label={action.reference.label} />
+    ) : null}
   </div>
 );
 
@@ -113,6 +201,13 @@ const ActionRow = ({ action }: { action: AvailableAction }) => (
  *
  * Still buried, and deliberately out of scope: this renders under "Missing disclosures", below
  * exposures and actions. That is a placement problem, not a colour one.
+ *
+ * AND IT GETS NO EXPAND CONTROL, which is not a styling preference but a fact about the schema.
+ * `RequiredDisclosure` is name, regime, status and note — there is no optional field, no quote, no
+ * second paragraph. Everything the row knows is already on screen, so a control could only ever
+ * open onto nothing. That removes 232 of the corpus's 1,445 rows from the chevron count outright,
+ * which is most of the answer to "this must not become 23 chevroned disclosures": a sixth of them
+ * were never eligible.
  */
 const AbsentDisclosureRow = ({ disclosure }: { disclosure: RequiredDisclosure }) => (
   <div className="panel-row">
@@ -129,9 +224,11 @@ const AbsentDisclosureRow = ({ disclosure }: { disclosure: RequiredDisclosure })
   </div>
 );
 
-const Group = ({ label, children }: { label: string; children: ReactNode }) => (
+const Group = ({ label, stickyTop, children }: { label: string; stickyTop: number; children: ReactNode }) => (
   <div className="panel-group">
-    <p className="panel-eyebrow">{label}</p>
+    <p className="panel-eyebrow panel-doc-section-label" style={{ top: stickyTop }}>
+      {label}
+    </p>
     {children}
   </div>
 );
@@ -145,16 +242,22 @@ const Group = ({ label, children }: { label: string; children: ReactNode }) => (
 export const DocumentCard = ({
   analysis,
   freshness,
+  headerOffset = 0,
 }: {
   analysis: SitePolicyAnalysis;
   freshness: DocumentFreshness | null;
+  /** P13: the current view's own sticky header height, so this card's summary sticks below it
+   *  rather than under it — every view measures its own, since none is the same height. */
+  headerOffset?: number;
 }) => {
   const changed = freshness === 'changed';
   const absent = analysis.requiredDisclosures.filter(disclosure => disclosure.status === 'absent');
+  const [summaryRef, summaryHeight] = useElementHeight<HTMLElement>();
+  const sectionOffset = headerOffset + summaryHeight;
 
   return (
     <details className="panel-doc">
-      <summary>
+      <summary ref={summaryRef} style={{ top: headerOffset }}>
         <span className="panel-doc-title">{DOC_TYPE_LABELS[analysis.docType]}</span>
         {/* No risk pill on a changed document — that grade describes a page nobody can see now. */}
         {changed ? null : (
@@ -193,7 +296,7 @@ export const DocumentCard = ({
         )}
 
         {analysis.exposures.length > 0 ? (
-          <Group label="What you gave up">
+          <Group label="What you gave up" stickyTop={sectionOffset}>
             {analysis.exposures.map(exposure => (
               <ExposureRow key={exposure.title} exposure={exposure} />
             ))}
@@ -201,7 +304,7 @@ export const DocumentCard = ({
         ) : null}
 
         {analysis.availableActions.length > 0 ? (
-          <Group label="What you can still do">
+          <Group label="What you can still do" stickyTop={sectionOffset}>
             {analysis.availableActions.map(action => (
               <ActionRow key={action.action} action={action} />
             ))}
@@ -209,7 +312,7 @@ export const DocumentCard = ({
         ) : null}
 
         {absent.length > 0 ? (
-          <Group label="Missing disclosures">
+          <Group label="Missing disclosures" stickyTop={sectionOffset}>
             {absent.map(disclosure => (
               <AbsentDisclosureRow key={disclosure.name} disclosure={disclosure} />
             ))}

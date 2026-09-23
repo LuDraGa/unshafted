@@ -85,7 +85,7 @@ describe('browse view', () => {
   it('groups by the clock when nothing is typed, and says which is which', async () => {
     openList();
 
-    expect(await screen.findByText('Something you can still do')).toBeTruthy();
+    expect(await screen.findByText('Window named in document')).toBeTruthy();
     expect(screen.getByText('Everything else')).toBeTruthy();
     expect(screen.getAllByText('window')).toHaveLength(2);
   });
@@ -97,7 +97,7 @@ describe('browse view', () => {
     fireEvent.change(search, { target: { value: 'hotstar' } });
 
     // The headings are gone — this is the moment the row is the ONLY carrier of the clock.
-    await waitFor(() => expect(screen.queryByText('Something you can still do')).toBeNull());
+    await waitFor(() => expect(screen.queryByText('Window named in document')).toBeNull());
     expect(screen.queryByText('Everything else')).toBeNull();
 
     const rows = screen.getAllByRole('button').filter(button => button.textContent?.includes('hotstar.com'));
@@ -107,18 +107,27 @@ describe('browse view', () => {
 
   it('never says a window is open, only that one is named', async () => {
     openList();
-    await screen.findByText('Something you can still do');
+    await screen.findByText('Window named in document');
 
     const forbidden = [/still open/i, /expiring/i, /\blive\b(?! —)/i];
     const body = document.body.textContent ?? '';
     // "Nothing here is live" is the one permitted use, and it is a denial.
     expect(body).toContain('Nothing here is live');
     for (const pattern of forbidden.slice(0, 2)) expect(pattern.test(body)).toBe(false);
+
+    /*
+     * And it must not name an anchor either, which is the subtler half of the same rule. Saying a
+     * window "depends on when you signed up" does not claim the window is open, so it slipped past
+     * everything above — but it invents the event the window runs from, and for a refund or an
+     * objection deadline that event is not signup at all. The copy may name the window; only the
+     * document may name what it runs from.
+     */
+    expect(body).not.toMatch(/signed up/i);
   });
 
   it('shows no risk level and no gap tally in the list', async () => {
     openList();
-    await screen.findByText('Something you can still do');
+    await screen.findByText('Window named in document');
 
     const body = document.body.textContent ?? '';
     for (const level of ['Very High', 'High risk', 'Medium', 'Low']) expect(body).not.toContain(level);
