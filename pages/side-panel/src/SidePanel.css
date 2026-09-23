@@ -1024,12 +1024,15 @@
 
 /* ── Browse: the corpus as a list, for a site the reader is not on ── */
 
-/* Search is the list's own sticky header, inside the card, on the card's solid ground. */
+/*
+ * Search is the list's own sticky header, inside the card — the lens strip's construct, so the
+ * lens strip's ground: one step darker than the card, reading as chrome over the rows beneath it.
+ */
 .panel-browse-search {
   position: sticky;
   z-index: 3;
   padding: 12px;
-  background: var(--panel-card-ground);
+  background: var(--panel-floating-ground);
   border-bottom: var(--panel-hairline);
 }
 
