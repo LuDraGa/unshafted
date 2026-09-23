@@ -1,6 +1,8 @@
-import { OneThing, WorstRisk } from '@src/components/AnalysisView';
-import { BackToTop } from '@src/components/BackToTop';
-import { DocumentCard } from '@src/components/DocumentCard';
+import { WorstRisk } from '@src/components/AnalysisView';
+import { BackIcon, CloseIcon } from '@src/components/Icons';
+import { LensCard } from '@src/components/LensCard';
+import { PanelHeader } from '@src/components/PanelHeader';
+import { SiteMeta } from '@src/components/SiteMeta';
 import { useBrowseManifest } from '@src/hooks/useBrowseManifest';
 import { useDomainAnalyses } from '@src/hooks/useDomainAnalyses';
 import { useElementHeight } from '@src/hooks/useElementHeight';
@@ -65,16 +67,30 @@ const WINDOW_CAVEAT =
 const documentsLabel = (count: number): string => (count === 1 ? '1 document' : `${count} documents`);
 
 /**
- * One site. Plain text, a count, and — on the 19 that have one — a neutral `window` marker.
+ * One site. Plain text, a count, and — in search results, on the sites that have one — a neutral
+ * `window` marker.
  *
  * The marker is `--unshafted-selection-soft` weight, which is the "count badge with no severity"
  * token. That is the point: it has to read as information, not as a warning, because a warning is
  * a claim about the site and this is a claim about the document's contents.
+ *
+ * ONLY IN SEARCH RESULTS. Under the "Window named in document" heading, a marker on every one of
+ * the 19 rows says the heading nineteen more times — noise that made each row read as flagged. The
+ * marker exists for the moment the heading is gone: typing dissolves the groups, and then it is the
+ * only thing left carrying the property the list was split on.
  */
-const BrowseRow = ({ row, onOpen }: { row: PolicyBrowseRow; onOpen: (domain: string) => void }) => (
+const BrowseRow = ({
+  row,
+  showMarker,
+  onOpen,
+}: {
+  row: PolicyBrowseRow;
+  showMarker: boolean;
+  onOpen: (domain: string) => void;
+}) => (
   <button className="panel-row panel-browse-row" type="button" onClick={() => onOpen(row.domain)}>
     <span className="panel-browse-domain">{row.domain}</span>
-    {row.hasTimeSensitiveAction ? (
+    {showMarker && row.hasTimeSensitiveAction ? (
       <span className="panel-marker" title={WINDOW_CAVEAT}>
         window
         <span className="sr-only">. {WINDOW_CAVEAT}</span>
@@ -98,16 +114,14 @@ const BrowseGroup = ({
   if (rows.length === 0) return null;
 
   return (
-    <section className="panel-group">
-      <div className="flex items-center justify-between gap-2">
+    <section className="panel-browse-group">
+      <div className="panel-zone-head">
         <p className="panel-eyebrow">{heading}</p>
         <span className="panel-count">{rows.length}</span>
       </div>
-      {explanation ? (
-        <p className="m-0 text-xs leading-relaxed text-[var(--unshafted-text-muted)]">{explanation}</p>
-      ) : null}
+      {explanation ? <p className="panel-quiet panel-browse-explanation">{explanation}</p> : null}
       {rows.map(row => (
-        <BrowseRow key={row.domain} row={row} onOpen={onOpen} />
+        <BrowseRow key={row.domain} row={row} showMarker={false} onOpen={onOpen} />
       ))}
     </section>
   );
@@ -169,55 +183,53 @@ const BrowseList = ({
 
   return (
     <>
-      <header ref={titleRef} className="panel-floating top-0 flex flex-col gap-1 pb-2">
-        <div className="flex items-start gap-2">
-          <h1 className="m-0 min-w-0 flex-1 text-lg leading-tight font-semibold tracking-tight text-[var(--unshafted-text)]">
-            What we’ve read
-          </h1>
-          <BackToTop />
-          <button className="panel-icon-button" type="button" onClick={onClose} aria-label="Close the list">
-            ✕
-          </button>
-        </div>
-        {/*
+      <PanelHeader
+        ref={titleRef}
+        title="What we’ve read"
+        /*
           `documentTotal`, never the sum of the rows. Three documents govern two domains each, so
           summing gives 85 against a corpus of 82 — a number that overstates how much we have read,
           on the one surface whose entire job is to say how much we have read.
-        */}
-        {state.status === 'ready' ? (
-          <p className="m-0 text-xs leading-relaxed text-[var(--unshafted-text-muted)]">
-            {state.manifest.documentTotal} documents across {total} sites. Nothing here is live — these are the versions
-            we read, on the dates shown.
-          </p>
-        ) : null}
-      </header>
+        */
+        meta={
+          state.status === 'ready'
+            ? `${state.manifest.documentTotal} documents across ${total} sites. Nothing here is live — these are the versions we read, on the dates shown.`
+            : undefined
+        }
+        end={
+          <button
+            className="panel-icon-button"
+            type="button"
+            onClick={onClose}
+            aria-label="Close the list"
+            title="Close">
+            <CloseIcon />
+          </button>
+        }
+      />
 
-      {state.status === 'loading' ? (
-        <p className="m-0 text-xs text-[var(--unshafted-text-muted)]">Loading the list…</p>
-      ) : null}
+      {state.status === 'loading' ? <p className="panel-zone panel-quiet">Loading the list…</p> : null}
 
       {/*
         An unavailable manifest is a claim about the build, not about the corpus, so it does not
         render as an empty list. "We have read nothing" would be false and is the easier mistake.
       */}
       {state.status === 'unavailable' ? (
-        <section className="panel-one-thing">
-          <p className="m-0 text-xs leading-relaxed text-[var(--unshafted-text-muted)]">
-            The list of sites did not load, so we cannot show you what we have read. Nothing else in the panel is
-            affected.
-          </p>
-        </section>
+        <p className="panel-zone panel-lede">
+          The list of sites did not load, so we cannot show you what we have read. Nothing else in the panel is
+          affected.
+        </p>
       ) : null}
 
       {state.status === 'ready' ? (
-        <>
+        /* P11: all 37 real destinations remain as button rows in one bordered surface. */
+        <section className="panel-primary panel-zone panel-browse-card">
           {/*
-            P11/P13: search lives in its own sticky header, separate from the title above, so it
-            stays reachable while scrolling past up to 37 rows — this is browse's own Level 2,
-            sitting below the title (Level 1) at that header's actual measured height rather than
-            an assumed one, the same rule P13 applies to a document's sticky summary.
+            P11/P13: search is the list's own header, sticky INSIDE the card directly under the view
+            header, at that header's measured height — the same rule the lens strip follows, and for
+            the same reason: the card's ground is one solid colour, the page's is a gradient.
           */}
-          <header className="panel-floating flex flex-col gap-1 py-2" style={{ top: titleHeight }}>
+          <div className="panel-browse-search" style={{ top: titleHeight }}>
             <label className="sr-only" htmlFor={searchId}>
               Find a site
             </label>
@@ -231,7 +243,7 @@ const BrowseList = ({
               value={query}
               onChange={event => onQueryChange(event.target.value)}
             />
-          </header>
+          </div>
 
           {trimmed && matches.length === 0 ? (
             /*
@@ -241,26 +253,19 @@ const BrowseList = ({
               Guarded on `trimmed`, not just on the count: with no query and no rows this branch
               would render `No match for “”` — a sentence about a search nobody ran.
             */
-            <section className="panel-one-thing">
-              <p className="m-0 text-sm leading-snug font-semibold text-[var(--unshafted-text)]">
-                No match for “{query.trim()}”.
-              </p>
-              <p className="m-0 mt-1 text-xs leading-relaxed text-[var(--unshafted-text-muted)]">
-                These are the {total} sites we have read so far.
-              </p>
-            </section>
+            <div className="panel-browse-empty">
+              <p className="panel-note-title">No match for “{query.trim()}”.</p>
+              <p className="panel-quiet">These are the {total} sites we have read so far.</p>
+            </div>
           ) : trimmed ? (
-            /* Typing dissolves the groups — one flat result list, markers intact, one bordered surface. */
-            <section className="panel-one-thing">
-              <div className="panel-group">
-                {matches.map(row => (
-                  <BrowseRow key={row.domain} row={row} onOpen={onOpen} />
-                ))}
-              </div>
-            </section>
+            /* Typing dissolves the groups — one flat result list, and the marker now carries the split. */
+            <div className="panel-browse-group">
+              {matches.map(row => (
+                <BrowseRow key={row.domain} row={row} showMarker onOpen={onOpen} />
+              ))}
+            </div>
           ) : (
-            /* P11: all 37 real destinations remain as button rows in one bordered surface. */
-            <section className="panel-one-thing gap-3">
+            <>
               {/*
                 The heading says what the DOCUMENT contains, not what the reader can do. "Something
                 you can still do" asserted the window is open — the precise claim D14 says we cannot
@@ -273,9 +278,9 @@ const BrowseList = ({
                 onOpen={onOpen}
               />
               <BrowseGroup heading="Everything else" rows={rest} onOpen={onOpen} />
-            </section>
+            </>
           )}
-        </>
+        </section>
       ) : null}
     </>
   );
@@ -286,6 +291,12 @@ const BrowseList = ({
  * it a new prop on every parent render for no reason.
  */
 const NO_FRESHNESS: Record<string, DocumentFreshness> = {};
+
+/**
+ * Every document here is exactly `unconfirmed`: "as we read it on <date>". No live check runs, and
+ * none could — confirming a document needs the page open in front of you.
+ */
+const UNCONFIRMED = (): DocumentFreshness => 'unconfirmed';
 
 /**
  * One site, opened from the list — the covered view's own D10 ordering, minus every live claim.
@@ -308,50 +319,39 @@ const BrowseDomain = ({ domain, onBack }: { domain: string; onBack: () => void }
 
   return (
     <>
-      <header ref={headerRef} className="panel-floating top-0 flex flex-col gap-1 pb-2">
-        <div className="flex items-start gap-2">
-          <h1 className="m-0 min-w-0 flex-1 text-lg leading-tight font-semibold tracking-tight text-[var(--unshafted-text)]">
-            {domain}
-          </h1>
-          <BackToTop />
-          <button className="panel-icon-button" type="button" onClick={onBack} aria-label="Back to the list">
-            ←
+      <PanelHeader
+        ref={headerRef}
+        title={domain}
+        // Back leads: it is navigation, and navigation is read first. It used to trail, next to an
+        // identical round button that scrolled instead — two controls with one shape and two jobs.
+        leading={
+          <button
+            className="panel-icon-button"
+            type="button"
+            onClick={onBack}
+            aria-label="Back to the list"
+            title="Back">
+            <BackIcon />
           </button>
-        </div>
-        {analyses.length > 0 ? (
-          <p className="m-0 text-xs text-[var(--unshafted-text-muted)]">{documentsLabel(analyses.length)} read.</p>
-        ) : null}
-      </header>
+        }
+        meta={analyses.length > 0 ? <SiteMeta analyses={analyses} state="unconfirmed" /> : undefined}
+      />
 
       {status === 'loading' ? (
-        <p className="m-0 text-xs text-[var(--unshafted-text-muted)]">Opening what we read…</p>
+        <p className="panel-zone panel-quiet">Opening what we read…</p>
       ) : analyses.length === 0 ? (
         /*
           Unreachable unless the manifest and the corpus have drifted — the build cross-checks them.
           It renders anyway rather than showing an empty stack, because the one thing worse than a
           drifted list is a drifted list that looks like a site with no documents.
         */
-        <section className="panel-one-thing">
-          <p className="m-0 text-xs leading-relaxed text-[var(--unshafted-text-muted)]">
-            We have {domain} on the list but cannot open it. Nothing else in the panel is affected.
-          </p>
-        </section>
+        <p className="panel-zone panel-lede">
+          We have {domain} on the list but cannot open it. Nothing else in the panel is affected.
+        </p>
       ) : (
         <>
           <WorstRisk analyses={analyses} freshness={NO_FRESHNESS} />
-          <OneThing analyses={analyses} />
-
-          <section className="panel-group">
-            <p className="panel-eyebrow">Every document</p>
-            {analyses.map(analysis => (
-              <DocumentCard
-                key={analysis.contentHash}
-                analysis={analysis}
-                freshness="unconfirmed"
-                headerOffset={headerHeight}
-              />
-            ))}
-          </section>
+          <LensCard analyses={analyses} headerOffset={headerHeight} freshnessOf={UNCONFIRMED} />
         </>
       )}
     </>
@@ -402,7 +402,7 @@ const BrowseView = ({ onClose }: { onClose: () => void }) => {
         <BrowseDomain domain={opened} onBack={() => setOpened(null)} />
       )}
 
-      <p ref={footerRef} className="m-0 mt-auto pt-2 text-[10px] leading-relaxed text-[var(--unshafted-text-faint)]">
+      <p ref={footerRef} className="panel-footer">
         This list ships with the extension. Nothing here is a network call.
       </p>
     </>

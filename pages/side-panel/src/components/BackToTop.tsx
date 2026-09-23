@@ -1,3 +1,5 @@
+import { UpIcon } from '@src/components/Icons';
+
 /**
  * P14: reserves its own width and height at all times — `.panel-back-to-top` stays `visibility:
  * hidden`, never `display: none`, so the title beside it never reflows when this switches on.
@@ -6,13 +8,17 @@
  *
  * `visibility: hidden` also keeps it out of the tab order while hidden, for free — unlike
  * `opacity: 0`, which would leave a focusable, invisible stop in the header's tab sequence.
+ *
+ * `.closest('.panel-shell')` rather than a threaded ref, which is also what lets the same control
+ * work inside the page-documents overlay: that overlay is its own `.panel-shell`.
  */
 export const BackToTop = () => (
   <button
     type="button"
     className="panel-back-to-top panel-icon-button"
     aria-label="Back to top"
+    title="Back to top"
     onClick={event => event.currentTarget.closest('.panel-shell')?.scrollTo({ top: 0 })}>
-    ↑
+    <UpIcon />
   </button>
 );

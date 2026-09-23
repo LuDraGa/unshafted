@@ -4,6 +4,12 @@
 updated again 2026-09-23 after E and F were written** ·
 **Branch:** `dev/v0.8.3` · **Nothing committed — deliberately, see below.**
 
+> **Superseded 2026-09-23.** All seven units were committed as `f41b5a2` after this was written, and
+> the follow-up pass — lenses, tools by placement, the ladders applied — is tracked in
+> [`panel-lens-hierarchy-execution.md`](panel-lens-hierarchy-execution.md). One correction to note
+> 2 below: the "On a clock" eyebrow *did* exist, in `AnalysisView.tsx`'s `OneThing`; it went when
+> that component was retired in the follow-up pass.
+
 Not to be confused with [`panel-weight-redesign-handoff.md`](panel-weight-redesign-handoff.md),
 which is the *research* handoff from before the design phase. This one hands over *work in flight*.
 

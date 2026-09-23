@@ -6,7 +6,7 @@ import {
 } from '@extension/unshafted-core';
 import { useStorageValue } from '@src/hooks/useStorageValue';
 import { DOC_TYPE_LABELS, shortenUrl } from '@src/lib/presentation';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { RankedPolicyCandidate, RunSitePolicyAnalysisRequest } from '@extension/unshafted-core';
 import type { LivePolicyCheck } from '@src/hooks/useLivePolicyCheck';
 
@@ -100,6 +100,15 @@ export const AnalyseConfirm = ({
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState('');
 
+  /*
+   * The sheet can open from a document row halfway down the page, so focus follows it to the
+   * decision — otherwise a keyboard or screen-reader user presses "Analyse…" and hears nothing.
+   */
+  const headingRef = useRef<HTMLParagraphElement>(null);
+  useEffect(() => {
+    headingRef.current?.focus();
+  }, []);
+
   const { readDocument } = check;
   useEffect(() => {
     for (const candidate of candidates) readDocument(candidate.url);
@@ -164,32 +173,34 @@ export const AnalyseConfirm = ({
   };
 
   return (
-    <section className="panel-one-thing">
-      <p className="panel-eyebrow">Before it runs</p>
-
-      <p className="m-0 text-xs leading-relaxed text-[var(--unshafted-text-muted)]">
-        This runs on your own API key and spends your own credits. Nothing is sent until you press the button below.
+    /*
+     * No surface of its own: this renders inside the analyse bar, which is the surface. A sheet
+     * rising out of the bar that opened it is the popup's scope sheet, placed the same way — the
+     * decision to spend sits where the offer to spend was, not somewhere in the reading flow.
+     */
+    <div className="panel-confirm">
+      <p ref={headingRef} className="panel-eyebrow" tabIndex={-1}>
+        Before it runs
       </p>
 
-      <div className="panel-group mt-2">
+      <p className="panel-quiet">
+        This runs on your own API key and spends your own credits. Nothing is sent until you press Analyse.
+      </p>
+
+      <div className="panel-confirm-rows">
         {rows.map(({ candidate, measurement }) => (
-          <label key={candidate.url} className="panel-row flex cursor-pointer items-start gap-2">
+          <label key={candidate.url} className="panel-row panel-confirm-row">
             <input
               type="checkbox"
-              className="mt-0.5"
               aria-label={candidateLabel(candidate)}
               checked={selected.has(candidate.url)}
               disabled={measurement.state !== 'ready'}
               onChange={() => toggle(candidate.url)}
             />
             <span className="min-w-0 flex-1">
-              <span className="block text-[13px] leading-snug font-semibold text-[var(--unshafted-text)]">
-                {candidateLabel(candidate)}
-              </span>
-              <span className="mt-0.5 block truncate text-[10px] text-[var(--unshafted-text-faint)]">
-                {shortenUrl(candidate.url)}
-              </span>
-              <span className="mt-0.5 block text-[11px] text-[var(--unshafted-text-muted)]">
+              <span className="panel-item-title block">{candidateLabel(candidate)}</span>
+              <span className="panel-url">{shortenUrl(candidate.url)}</span>
+              <span className="panel-confirm-size">
                 {measurement.state === 'measuring'
                   ? 'Measuring…'
                   : measurement.state === 'unreadable'
@@ -203,17 +214,33 @@ export const AnalyseConfirm = ({
         ))}
       </div>
 
-      <p className="m-0 mt-2 text-xs leading-relaxed text-[var(--unshafted-text-muted)]">
-        {measuring
-          ? 'Measuring the documents. The totals appear once every one has been read.'
-          : chosen.length === 0
-            ? 'Nothing selected, so nothing will run.'
-            : `${chosen.length === 1 ? '1 document' : `${chosen.length} documents`}, ${totalChars.toLocaleString()} characters in total.`}
-      </p>
+      {/*
+        P16: every pre-spend fact is on screen, unconditionally, and none of it is behind a control.
+        The two that are always true of a run — what goes and where — are laid out as a list so the
+        eye can find them; the conditional ones stay sentences, because each is a warning in words.
+      */}
+      <dl className="panel-facts">
+        <dt>Sends</dt>
+        <dd>
+          {measuring
+            ? 'Measuring the documents. The totals appear once every one has been read.'
+            : chosen.length === 0
+              ? 'Nothing selected, so nothing will run.'
+              : `${chosen.length === 1 ? '1 document' : `${chosen.length} documents`}, ${totalChars.toLocaleString()} characters in total.`}
+        </dd>
+        {provider ? (
+          <>
+            <dt>{hasKey ? 'To' : 'Would go to'}</dt>
+            <dd>
+              {provider.provider === 'openai' ? 'OpenAI' : 'OpenRouter'} · {provider.model}
+            </dd>
+          </>
+        ) : null}
+      </dl>
 
       {/* S6: excerpting is disclosed per document, before anything is spent, not after. */}
       {excerpted.length > 0 ? (
-        <p className="m-0 mt-1 text-xs leading-relaxed text-[var(--unshafted-text-muted)]">
+        <p className="panel-quiet">
           {excerpted.length === 1 ? 'One document is' : `${excerpted.length} documents are`} longer than{' '}
           {SITE_POLICY_ANALYSIS_CHAR_LIMIT.toLocaleString()} characters, so the model reads an excerpt of{' '}
           {excerpted.length === 1 ? 'it' : 'them'} and not the whole thing:{' '}
@@ -222,23 +249,14 @@ export const AnalyseConfirm = ({
       ) : null}
 
       {unreadable.length > 0 ? (
-        <p className="m-0 mt-1 text-xs leading-relaxed text-[var(--unshafted-text-muted)]">
+        <p className="panel-quiet">
           {unreadable.length === 1 ? 'One document' : `${unreadable.length} documents`} could not be read from this page
           and will not be analysed. Opening {unreadable.length === 1 ? 'it' : 'them'} in a tab will still work.
         </p>
       ) : null}
 
-      {provider ? (
-        <p className="m-0 mt-1 text-xs leading-relaxed text-[var(--unshafted-text-muted)]">
-          {hasKey ? 'Using' : 'It would use'} {provider.provider === 'openai' ? 'OpenAI' : 'OpenRouter'} and{' '}
-          {provider.model}.
-        </p>
-      ) : null}
-
       {smallModel ? (
-        <p className="m-0 mt-1 text-xs leading-relaxed text-[var(--unshafted-text-muted)]">
-          That model is a small one, so the result may be unreliable on long documents.
-        </p>
+        <p className="panel-quiet">That model is a small one, so the result may be unreliable on long documents.</p>
       ) : null}
 
       {/*
@@ -246,24 +264,30 @@ export const AnalyseConfirm = ({
         says what it needs and hands the user the field that fills it.
       */}
       {settings && !hasKey ? (
-        <p className="m-0 mt-1 text-xs leading-relaxed text-[var(--unshafted-text-muted)]">
+        <p className="panel-quiet">
           There is no API key set yet. The analysis runs on your own key against your own provider account, so it needs
           one before it can call anything.
         </p>
       ) : null}
 
-      {sendError ? (
-        <p className="m-0 mt-1 text-xs leading-relaxed text-[var(--unshafted-text-muted)]">{sendError}</p>
-      ) : null}
+      {sendError ? <p className="panel-quiet">{sendError}</p> : null}
 
-      <div className="mt-3 flex flex-wrap items-center gap-2">
+      {/*
+        The one filled button on the screen, because it is the one that commits. Cancel is text: it
+        undoes nothing and costs nothing, and dressing it as an equal choice is what made the two
+        indistinguishable before.
+      */}
+      <div className="panel-actions">
         {provider && !hasKey ? (
-          <button className="panel-button" type="button" onClick={() => void openOptionsAtKeyField(provider.provider)}>
+          <button
+            className="panel-button-primary"
+            type="button"
+            onClick={() => void openOptionsAtKeyField(provider.provider)}>
             Add a key in settings
           </button>
         ) : (
           <button
-            className="panel-button"
+            className="panel-button-primary"
             type="button"
             disabled={measuring || chosen.length === 0 || sending || !settings}
             onClick={() => void start()}>
@@ -271,10 +295,10 @@ export const AnalyseConfirm = ({
           </button>
         )}
 
-        <button className="panel-button" type="button" onClick={onCancel}>
+        <button className="panel-text-button" type="button" onClick={onCancel}>
           Cancel
         </button>
       </div>
-    </section>
+    </div>
   );
 };

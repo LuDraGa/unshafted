@@ -1,12 +1,17 @@
 import { RISK_TONE } from '@extension/ui';
 import { domainRiskSummary } from '@extension/unshafted-core';
-import { selectOneThing, worstDocument } from '@src/lib/domain-summary';
-import { DOC_TYPE_LABELS, describeDeadline } from '@src/lib/presentation';
+import { worstDocument } from '@src/lib/domain-summary';
+import { DOC_TYPE_LABELS } from '@src/lib/presentation';
 import type { SitePolicyAnalysis } from '@extension/unshafted-core';
 import type { DocumentFreshness } from '@src/hooks/useLivePolicyCheck';
 
 /**
- * The two headline reads of a set of analyses, shared by the corpus view and the local one.
+ * The headline read of a set of analyses, shared by the corpus view, the local one and browse.
+ *
+ * It used to be two — this verdict and a "one thing" card beneath it. The one thing (a window if
+ * the site names one, otherwise the highest-severity exposure) is now the first block of the lens
+ * the reader lands on, already open; see `pickInitialLens`. Same content, one card fewer, and no
+ * second bordered surface competing with the verdict for the top of the screen.
  *
  * They live here rather than in `SidePanel.tsx` because Part 6 gives the panel a second source of
  * `SitePolicyAnalysis` objects — ones the user ran on their own key — and the inner shape is
@@ -38,51 +43,37 @@ export const WorstRisk = ({
   const worst = worstDocument(analyses);
   if (!summary || !worst) return null;
 
+  const read = readBy === 'you' ? 'you analysed' : 'we read';
+  const earnedBy = DOC_TYPE_LABELS[worst.docType].toLowerCase();
+
+  /*
+   * A tag and a sentence, not a card. The grade used to be a tinted block of its own — 20px type,
+   * 14px padding — and it cost the findings a sixth of the first screen to say one word. The tag
+   * keeps everything that made it the grade: the level in words, the full `RISK_TONE` fill and 1px
+   * border (P5), and its place directly under the title, where the site's name and its grade read
+   * as one line of identity. The sentence stays, because naming the document that earned the grade
+   * is what makes the claim checkable (D1).
+   *
+   * It sits under the header's meta line, never beside the title: on a local result that line is
+   * the attribution, and nobody reads a grade before learning whose grade it is (S3).
+   */
   return (
-    <section className={`panel-verdict ${RISK_TONE[summary.riskLevel]}`}>
-      <p className="m-0 text-lg leading-tight font-semibold tracking-tight">{summary.riskLevel} risk</p>
-      <p className="m-0 mt-1 text-xs leading-relaxed">
-        The worst of {summary.documentCount === 1 ? 'the one document' : `${summary.documentCount} documents`}{' '}
-        {readBy === 'you' ? 'you analysed' : 'we read'} here. Earned by the{' '}
-        {DOC_TYPE_LABELS[worst.docType].toLowerCase()}.
+    <section className="panel-verdict">
+      <p className="panel-verdict-line">
+        <span className={`panel-verdict-tag ${RISK_TONE[summary.riskLevel]}`}>{summary.riskLevel} risk</span>{' '}
+        {summary.documentCount === 1
+          ? `Earned by the ${earnedBy}, the one document ${read} here.`
+          : `The worst of ${summary.documentCount} documents ${read} here, earned by the ${earnedBy}.`}
       </p>
       {/*
         Open Q4: the grade still comes from the bundled worst-of even when that very document has
         moved. Rather than degrade the badge silently, say so — the reader can then weigh it.
       */}
       {freshness[worst.contentHash] === 'changed' ? (
-        <p className="m-0 mt-1 text-[11px] font-semibold">
+        <p className="panel-verdict-caveat">
           That document has changed since we read it, so treat this grade as being about the earlier version.
         </p>
       ) : null}
-    </section>
-  );
-};
-
-export const OneThing = ({ analyses }: { analyses: readonly SitePolicyAnalysis[] }) => {
-  const one = selectOneThing(analyses);
-  if (!one) return null;
-
-  return (
-    <section className="panel-one-thing">
-      <p className="panel-eyebrow">{one.kind === 'deadline' ? 'On a clock' : 'The one thing'}</p>
-      {one.kind === 'deadline' ? (
-        <>
-          <p className="m-0 text-sm leading-snug font-semibold text-[var(--unshafted-text)]">{one.action.action}</p>
-          <p className="m-0 mt-1 text-xs font-semibold text-violet-700">{describeDeadline(one.deadline)}</p>
-          <p className="m-0 mt-1 text-xs leading-relaxed text-[var(--unshafted-text-muted)]">{one.action.howTo}</p>
-        </>
-      ) : (
-        <>
-          <p className="m-0 text-sm leading-snug font-semibold text-[var(--unshafted-text)]">{one.exposure.title}</p>
-          <p className="m-0 mt-1 text-xs leading-relaxed text-[var(--unshafted-text-muted)]">
-            {one.exposure.whatItMeans}
-          </p>
-        </>
-      )}
-      <p className="m-0 mt-1.5 text-[10px] tracking-wide text-[var(--unshafted-text-faint)] uppercase">
-        From the {DOC_TYPE_LABELS[one.analysis.docType].toLowerCase()}
-      </p>
     </section>
   );
 };

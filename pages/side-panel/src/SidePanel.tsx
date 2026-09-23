@@ -1,20 +1,22 @@
 import '@src/SidePanel.css';
-import { AnalyseConfirm } from '@src/components/AnalyseConfirm';
-import { OneThing, WorstRisk } from '@src/components/AnalysisView';
-import { BackToTop } from '@src/components/BackToTop';
+import { AnalyseBar } from '@src/components/AnalyseBar';
+import { WorstRisk } from '@src/components/AnalysisView';
 import { BrowseView } from '@src/components/BrowseView';
-import { DocumentCard } from '@src/components/DocumentCard';
-import { DocumentReader } from '@src/components/DocumentReader';
-import { LocalAnalysisView } from '@src/components/LocalAnalysisView';
-import { RunOutcome, RunProgress } from '@src/components/RunStatus';
+import { DocumentReader, LookAgainTool, discoveredCount } from '@src/components/DocumentReader';
+import { LibraryIcon, PageDocumentsIcon } from '@src/components/Icons';
+import { LensCard } from '@src/components/LensCard';
+import { LocalAnalysisView, attributionMeta } from '@src/components/LocalAnalysisView';
+import { Overlay } from '@src/components/Overlay';
+import { PanelHeader, ToolButton } from '@src/components/PanelHeader';
+import { RunOutcome } from '@src/components/RunStatus';
+import { SiteMeta } from '@src/components/SiteMeta';
 import { useActiveTabSite } from '@src/hooks/useActiveTabSite';
 import { useDomainAnalyses } from '@src/hooks/useDomainAnalyses';
 import { useElementHeight } from '@src/hooks/useElementHeight';
 import { useLivePolicyCheck } from '@src/hooks/useLivePolicyCheck';
 import { useLocalAnalyses } from '@src/hooks/useLocalAnalyses';
-import { formatAnalysedDate } from '@src/lib/presentation';
-import { useMemo, useState } from 'react';
-import type { SitePolicyAnalysis } from '@extension/unshafted-core';
+import { useCallback, useMemo, useState } from 'react';
+import type { RankedPolicyCandidate, SitePolicyAnalysis } from '@extension/unshafted-core';
 import type { DocumentFreshness, LivePolicyCheck } from '@src/hooks/useLivePolicyCheck';
 
 /**
@@ -27,10 +29,11 @@ import type { DocumentFreshness, LivePolicyCheck } from '@src/hooks/useLivePolic
  *  2. The worst risk level, naming the document that earned it. Per D1 that is the point of the
  *     product — 36 of 37 domains land on High or Very High, and the finding IS that the products
  *     people use daily are predatory. It does not get buried under a neutral summary.
- *  3. The one thing: a deadline if the domain has one, otherwise the highest-severity exposure.
+ *  3. The one thing: a window if the domain names one, otherwise the highest-severity exposure.
  *     Not the `summary` — that is prose about a document, and an exposure is a fact about the
- *     reader.
- *  4. Per-document cards, collapsed, worst first.
+ *     reader. It is now the first block of the lens the reader lands on, already open.
+ *  4. The rest of the findings, by concern rather than by document — Windows, Data, Rights, Can
+ *     do, Missing — with the documents themselves as the last lens.
  *
  * The live confirmation (D6) is an upgrade layered on top, never a precondition. If it cannot
  * run — and on 7 of 36 domains it structurally cannot — nothing above changes and no error
@@ -49,78 +52,105 @@ const overallFreshness = (
   return 'unconfirmed';
 };
 
-const latestAnalysedAt = (analyses: readonly SitePolicyAnalysis[]): string =>
-  analyses.reduce((latest, analysis) => (analysis.analyzedAt > latest ? analysis.analyzedAt : latest), '');
+/**
+ * The Library tool — every site we have read. On every view that has something else to show, so it
+ * is always in the same place (the popup keeps History there for the same reason), and never in
+ * the reading flow, where it would compete with the findings (P9's concern, kept by placement).
+ */
+const LibraryTool = ({ onBrowse }: { onBrowse: () => void }) => (
+  <ToolButton label="Every site we have read" onClick={onBrowse}>
+    <LibraryIcon />
+  </ToolButton>
+);
 
-const FreshnessStrip = ({
-  analyses,
-  freshness,
-}: {
-  analyses: readonly SitePolicyAnalysis[];
-  freshness: Record<string, DocumentFreshness>;
-}) => {
-  const state = overallFreshness(analyses, freshness);
-  const label = {
-    pending: 'Checking against the live page…',
-    current: 'Current — verified against the live page',
-    changed: 'Changed since we read it',
-    unconfirmed: `As we read it on ${formatAnalysedDate(latestAnalysedAt(analyses))}`,
-  }[state];
-
+/**
+ * The page reader, when something else on screen is the headline. The tool carries the count, so
+ * the reader knows before opening it whether there is anything there — and no count when there is
+ * nothing counted (see `discoveredCount`).
+ */
+const PageDocumentsTool = ({ check, onOpen }: { check: LivePolicyCheck; onOpen: () => void }) => {
+  const count = discoveredCount(check);
   return (
-    <p className="panel-freshness" data-state={state}>
-      {label}
-    </p>
+    <ToolButton
+      label={count ? `Documents on this page — ${count}` : 'Documents on this page'}
+      badge={count}
+      onClick={onOpen}>
+      <PageDocumentsIcon />
+    </ToolButton>
   );
 };
+
+const PageDocumentsOverlay = ({
+  domain,
+  analyses,
+  check,
+  onAnalyse,
+  onClose,
+}: {
+  domain: string;
+  analyses: readonly SitePolicyAnalysis[];
+  check: LivePolicyCheck;
+  onAnalyse?: (candidate: RankedPolicyCandidate) => void;
+  onClose: () => void;
+}) => (
+  <Overlay
+    title="On this page"
+    meta="The policy documents this page links, read by your own browser."
+    tools={<LookAgainTool check={check} />}
+    onClose={onClose}>
+    <div className="panel-zone">
+      <DocumentReader domain={domain} analyses={analyses} check={check} onAnalyse={onAnalyse} />
+    </div>
+    {/* P17: the overlay offers "Analyse…" only where the view it opened from is the paid path. */}
+    <p className="panel-footer">
+      {onAnalyse
+        ? 'When you analyse, document text goes to your chosen provider. Results can sync to your connected Drive.'
+        : 'Nothing about the site you are on leaves this browser.'}
+    </p>
+  </Overlay>
+);
 
 const CoveredView = ({
   domain,
   analyses,
   check,
+  onBrowse,
 }: {
   domain: string;
   analyses: readonly SitePolicyAnalysis[];
   check: LivePolicyCheck;
+  onBrowse: () => void;
 }) => {
   const [headerRef, headerHeight] = useElementHeight<HTMLElement>();
+  const [readerOpen, setReaderOpen] = useState(false);
+  const freshnessOf = useCallback(
+    (analysis: SitePolicyAnalysis) => check.freshness[analysis.contentHash] ?? 'pending',
+    [check.freshness],
+  );
 
   return (
     <>
-      <header ref={headerRef} className="panel-floating top-0 flex flex-col gap-1 pb-2">
-        <div className="flex items-center justify-between gap-2">
-          <h1 className="m-0 min-w-0 text-lg leading-tight font-semibold tracking-tight text-[var(--unshafted-text)]">
-            {domain}
-          </h1>
-          <BackToTop />
-        </div>
-        <p className="m-0 text-xs text-[var(--unshafted-text-muted)]">
-          {analyses.length === 1 ? '1 document read.' : `${analyses.length} documents read.`}
-        </p>
-      </header>
+      <PanelHeader
+        ref={headerRef}
+        title={domain}
+        meta={<SiteMeta analyses={analyses} state={overallFreshness(analyses, check.freshness)} />}
+        tools={
+          <>
+            <PageDocumentsTool check={check} onOpen={() => setReaderOpen(true)} />
+            <LibraryTool onBrowse={onBrowse} />
+          </>
+        }
+      />
 
-      <FreshnessStrip analyses={analyses} freshness={check.freshness} />
       <WorstRisk analyses={analyses} freshness={check.freshness} />
-      <OneThing analyses={analyses} />
-
-      <section className="panel-group">
-        <p className="panel-eyebrow">Every document</p>
-        {analyses.map(analysis => (
-          <DocumentCard
-            key={analysis.contentHash}
-            analysis={analysis}
-            freshness={check.freshness[analysis.contentHash] ?? 'pending'}
-            headerOffset={headerHeight}
-          />
-        ))}
-      </section>
-
-      <DocumentReader domain={domain} analyses={analyses} check={check} />
+      <LensCard key={domain} analyses={analyses} headerOffset={headerHeight} freshnessOf={freshnessOf} />
 
       {/* P17: covered never spends anything, so the strong claim holds unconditionally here. */}
-      <p className="m-0 mt-auto pt-2 text-[10px] leading-relaxed text-[var(--unshafted-text-faint)]">
-        Nothing about the site you are on leaves this browser.
-      </p>
+      <p className="panel-footer">Nothing about the site you are on leaves this browser.</p>
+
+      {readerOpen ? (
+        <PageDocumentsOverlay domain={domain} analyses={analyses} check={check} onClose={() => setReaderOpen(false)} />
+      ) : null}
     </>
   );
 };
@@ -184,86 +214,103 @@ const UncoveredView = ({
   const running = run?.status === 'running';
 
   const [headerRef, headerHeight] = useElementHeight<HTMLElement>();
+  const [readerOpen, setReaderOpen] = useState(false);
+  const hasResults = localAnalyses.length > 0;
+
+  /*
+   * A row's "Analyse…" opens the confirm in the bar. From the overlay, the overlay closes first:
+   * it is modal, and a confirm opened behind a modal is a confirm nobody can reach.
+   */
+  const analyseOne = running
+    ? undefined
+    : (candidate: RankedPolicyCandidate) => {
+        setReaderOpen(false);
+        setConfirming({ preselected: candidate.url });
+      };
 
   return (
     <>
-      <header ref={headerRef} className="panel-floating top-0 flex flex-col gap-1 pb-2">
-        <div className="flex items-center justify-between gap-2">
-          <h1 className="m-0 min-w-0 text-lg leading-tight font-semibold tracking-tight text-[var(--unshafted-text)]">
-            {hostname}
-          </h1>
-          <BackToTop />
-        </div>
-      </header>
+      <PanelHeader
+        ref={headerRef}
+        title={hostname}
+        meta={hasResults ? attributionMeta(localAnalyses) : 'Not analysed by Unshafted'}
+        tools={
+          <>
+            {/*
+              The reader is a tool only when something else is the headline. With nothing analysed
+              it IS the screen's content, rendered in place below — one rule, two placements.
+            */}
+            {hasResults ? <PageDocumentsTool check={check} onOpen={() => setReaderOpen(true)} /> : null}
+            <LibraryTool onBrowse={onBrowse} />
+          </>
+        }
+      />
 
-      {localAnalyses.length > 0 ? (
-        <LocalAnalysisView analyses={localAnalyses} headerOffset={headerHeight} />
-      ) : (
-        <section className="panel-one-thing">
-          <p className="m-0 text-xs leading-relaxed text-[var(--unshafted-text-muted)]">
-            We have not analysed this site, so there is no risk level and no findings. You can still read what it makes
-            you agree to.
-          </p>
-          {/*
-            Entry point 2. The reader has just been told we have not read THIS site, and "here is
-            what we have read" is the correct next sentence — it is the one place the offer answers
-            a question the surface itself just raised.
-
-            Below the copy and above the analyse path on purpose: this is free and reads 82
-            analyses already on disk, whereas "Analyse this site" spends a credit on the user's own
-            key. Cheapest true thing first.
-          */}
-          <div className="mt-2">
-            <button className="panel-button" type="button" onClick={onBrowse}>
-              See what we’ve read
-            </button>
-          </div>
-        </section>
-      )}
-
-      {running ? <RunProgress runState={run} /> : null}
       {run?.status === 'complete' ? <RunOutcome runState={run} onStorageChanged={reload} /> : null}
 
-      {confirming ? (
-        <AnalyseConfirm
-          domain={hostname}
-          candidates={analysable}
-          preselected={confirming.preselected}
-          check={check}
-          onCancel={() => setConfirming(null)}
-          onStarted={() => setConfirming(null)}
-        />
-      ) : !running && analysable.length > 0 ? (
-        <section className="panel-one-thing">
-          <p className="m-0 text-xs leading-relaxed text-[var(--unshafted-text-muted)]">
-            {localAnalyses.length > 0
-              ? 'You can run these documents again on your own key.'
-              : 'You can have these documents analysed on your own API key. We do not review the result.'}
-          </p>
-          <div className="mt-2">
-            <button className="panel-button" type="button" onClick={() => setConfirming({ preselected: null })}>
-              Analyse this site
-            </button>
-          </div>
-        </section>
-      ) : null}
+      {hasResults ? (
+        <LocalAnalysisView analyses={localAnalyses} headerOffset={headerHeight} />
+      ) : (
+        <>
+          <section className="panel-zone">
+            <p className="panel-lede">
+              We have not analysed this site, so there is no risk level and no findings. You can still read what it
+              makes you agree to.
+            </p>
+            {/*
+              Entry point 2, kept in the copy even though the Library tool is in the header. The
+              reader has just been told we have not read THIS site, and "here is what we have read"
+              is the correct next sentence — the one place the offer answers a question the surface
+              itself just raised. Tertiary: a link, and cheapest true thing first, since it reads
+              82 analyses already on disk while analysing spends a credit on the user's own key.
+            */}
+            <p className="panel-lede-link">
+              <button className="panel-link-button" type="button" onClick={onBrowse}>
+                See what we’ve read →
+              </button>
+            </p>
+          </section>
 
-      <DocumentReader
-        domain={hostname}
-        analyses={[]}
-        check={check}
-        onAnalyse={running ? undefined : candidate => setConfirming({ preselected: candidate.url })}
-      />
+          <section className="panel-zone">
+            <div className="panel-zone-head">
+              <p className="panel-eyebrow">On this page</p>
+              <LookAgainTool check={check} />
+            </div>
+            <DocumentReader domain={hostname} analyses={[]} check={check} onAnalyse={analyseOne} />
+          </section>
+        </>
+      )}
 
       {/*
         P17: this is the paid path regardless of which branch above rendered — saved local results
-        still sit next to a live "run again" offer, and the confirm/run states below it are the
-        same screen, not a different one. Nothing has been sent yet; the wording says what
+        still sit next to a live "run again" offer, and the confirm/run states in the bar below are
+        the same screen, not a different one. Nothing has been sent yet; the wording says what
         analysing does, not that it already happened.
       */}
-      <p className="m-0 mt-auto pt-2 text-[10px] leading-relaxed text-[var(--unshafted-text-faint)]">
+      <p className="panel-footer">
         When you analyse, document text goes to your chosen provider. Results can sync to your connected Drive.
       </p>
+
+      <AnalyseBar
+        domain={hostname}
+        check={check}
+        candidates={analysable}
+        run={run}
+        hasResults={hasResults}
+        confirming={confirming}
+        onConfirm={preselected => setConfirming({ preselected })}
+        onCancel={() => setConfirming(null)}
+      />
+
+      {readerOpen ? (
+        <PageDocumentsOverlay
+          domain={hostname}
+          analyses={[]}
+          check={check}
+          onAnalyse={analyseOne}
+          onClose={() => setReaderOpen(false)}
+        />
+      ) : null}
     </>
   );
 };
@@ -291,27 +338,25 @@ const UncoveredView = ({
  */
 const NoSiteView = ({ onBrowse }: { onBrowse: () => void }) => (
   <>
-    <header className="panel-floating top-0 flex items-center justify-between gap-2 pb-2">
-      <h1 className="m-0 min-w-0 text-lg leading-tight font-semibold tracking-tight text-[var(--unshafted-text)]">
-        No site here
-      </h1>
-      <BackToTop />
-    </header>
+    <PanelHeader title="No site here" />
 
-    <section className="panel-one-thing">
-      <p className="m-0 text-xs leading-relaxed text-[var(--unshafted-text-muted)]">
+    {/*
+      P8: the explanation on the ground and the one offer beside it — no card around either. The
+      library is the content of this screen, not a tool on it, so it is an outlined button here and
+      not an icon in the header.
+    */}
+    <section className="panel-zone">
+      <p className="panel-lede">
         This is a browser page, not a website. Open a site and the panel will show what it makes you agree to.
       </p>
-      <div className="mt-2">
+      <div className="panel-actions">
         <button className="panel-button" type="button" onClick={onBrowse}>
           See what we’ve read
         </button>
       </div>
     </section>
 
-    <p className="m-0 mt-auto pt-2 text-[10px] leading-relaxed text-[var(--unshafted-text-faint)]">
-      Nothing about the site you are on leaves this browser.
-    </p>
+    <p className="panel-footer">Nothing about the site you are on leaves this browser.</p>
   </>
 );
 
@@ -330,21 +375,15 @@ const NoSiteView = ({ onBrowse }: { onBrowse: () => void }) => (
  */
 const LoadingView = ({ hostname }: { hostname: string | null }) => (
   <>
-    <header className="panel-floating top-0 flex items-center justify-between gap-2 pb-2">
-      <h1 className="m-0 min-w-0 text-lg leading-tight font-semibold tracking-tight text-[var(--unshafted-text)]">
-        {hostname ?? 'Reading the current tab…'}
-      </h1>
-      <BackToTop />
-    </header>
+    <PanelHeader title={hostname ?? 'Reading the current tab…'} />
 
-    <section className="panel-one-thing">
-      <p className="m-0 text-xs leading-relaxed text-[var(--unshafted-text-muted)]">Reading the current tab…</p>
-    </section>
+    <p className="panel-zone panel-quiet flex items-center">
+      <span className="panel-busy-dot" aria-hidden="true" />
+      Reading the current tab…
+    </p>
 
     {/* Nothing has run yet on any path, so the strongest true claim is always the safe one here. */}
-    <p className="m-0 mt-auto pt-2 text-[10px] leading-relaxed text-[var(--unshafted-text-faint)]">
-      Nothing about the site you are on leaves this browser.
-    </p>
+    <p className="panel-footer">Nothing about the site you are on leaves this browser.</p>
   </>
 );
 
@@ -400,7 +439,7 @@ const SidePanel = () => {
       {loading ? (
         <LoadingView hostname={site.hostname} />
       ) : covered ? (
-        <CoveredView domain={domain} analyses={analyses} check={check} />
+        <CoveredView domain={domain} analyses={analyses} check={check} onBrowse={() => setBrowsing(true)} />
       ) : site.hostname === null ? (
         <NoSiteView onBrowse={() => setBrowsing(true)} />
       ) : (

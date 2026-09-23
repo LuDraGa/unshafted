@@ -9,159 +9,198 @@
  * Written for a narrow column (~400px, and the user can make it narrower). Nothing here assumes
  * horizontal room: no side-by-side pairs, no fixed widths, and long URLs truncate rather than
  * force the column wider.
+ *
+ * UNLAYERED, which matters: Tailwind's utilities live in `@layer utilities`, and an unlayered rule
+ * beats a layered one whatever its specificity. So nothing here may set a colour on an element that
+ * also carries `RISK_TONE`, `SEVERITY_TONE` or `.unshafted-danger-tone` — `border: 1px solid` alone
+ * would reset the risk border to `currentColor`. Width and style only; the tone owns the colour.
  */
 
 /*
- * ── The weight ladder (P1) ──
+ * ── The ladders ──
  *
- * A hierarchy of FORM, not a second colour system. Rank is carried by border, radius, shadow and
- * ground — never by hue, because hue is already spoken for: it is the risk ramp, and a surface
- * that borrows a risk tint to look important is making a claim about the document.
+ * `f41b5a2` defined a weight ladder and then almost nothing used it: `.panel-primary` and
+ * `.panel-secondary` had no consumers, every block was a Primary card, there was one button for
+ * every action, and one 12px gap between every pair of blocks. Hierarchy that is defined but not
+ * applied is not hierarchy. This sheet is the ladder applied, along four axes at once.
  *
- *   Ground     the shell gradient and plain explanatory copy. No border, radius or shadow.
- *   Primary    ONE bordered surface, 16px radius, and no resting shadow. The thing the screen
- *              exists to offer — in practice the document list or card.
- *   Secondary  a hairline on ordinary page ground. Analyse, retry, supporting actions.
- *   Tertiary   plain text link, no container at all. Offers that are not this screen's job.
- *   Floating   solid composited ground plus a restrained shadow, and ONLY while actually stuck.
+ * SURFACES — hierarchy of FORM, never hue; hue is the risk ramp.
+ *   Ground     the shell gradient, and every plain explanation. No border, radius or shadow.
+ *   Primary    ONE bordered surface per screen, 16px, no shadow: the lens card, the page reader
+ *              when it is the only offer, the site list.
+ *   Floating   solid ground + hairline + restrained shadow: the header once scrolled, the analyse
+ *              bar, the page-documents overlay.
+ *   Two exceptions that do not change rank. A graded element keeps its tinted fill AND its full
+ *   1px risk border — measured against this ground the fill spans 1.5x and runs non-monotonically
+ *   (Medium 1.04 reads FAINTER than Low 1.13), the border spans 3.2x and is monotonic, so the border
+ *   is the only channel that works. And an app failure stays on the app surface with its own edge
+ *   rule (`.unshafted-danger-tone`); it never borrows a risk tint.
  *
- * Two exceptions that do not change rank. A graded element keeps its tinted fill AND its full 1px
- * risk border: measured against the shell ground the fill spans 1.5x and runs non-monotonically
- * (Medium 1.04 reads FAINTER than Low 1.13), while the border spans 3.2x and is monotonic at every
- * step. The border is the only channel that works, so softening one is a data-encoding bug wearing
- * the costume of visual simplification. And a destructive or app-failure state stays on the app
- * surface with its own edge rule; it never borrows a risk tint to signal severity.
+ * BUTTONS — four ranks, because "Analyse 3 documents" and "Cancel" are not the same kind of act.
+ *   Filled     a commit. At most one visible at a time.
+ *   Outlined   a real next step that commits nothing.
+ *   Text       row actions and escapes.
+ *   Icon       tools, in the header, borderless.
  *
- * Two things that are not ranks. Rows are content INSIDE the primary surface, divided by hairlines
- * — not a sixth rank with borders of their own. And buttons are controls, not containers: a button
- * confers no rank on the copy around it.
+ * SPACE — three steps, so distance says what belongs together.
+ *   6px inside a unit · 12px between related blocks · 24px between zones.
  *
- * Radius, and why it is local. `--unshafted-radius-card` is 20px and belongs to the shared sheet,
- * where the popup also reads it. The panel's Primary rank is 16px. Redefining the shared token
- * would silently re-lay-out a surface this work never looked at, so the ladder is scoped here.
+ * TYPE — the amber eyebrow labels a zone and nothing else. Lens intros, captions, reference
+ * labels and pills are sentence case; a screen where everything is in capitals has no capitals.
  */
+
 /*
- * P7/D2: `min-height: 100vh` — the document itself scrolling — becomes a fixed-height scroll
- * container. Required, not optional: it is the precondition for `scroll-state()` container
- * queries (Floating, §F), for per-view sticky headers, and for a bottom fade / back-to-top
- * control that reads real shell scroll state — none of that is answerable from a box with no
- * scroll boundary of its own. `overscroll-behavior: contain` stops a scroll-past at the bottom
- * from reaching the extension chrome behind the panel. `scrollbar-gutter: stable` reserves the
- * scrollbar's width whether or not it is currently showing, so filtering browse's 37 rows down to
- * 3 does not make the scrollbar disappear and reflow the column by ~15px mid-keystroke.
+ * P7/D2: a fixed-height scroll container, not the document scrolling. Required, not optional: it is
+ * the precondition for `scroll-state()` container queries, per-view sticky headers, and a bottom
+ * fade / back-to-top that read real shell scroll state. `overscroll-behavior: contain` stops a
+ * scroll-past from reaching the extension chrome behind the panel; `scrollbar-gutter: stable`
+ * keeps filtering browse's 37 rows down to 3 from reflowing the column mid-keystroke.
  *
- * The background gradient needed no separate change to "move onto the scroll container" (handoff
- * §6.4): `background-attachment`'s default (`scroll`) is already fixed relative to the element's
- * own box, not to whatever content scrolls inside it, so painting one viewport and staying put
- * falls out of this rule for free.
+ * NO VERTICAL PADDING, and that is the fix for F's bleed. A sticky element's inset is measured from
+ * the scroll container's padding edge, so with `padding-top: 16px` the header stuck 16px down and
+ * every row scrolled visibly through the band above it. The header and footer now carry that space
+ * themselves, and the header bleeds through the 14px side inset for the same reason.
+ *
+ * The background needs no separate change to stay put: `background-attachment: scroll` on a scroll
+ * container is already fixed to the element's own box, not to the content scrolling inside it.
  */
 .panel-shell {
   --panel-primary-radius: 16px;
-  --panel-primary-border: 1px solid var(--unshafted-border);
   --panel-hairline: 1px solid var(--unshafted-border);
-  --panel-floating-ground: var(--unshafted-surface-strong);
-  --panel-floating-shadow: 0 6px 16px rgba(28, 25, 23, 0.1);
+  /* Opaque, both of them — see Floating below. Contrast measured in the weight redesign's §7. */
+  --panel-floating-ground: #f7f2ea;
+  --panel-card-ground: #fffaf3;
+  --panel-floating-shadow: 0 6px 16px rgba(28, 25, 23, 0.08);
+  --panel-space-zone: 24px;
 
   display: flex;
   flex-direction: column;
-  gap: 12px;
   height: 100vh;
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
-  padding: 16px 14px 18px;
+  padding: 0 14px;
   background:
     radial-gradient(circle at top right, rgba(245, 74, 0, 0.1), transparent 32%),
     linear-gradient(180deg, #f7f2ea 0%, var(--unshafted-bg-warm) 100%);
   color: var(--unshafted-text);
 }
 
-/*
- * Primary. One bordered surface, and the absence of `box-shadow` is the point rather than an
- * omission: a resting shadow is what lets three things on a screen all look like the main thing.
- */
-.panel-primary {
-  border: var(--panel-primary-border);
-  border-radius: var(--panel-primary-radius);
-  background: var(--unshafted-surface);
-}
-
-/*
- * Secondary. A hairline and the page's own ground — no fill, no radius, no container. This is the
- * rank Analyse and retry drop to, which is the part of the ladder that is a product stance rather
- * than a tidy-up: those offers stop being cards.
- */
-.panel-secondary {
-  border-top: var(--panel-hairline);
-  padding-top: 10px;
-}
-
-/*
- * Floating. The shadow is meant to appear only while the element is actually stuck, which
- * `scroll-state` is supposed to answer natively with no scroll listener — but F tested this
- * directly (a standalone page, real wheel scroll, an unambiguously-clamped sticky element) and
- * `@container scroll-state(stuck: top)` never matched in Chrome 152, in either physical (`top`) or
- * logical (`block-start`, `inset-block-start`) form, despite parsing as a real `CSSContainerRule`
- * (A5a) with no console error. `scroll-state(scrollable: …)` below, tested the same way in the same
- * browser, works correctly. So the rule stays — cheap, harmless, and forward-compatible if a future
- * Chrome actually ships `stuck` — but nobody should read its presence as evidence the shadow works
- * today. It does not. Left as vocabulary rather than removed, same as Unit A originally shipped it.
- *
- * `.panel-doc` moved off `overflow: hidden` in C2.2 so a sticky element inside it would not
- * silently do nothing (§3.5 of the handoff) — that half of the mechanism is real and confirmed
- * working. `.panel-sticky-scope` belongs on `.panel-shell` itself, the actual scroll container,
- * applied in `SidePanel.tsx` (F). Every per-view header and Unit E's browse search header carry
- * `.panel-floating`; §4.16 of the handoff is why `--panel-floating-ground` is opaque rather than
- * translucent — a sticky header's own background changes the composited ground under it, so
- * contrast has to hold against a solid fill, not a see-through one. That part does not depend on
- * `stuck` at all — a header carries its opaque ground and covers scrolling content regardless of
- * whether the shadow ever engages.
- */
 .panel-sticky-scope {
   container-type: scroll-state;
 }
 
-.panel-floating {
+/* ── Header: placement is the hierarchy (back leads, title takes the room, tools trail) ── */
+
+/*
+ * Invisible at rest, Floating once anything passes under it.
+ *
+ * F tested `scroll-state(stuck: top)` directly in Chrome 152 and it never matches, so the shadow it
+ * was meant to drive was inert. It does not need `stuck`: the header is the FIRST thing in the
+ * shell, so it is stuck exactly when the shell has scrolled at all — which is
+ * `scroll-state(scrollable: top)`, the query F confirmed working. At rest there is nothing under it
+ * and it paints nothing, so it never reads as a stray box at the top of the screen.
+ *
+ * Opaque when floating (handoff §4.16): a sticky header's fill IS the ground its text is read
+ * against, so contrast has to hold on a solid colour, not on whatever scrolls behind a tint.
+ */
+.panel-header {
   position: sticky;
-  z-index: 3;
-  background: var(--panel-floating-ground);
+  top: 0;
+  z-index: 4;
+  margin: 0 -14px;
+  padding: 14px 14px 10px;
+  border-bottom: 1px solid transparent;
+  transition:
+    box-shadow 140ms ease,
+    border-color 140ms ease;
 }
 
-@container scroll-state(stuck: top) {
-  .panel-floating {
-    box-shadow: var(--panel-floating-shadow);
-  }
+.panel-header-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.panel-header-row > .panel-icon-button:first-child {
+  margin-left: -6px;
+}
+
+.panel-title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.15;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--unshafted-text);
+  overflow-wrap: anywhere;
+}
+
+.panel-header-tools {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-right: -6px;
+}
+
+.panel-meta {
+  margin: 4px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 6px;
+  row-gap: 2px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--unshafted-text-muted);
+}
+
+.panel-meta-sep {
+  color: var(--unshafted-glyph-faint);
 }
 
 /*
- * P14: reserves its own box at all times — `visibility`, not `display` or `opacity`, so a title
- * sharing the header row never reflows when this switches on, and it drops out of the tab order
- * for free while hidden (an invisible but still-focusable stop would be worse than not offering
- * one). The switch is the shell's own scroll state, not a prop or a listener.
- *
- * Unlike `stuck` above, `scroll-state(scrollable: top)` is confirmed working — same standalone
- * page, same real wheel scroll, same Chrome 152: visibility genuinely flips as the shell's own
- * scrollability changes.
+ * The D6 states, in one line, never as an error. `unconfirmed` and `pending` keep the neutral tone:
+ * a capture that could not run is the resting state on 7 of 36 domains, and colouring it would turn
+ * a non-event into a visible failure.
+ */
+[data-freshness='current'] {
+  color: var(--unshafted-ok-text);
+  font-weight: 600;
+}
+
+[data-freshness='changed'] {
+  color: var(--unshafted-changed-text);
+  font-weight: 600;
+}
+
+/*
+ * P14: reserves its box at all times — `visibility`, not `display` or `opacity`, so the title never
+ * reflows when it appears, and a hidden control drops out of the tab order for free.
  */
 .panel-back-to-top {
-  flex-shrink: 0;
   visibility: hidden;
 }
 
 @container scroll-state(scrollable: top) {
+  .panel-header {
+    background: var(--panel-floating-ground);
+    border-bottom-color: var(--unshafted-border);
+    box-shadow: var(--panel-floating-shadow);
+  }
+
   .panel-back-to-top {
     visibility: visible;
   }
 }
 
 /*
- * P14: the "there is more below" fade. `height: 0` with a matching negative `margin-top` means it
- * claims no space in `.panel-shell`'s flex column — its neighbours lay out exactly as if it were
- * not there — while the box itself still paints a real gradient band, sticky to the bottom edge.
- * Visible only while the shell can still scroll further, so it steps aside on its own at the true
- * end of a document, which is also where the footer lives (no separate reachability guard needed).
- * `scroll-state(scrollable: bottom)` is the same confirmed-working feature as `scrollable: top`
- * above, not the broken `stuck` one.
+ * "There is more below." `height: 0` with a matching negative `margin-top` claims no space in the
+ * column while still painting a band, sticky to the bottom edge; `scroll-state(scrollable: bottom)`
+ * — the confirmed-working query — steps it aside at the true end. Where the analyse bar is present
+ * the bar is the bottom edge, and a fade over it would only blur its hairline.
  */
 .panel-bottom-fade {
   position: sticky;
@@ -179,6 +218,28 @@
   }
 }
 
+.panel-cta-bar ~ .panel-bottom-fade {
+  display: none;
+}
+
+/* ── Zones and ground copy ── */
+
+.panel-zone {
+  margin-top: var(--panel-space-zone);
+}
+
+.panel-header + .panel-zone {
+  margin-top: 6px;
+}
+
+.panel-zone-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
 .panel-eyebrow {
   margin: 0;
   color: var(--unshafted-brand);
@@ -188,119 +249,492 @@
   text-transform: uppercase;
 }
 
-.panel-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-/* ── The three D6 states, in one line, never as an error ── */
-.panel-freshness {
-  margin: 0;
-  border-radius: 999px;
-  padding: 5px 11px;
+.panel-count {
+  flex-shrink: 0;
   font-size: 11px;
   font-weight: 600;
-  align-self: flex-start;
-  max-width: 100%;
-  border: 1px solid var(--unshafted-border);
-  background: rgba(255, 252, 247, 0.7);
+  color: var(--unshafted-text-faint);
+}
+
+.panel-lede {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--unshafted-text-soft);
+}
+
+.panel-lede-link {
+  margin: 8px 0 0;
+}
+
+.panel-quiet {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.55;
   color: var(--unshafted-text-muted);
 }
 
-.panel-freshness[data-state='current'] {
-  border-color: var(--unshafted-ok-border);
-  background: var(--unshafted-ok-bg);
-  color: var(--unshafted-ok-text);
-}
-
-.panel-freshness[data-state='changed'] {
-  border-color: var(--unshafted-changed-border);
-  background: var(--unshafted-changed-bg);
-  color: var(--unshafted-changed-text);
-}
-
-/*
- * `unconfirmed` and `pending` intentionally keep the neutral tone. A capture that could not run
- * is not a warning — it is the resting state on 7 of 36 domains, and colouring it would turn a
- * non-event into a visible failure.
- */
-
-/*
- * The graded verdict. Border width and colour come from the risk ramp and are left exactly alone;
- * only the resting shadow goes, because Primary does not carry one.
- */
-.panel-verdict {
-  border-width: 1px;
-  border-style: solid;
-  border-radius: var(--panel-primary-radius);
-  padding: 14px;
-}
-
-.panel-one-thing {
-  display: flex;
-  flex-direction: column;
-  border: var(--panel-primary-border);
-  background: var(--unshafted-surface);
-  border-radius: var(--panel-primary-radius);
-  padding: 12px 14px;
-}
-
-.panel-one-thing .panel-eyebrow {
-  margin-bottom: 6px;
-}
-
-/*
- * ── Per-document card, collapsed by default (D10). The reference Primary surface. ──
- *
- * `overflow: clip`, not `hidden` (C2.2): identical clipping, but `hidden` also hands the browser
- * an implicit scroll container, which is what makes a flex item's automatic minimum size resolve
- * to 0 instead of `auto` — the card could then be silently compressed below its content by a
- * height-constrained ancestor. `flex-shrink: 0` closes that regardless of which flex ancestor the
- * card lands in (`.panel-group` directly, or a wrapper `div` as in `LocalAnalysisView`).
- */
-.panel-doc {
-  border: var(--panel-primary-border);
-  background: var(--unshafted-surface);
-  border-radius: var(--panel-primary-radius);
-  overflow: clip;
-  flex-shrink: 0;
-}
-
-/*
- * P13 Level 2: sticks below the per-view header while an open document's own body scrolls past,
- * so which document you are reading survives the scroll. `top` is set inline per instance
- * (`DocumentCard`'s `headerOffset` prop) — the header above it is a different height on every view.
- *
- * Harmless on a closed card: a collapsed `.panel-doc`'s total height already equals its summary's,
- * so there is no extra scroll room inside the card for the offset to ever visibly engage.
- */
-.panel-doc > summary {
-  position: sticky;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 11px 13px;
-  background: var(--unshafted-surface);
-  cursor: pointer;
-  list-style: none;
-  user-select: none;
-}
-
-.panel-doc > summary::-webkit-details-marker {
-  display: none;
-}
-
-.panel-doc-title {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.panel-note-title {
+  margin: 0 0 4px;
   font-size: 13px;
   font-weight: 700;
   color: var(--unshafted-text);
+}
+
+.panel-footer {
+  margin: auto 0 0;
+  padding: var(--panel-space-zone) 0 18px;
+  font-size: 10px;
+  line-height: 1.6;
+  color: var(--unshafted-text-faint);
+}
+
+.panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  margin-top: 10px;
+}
+
+/* ── Surfaces ── */
+
+/*
+ * Primary. One bordered surface, and the absence of `box-shadow` is the point: a resting shadow is
+ * what let three things on a screen all look like the main thing. `overflow: clip`, not `hidden`
+ * (C2.2) — identical clipping, but `hidden` makes an implicit scroll container, which traps every
+ * sticky element inside it and lets a flex ancestor compress the surface below its content.
+ */
+.panel-primary {
+  flex-shrink: 0;
+  border: var(--panel-hairline);
+  border-radius: var(--panel-primary-radius);
+  background: var(--panel-card-ground);
+  overflow: clip;
+}
+
+/*
+ * The graded verdict — a tag leading a sentence, part of the title's zone rather than a zone of its
+ * own: 6px under the header, 12px under anything that sits between them (the excerpt note, a run
+ * notice). The tag is the one graded element above the findings. Width and style only on it (see
+ * the top); `RISK_TONE` owns its fill, border and text colour.
+ */
+.panel-verdict {
+  margin-top: 12px;
+}
+
+.panel-header + .panel-verdict {
+  margin-top: 6px;
+}
+
+.panel-verdict-line {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.9;
+  color: var(--unshafted-text-soft);
+}
+
+.panel-verdict-tag {
+  display: inline-block;
+  margin-right: 2px;
+  border-width: 1px;
+  border-style: solid;
+  border-radius: 999px;
+  padding: 0 9px;
+  font-size: 12px;
+  line-height: 20px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.panel-verdict-caveat {
+  margin: 2px 0 0;
+  font-size: 11px;
+  line-height: 1.5;
+  font-weight: 600;
+  color: var(--unshafted-changed-text);
+}
+
+/* An app failure: the tone and its edge rule come from `.unshafted-danger-tone`. */
+.panel-app-notice {
+  border-width: 1px;
+  border-style: solid;
+  border-radius: 14px;
+  padding: 12px 14px;
+}
+
+/* ── Buttons ── */
+
+.panel-button-primary,
+.panel-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease;
+}
+
+.panel-button-primary {
+  border: 1px solid var(--unshafted-action);
+  background: var(--unshafted-action);
+  color: var(--unshafted-action-text);
+  padding: 7px 15px;
+}
+
+.panel-button-primary:hover {
+  background: var(--unshafted-text-strong);
+}
+
+.panel-button {
+  border: 1px solid var(--unshafted-border-strong);
+  background: transparent;
+  color: var(--unshafted-text);
+  padding: 6px 13px;
+}
+
+.panel-button:hover {
+  background: rgba(255, 252, 247, 0.9);
+}
+
+.panel-button-primary:disabled,
+.panel-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/*
+ * Text. No border, no fill, no radius — so a row can carry four of these and still read as a row,
+ * and a document list does not become a grid of pills competing with the documents.
+ */
+.panel-text-button {
+  display: inline;
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--unshafted-text-soft);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--unshafted-border-strong);
+  transition: color 140ms ease;
+}
+
+.panel-text-button:hover {
+  color: var(--unshafted-text);
+  text-decoration-color: currentcolor;
+}
+
+/* Tertiary: an offer that is not this screen's job. Plain brand text, no container. */
+.panel-link,
+.panel-link-button {
+  color: var(--unshafted-brand);
+  font-weight: 600;
+}
+
+.panel-link {
+  word-break: break-all;
+}
+
+.panel-link-button {
+  border: 0;
+  background: none;
+  padding: 0;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.panel-link-button:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Icon tools: borderless at rest, because chrome should not compete with content. */
+.panel-icon-button {
+  position: relative;
+  flex-shrink: 0;
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--unshafted-text-muted);
+  cursor: pointer;
+  transition:
+    background 140ms ease,
+    color 140ms ease;
+}
+
+.panel-icon-button:hover {
+  background: var(--unshafted-selection-soft);
+  color: var(--unshafted-text);
+}
+
+.panel-icon-button:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
+.panel-icon-badge {
+  position: absolute;
+  top: 0;
+  right: -1px;
+  display: grid;
+  place-items: center;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: var(--unshafted-action);
+  color: var(--unshafted-action-text);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.panel-button-primary:focus-visible,
+.panel-button:focus-visible,
+.panel-text-button:focus-visible,
+.panel-link-button:focus-visible,
+.panel-icon-button:focus-visible,
+.panel-lens-tab:focus-visible,
+.panel-item > summary:focus-visible,
+.panel-browse-row:focus-visible {
+  outline: 2px solid var(--unshafted-brand);
+  outline-offset: 2px;
+}
+
+/* ── The lens card: the site read by concern ── */
+
+.panel-lens-card {
+  flex-shrink: 0;
+  border: var(--panel-hairline);
+  border-radius: var(--panel-primary-radius);
+  background: var(--panel-card-ground);
+  overflow: clip;
+}
+
+/*
+ * Sticks INSIDE the card, directly under the header (`top` is set inline from the header's measured
+ * height, P13). No radius of its own: at rest the card's clip rounds its corners, and once stuck it
+ * is mid-card, where square is right.
+ *
+ * One step darker than the card, on the floating ground the stuck header uses. On the card's own
+ * colour the strip was the same paper as the findings scrolling under it, and the hairline alone
+ * did not read as an edge; now it reads as chrome, one band with the header above it. Still opaque.
+ */
+.panel-lens-strip {
+  position: sticky;
+  z-index: 3;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 12px;
+  background: var(--panel-floating-ground);
+  border-bottom: var(--panel-hairline);
+}
+
+/* The popup's lens tab, same shape, so the two surfaces teach one gesture. */
+.panel-lens-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid var(--unshafted-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--unshafted-text);
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease;
+}
+
+.panel-lens-tab:hover {
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.panel-lens-tab[aria-selected='true'] {
+  background: var(--unshafted-text);
+  border-color: var(--unshafted-text);
+  color: var(--unshafted-action-text);
+}
+
+.panel-lens-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--unshafted-selection-soft);
+  color: var(--unshafted-text-muted);
+  font-size: 10px;
+}
+
+.panel-lens-tab[aria-selected='true'] .panel-lens-count {
+  background: rgba(255, 255, 255, 0.18);
+  color: var(--unshafted-action-text);
+}
+
+/*
+ * No padding on the panel itself. Unselected panels are `hidden="until-found"`, which the browser
+ * renders as `content-visibility: hidden` — the contents are skipped but the box's own padding is
+ * not, so a padded panel would leave a gap per hidden lens. The children carry the inset instead.
+ */
+.panel-lens-panel > :last-child {
+  margin-bottom: 4px;
+}
+
+.panel-lens-intro {
+  margin: 0;
+  padding: 12px 14px 6px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--unshafted-text-muted);
+}
+
+/* ── Items: crisp blocks, one open at a time ── */
+
+.panel-item {
+  margin: 0 14px;
+}
+
+.panel-item + .panel-item {
+  border-top: var(--panel-hairline);
+}
+
+.panel-item > summary {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 11px 0;
+  cursor: pointer;
+  list-style: none;
+}
+
+.panel-item > summary::-webkit-details-marker {
+  display: none;
+}
+
+.panel-item-chevron {
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+  margin-top: 3px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2378716c' stroke-width='2.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 18 6-6-6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  transition: transform 160ms ease;
+}
+
+.panel-item[open] > summary .panel-item-chevron {
+  transform: rotate(90deg);
+}
+
+/* P15: an explicit final orientation under reduced motion, not a frozen mid-turn one. */
+@media (prefers-reduced-motion: reduce) {
+  .panel-item-chevron {
+    transition: none;
+  }
+}
+
+.panel-item-head {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.panel-item-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.panel-item-title {
+  font-size: 13px;
+  line-height: 1.35;
+  font-weight: 650;
+  color: var(--unshafted-text);
+}
+
+.panel-item-regime {
+  font-weight: 400;
+  color: var(--unshafted-text-muted);
+}
+
+.panel-item-source {
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--unshafted-text-faint);
+}
+
+.panel-item-earlier {
+  color: var(--unshafted-changed-text);
+  font-weight: 600;
+}
+
+/* The window, in the closed block. Violet, as every window in the product already is. */
+.panel-item-window {
+  font-size: 12px;
+  line-height: 1.45;
+  font-weight: 600;
+  color: var(--color-violet-700);
+}
+
+.panel-item-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0 0 13px 20px;
+}
+
+.panel-item-text {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--unshafted-text-soft);
+}
+
+.panel-item-text-quiet {
+  color: var(--unshafted-text-muted);
+}
+
+.panel-item-provenance {
+  margin: 2px 0 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--unshafted-text-faint);
+}
+
+/* A missing disclosure: same inset and rhythm as a block, and no control (P4). */
+.panel-item-flat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 11px 0 11px 20px;
+}
+
+.panel-severity {
+  flex-shrink: 0;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: capitalize;
 }
 
 .panel-risk-pill {
@@ -314,117 +748,296 @@
   letter-spacing: 0.04em;
 }
 
-.panel-count {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 20px;
-  height: 18px;
-  padding: 0 6px;
-  border-radius: 9px;
-  background: var(--unshafted-selection-soft);
-  color: var(--unshafted-text-muted);
-  font-size: 10px;
-  font-weight: 700;
+.panel-graded {
+  border-width: 1px;
+  border-style: solid;
+  border-radius: 12px;
+  padding: 9px 12px;
+  font-size: 12px;
+  line-height: 1.55;
 }
 
-.panel-doc-chevron {
-  flex-shrink: 0;
-  width: 14px;
-  height: 14px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2378716c' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: center;
-  transition: transform 200ms ease;
+.panel-changed-note {
+  border: 1px solid var(--unshafted-changed-border);
+  border-radius: 12px;
+  background: var(--unshafted-changed-bg);
+  color: var(--unshafted-changed-text);
+  padding: 9px 12px;
+  font-size: 12px;
+  line-height: 1.55;
 }
 
-.panel-doc[open] > summary .panel-doc-chevron {
-  transform: rotate(180deg);
+/* Someone else's words inside ours: a left rule, not a box — no nested radius anywhere. */
+.panel-reference {
+  border-left: 2px solid var(--unshafted-border-strong);
+  padding-left: 8px;
 }
 
-/*
- * P15: the chevron keeps its transition, but reduced motion drops the 200ms rotation and jumps
- * straight to whichever of the two rules above applies — an explicit final orientation, not a
- * frozen mid-turn state.
- */
-@media (prefers-reduced-motion: reduce) {
-  .panel-doc-chevron {
-    transition: none;
-  }
+.panel-reference-label {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--unshafted-text-faint);
 }
 
-.panel-doc-body {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 0 13px 13px;
+.panel-reference-quote {
+  margin: 2px 0 0;
+  font-size: 12px;
+  line-height: 1.55;
+  font-style: italic;
+  color: var(--unshafted-text);
 }
+
+/* ── Rows: content inside a Primary surface, divided by hairlines ── */
 
 /*
- * P13 Level 3: a document's own section label ("What you gave up", "What you can still do",
- * "Missing disclosures") sticks below the Level 2 summary while that section's rows scroll past.
- * Normal document flow already means only one can occupy this position at a time — the next
- * section's label simply takes over, so nothing has to be told to stop accumulating. `top` is set
- * inline per instance (`DocumentCard`'s own measured summary height, added to its `headerOffset`).
- */
-.panel-doc-section-label {
-  position: sticky;
-  z-index: 1;
-  background: var(--unshafted-surface);
-  padding: 4px 0;
-}
-
-/*
- * P5: content inside the one bordered document surface, not a sixth weight of its own — no
- * border, radius or fill. A hairline divides consecutive rows within a group; the first row under
- * an eyebrow needs none, which is why the divider is `+` rather than a rule on `.panel-row` itself.
- * Dropping the row's own left/right padding and border recovers 22px + 2px of prose width — the
- * thing P5 exists for. Graded fill and the risk border live on the summary box and severity pill,
- * neither of which is `.panel-row`, so neither is touched here.
+ * `RunStatus`, `AnalyseConfirm` and the page reader all use it, and every one of them sits inside
+ * a bordered or floating surface — a row outside one would render with no container at all.
  */
 .panel-row {
-  padding: 9px 0;
+  padding: 11px 0;
 }
 
 .panel-row + .panel-row {
   border-top: var(--panel-hairline);
 }
 
-/*
- * Layer two's control. A button, so it is a control — and no border, no fill and no radius, so it
- * confers no rank on the row it sits in. The underline is the whole affordance: anything more and
- * a 40-row document grows 40 small buttons competing with the findings they belong to.
- */
-.panel-reveal {
-  display: inline-flex;
-  align-items: center;
-  margin-top: 6px;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--unshafted-text-muted);
+.panel-url {
+  display: block;
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-  text-decoration-color: var(--unshafted-border-strong);
-  transition: color 140ms ease;
+  color: var(--unshafted-text-faint);
 }
 
-.panel-reveal:hover {
+/* ── The page reader ── */
+
+.panel-reader-list {
+  padding: 0 14px;
+}
+
+.panel-reader-row .panel-actions {
+  margin-top: 8px;
+}
+
+.panel-reader-sources {
+  margin-top: 16px;
+}
+
+.panel-reader-source {
+  display: block;
+  text-decoration: none;
+}
+
+/*
+ * The normalized text, shown as-is. Deliberately unstyled prose: this is the exact string the
+ * content hash was taken over, so dressing it up would break the correspondence between what the
+ * reader sees and what the analysis graded.
+ */
+.panel-reader-text {
+  margin: 10px 0 0;
+  max-height: 44vh;
+  overflow: auto;
+  border-left: 2px solid var(--unshafted-border-strong);
+  background: rgba(239, 229, 214, 0.35);
+  padding: 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.55;
   color: var(--unshafted-text);
-  text-decoration-color: currentcolor;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/*
+ * The one moving thing in the panel, and it exists for a specific failure: a refused page read
+ * finishes in a couple of milliseconds, so without something visible the whole attempt looked
+ * like a click that did nothing at all.
+ */
+.panel-busy-dot {
+  flex-shrink: 0;
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 8px;
+  border-radius: 999px;
+  background: var(--unshafted-brand);
+  animation: panel-busy-pulse 1s ease-in-out infinite;
+}
+
+@keyframes panel-busy-pulse {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: scale(0.75);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel-busy-dot {
+    animation: none;
+    opacity: 0.7;
+  }
+}
+
+/* ── A tool's own surface: the page-documents overlay ── */
+
+.panel-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+}
+
+.panel-overlay::backdrop {
+  background: rgba(28, 25, 23, 0.18);
+}
+
+.panel-overlay > .panel-shell {
+  height: 100%;
+}
+
+/* ── The analyse bar: where spending lives, before, during and after ── */
+
+.panel-cta-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 -14px;
+  padding: 12px 14px 14px;
+  background: var(--panel-floating-ground);
+  border-top: var(--panel-hairline);
+  box-shadow: 0 -6px 16px rgba(28, 25, 23, 0.06);
+}
+
+/* The confirm opens out of the bar, like the popup's scope sheet out of its CTA bar. */
+.panel-cta-sheet {
+  flex-direction: column;
+  align-items: stretch;
+  max-height: 78vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.panel-cta-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.panel-cta-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--unshafted-text);
+}
+
+.panel-cta-scope {
+  margin: 2px 0 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--unshafted-text-muted);
+}
+
+.panel-run-progress {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.panel-run-line {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--unshafted-text);
+}
+
+.panel-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.panel-confirm .panel-eyebrow:focus {
+  outline: none;
+}
+
+.panel-confirm-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.panel-confirm-row input {
+  margin-top: 3px;
+}
+
+.panel-confirm-size {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--unshafted-text-muted);
+}
+
+/* The two facts true of every run, laid out so the eye can find them (P16 keeps all of it visible). */
+.panel-facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.panel-facts dt {
+  color: var(--unshafted-text-faint);
+}
+
+.panel-facts dd {
+  margin: 0;
+  color: var(--unshafted-text);
+}
+
+.panel-storage {
+  margin-top: 10px;
 }
 
 /* ── Browse: the corpus as a list, for a site the reader is not on ── */
+
+/* Search is the list's own sticky header, inside the card, on the card's solid ground. */
+.panel-browse-search {
+  position: sticky;
+  z-index: 3;
+  padding: 12px;
+  background: var(--panel-card-ground);
+  border-bottom: var(--panel-hairline);
+}
 
 .panel-search {
   width: 100%;
   border: 1px solid var(--unshafted-border);
   border-radius: 999px;
-  background: var(--unshafted-surface-strong);
+  background: #fff;
   padding: 7px 13px;
   font-size: 12px;
   color: var(--unshafted-text);
@@ -434,19 +1047,36 @@
   color: var(--unshafted-text-faint);
 }
 
+.panel-browse-group {
+  padding: 14px 14px 4px;
+}
+
+.panel-browse-group + .panel-browse-group {
+  border-top: var(--panel-hairline);
+}
+
+.panel-browse-explanation {
+  margin-bottom: 4px;
+}
+
+.panel-browse-empty {
+  padding: 14px;
+}
+
 /*
  * A row is a button, not a div with a click handler. 37 of these are the whole navigation of this
- * surface, and a keyboard user has to be able to reach every one of them.
- *
- * P11: no border, radius or fill of its own any more. Paired with `.panel-row` in the markup, the
- * same hairline-between-siblings class every other flattened row in the panel already uses, so the
- * 37 rows sit inside one Primary-ranked bordered surface instead of 37 small ones.
+ * surface, and a keyboard user has to be able to reach every one of them. No border, radius or fill
+ * of its own (P11): the rows sit in one Primary surface, divided by `.panel-row`'s hairline.
  */
 .panel-browse-row {
   display: flex;
   align-items: center;
   gap: 8px;
   width: 100%;
+  border-left: 0;
+  border-right: 0;
+  border-bottom: 0;
+  background: none;
   text-align: left;
   cursor: pointer;
   transition: background 140ms ease;
@@ -474,12 +1104,9 @@
 }
 
 /*
- * The `window` marker.
- *
- * `--unshafted-selection-soft` on purpose: that is the "count badge carrying no severity" weight,
- * documented as such in global.css. The marker has to read as INFORMATION, not as a warning — a
- * warning would be a claim about the site, and this is a claim about what the document contains.
- * It is also why there is no severity hue here and no `[data-*]` variant waiting to add one.
+ * The `window` marker. `--unshafted-selection-soft` on purpose: that is the "count badge carrying
+ * no severity" weight. The marker has to read as INFORMATION, not as a warning — a warning would be
+ * a claim about the site, and this is a claim about what the document contains.
  */
 .panel-marker {
   flex-shrink: 0;
@@ -490,111 +1117,4 @@
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.04em;
-}
-
-/* Header affordance for closing browse, or stepping back out of an opened site. */
-.panel-icon-button {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border: 1px solid var(--unshafted-border);
-  border-radius: 999px;
-  background: rgba(255, 252, 247, 0.9);
-  color: var(--unshafted-text-muted);
-  font-size: 12px;
-  line-height: 1;
-  cursor: pointer;
-  transition: background 140ms ease;
-}
-
-.panel-icon-button:hover {
-  background: #ede7dc;
-}
-
-/* Tertiary: plain text, no container. Already the correct rank; named here so it stays one. */
-.panel-link {
-  color: var(--unshafted-brand);
-  font-weight: 600;
-  word-break: break-all;
-}
-
-.panel-button {
-  display: inline-flex;
-  align-items: center;
-  border: 1px solid var(--unshafted-border);
-  border-radius: 999px;
-  background: rgba(255, 252, 247, 0.9);
-  color: var(--unshafted-text);
-  padding: 4px 11px;
-  font-size: 11px;
-  font-weight: 700;
-  cursor: pointer;
-  text-decoration: none;
-  transition:
-    background 140ms ease,
-    transform 140ms ease;
-}
-
-.panel-button:hover {
-  transform: translateY(-1px);
-  background: #ede7dc;
-}
-
-/*
- * The normalized text, shown as-is. It is deliberately unstyled prose: this is the exact string
- * the content hash was taken over, so dressing it up would break the correspondence between what
- * the reader sees and what the analysis graded.
- */
-.panel-reader-text {
-  margin: 0;
-  max-height: 44vh;
-  overflow: auto;
-  border: 1px solid var(--unshafted-border);
-  border-radius: 12px;
-  background: rgba(255, 253, 250, 0.95);
-  padding: 10px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 11px;
-  line-height: 1.55;
-  color: var(--unshafted-text);
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-
-/*
- * The one moving thing in the panel, and it exists for a specific failure: a refused page read
- * finishes in a couple of milliseconds, so without something visible the whole attempt looked
- * like a click that did nothing at all.
- */
-.panel-busy-dot {
-  flex-shrink: 0;
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  margin-right: 7px;
-  border-radius: 999px;
-  background: var(--unshafted-brand);
-  animation: panel-busy-pulse 1s ease-in-out infinite;
-}
-
-@keyframes panel-busy-pulse {
-  0%,
-  100% {
-    opacity: 0.25;
-    transform: scale(0.75);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .panel-busy-dot {
-    animation: none;
-    opacity: 0.7;
-  }
 }

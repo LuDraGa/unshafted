@@ -82,12 +82,17 @@ describe('browse view', () => {
     expect(await screen.findByText(/4 documents across 4 sites/)).toBeTruthy();
   });
 
-  it('groups by the clock when nothing is typed, and says which is which', async () => {
+  it('groups by the clock when nothing is typed, and lets the heading say it once', async () => {
     openList();
 
     expect(await screen.findByText('Window named in document')).toBeTruthy();
     expect(screen.getByText('Everything else')).toBeTruthy();
-    expect(screen.getAllByText('window')).toHaveLength(2);
+    /*
+     * No per-row marker under the heading that already says it. Repeating it on every row of the
+     * group made each one read as flagged; the marker belongs to search results, where the heading
+     * is gone (next test).
+     */
+    expect(screen.queryAllByText('window')).toHaveLength(0);
   });
 
   it('dissolves the groups on a query but keeps the marker on the row', async () => {
@@ -152,7 +157,8 @@ describe('browse view', () => {
 
     fireEvent.click(row);
 
-    expect(await screen.findByText('Every document')).toBeTruthy();
+    // The site reads by concern now; its documents are one lens among them.
+    expect(await screen.findByRole('tab', { name: 'Documents, 1' })).toBeTruthy();
     // The honest resting state, and the one the strip would have overwritten with a lie.
     expect(screen.getByText(/As we read it on/)).toBeTruthy();
     expect(screen.queryByText(/Checking against the live page/)).toBeNull();
