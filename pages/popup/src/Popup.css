@@ -605,18 +605,31 @@
 }
 
 /* ── v0.10: Collapsible item (each row inside a lens) ── */
+/*
+ * `flex-shrink: 0` is what lets the panel scroll at all.
+ *
+ * The panel is a height-capped flex column and each item clips its own overflow, and a flex item
+ * that clips has an automatic minimum height of zero. So once a lens held more than the cap —
+ * twelve rows of a deep Asks does it easily — the panel never overflowed: flexbox crushed every
+ * row to fit instead, each one cut through the middle of its title, and the scrollbar that should
+ * have appeared never did. Measured in a harness: twelve of twelve rows below their content height,
+ * panel scrollHeight equal to its clientHeight. Same failure the side panel hit in F.
+ */
 .popup-item {
+  flex-shrink: 0;
   border: 1px solid var(--unshafted-border);
   border-radius: 12px;
   background: rgba(255, 252, 247, 0.55);
   overflow: hidden;
 }
 
+/* Baseline, not center: a title can now run to two lines, and the chevron and severity badge
+   belong beside its first line, not floating between the two. */
 .popup-item > summary {
   list-style: none;
   cursor: pointer;
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 8px;
   padding: 9px 11px;
   font-size: 13px;
@@ -640,11 +653,26 @@
   transform: rotate(90deg);
 }
 
+/*
+ * Two lines closed, all of it open.
+ *
+ * This was one line with an ellipsis, which is fine for a title that labels something and wrong for
+ * a title that IS the thing. A question to ask and a negotiation ask carry their whole content in
+ * the title — a question's body is fixed boilerplate — so at 440px the reader got the first forty
+ * characters of the one sentence the item existed to deliver, and opening it did not help. Now the
+ * closed row stays scannable at a bounded height, and opening it lifts the clamp.
+ */
 .popup-item-title {
   flex: 1;
+  min-width: 0;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+}
+
+.popup-item[open] .popup-item-title {
+  -webkit-line-clamp: none;
 }
 
 .popup-item-body {

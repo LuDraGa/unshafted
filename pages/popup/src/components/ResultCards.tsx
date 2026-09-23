@@ -465,39 +465,34 @@ const buildObligationsLens = (quick: QuickScanResult): LensDef | null => {
   };
 };
 
+/**
+ * Evidence holds the topic concerns and nothing else.
+ *
+ * It used to open with the same four finding arrays `buildBlockerLens` is built from, rendered with
+ * the same body, so every deep finding appeared twice one lens apart — and the lens with the bigger
+ * count was the one adding least. Blockers is where those findings live in the popup; the full
+ * report page (execution-docs/deep-report-page-plan.md) is where they get read at length.
+ *
+ * The quote is new. The schema has always carried one for a topic concern and this lens never
+ * showed it, which is an odd omission for a lens called Evidence.
+ */
 const buildEvidenceLens = (deep: DeepAnalysisResult | null | undefined): LensDef | null => {
-  if (!deep) return null;
-  const findings = [
-    ...deep.immediateWorries,
-    ...deep.oneSidedClauses,
-    ...deep.timingAndLockIn,
-    ...deep.couldShaftYouLater,
-  ];
-  const total = findings.length + deep.topicConcerns.length;
-  if (total === 0) return null;
+  if (!deep || deep.topicConcerns.length === 0) return null;
 
   return {
     id: 'evidence',
     label: 'Evidence',
-    count: total,
-    severity: findings.length > 0 ? maxSeverity(findings) : undefined,
+    count: deep.topicConcerns.length,
+    severity: maxSeverity(deep.topicConcerns),
     content: (
       <>
-        {findings.map((item, i) => (
-          <CollapsibleItem
-            group="lens-evidence"
-            key={`ev-${item.title}-${i}`}
-            title={item.title}
-            severity={item.severity}>
-            <FindingBody item={item} />
-          </CollapsibleItem>
-        ))}
         {deep.topicConcerns.map(item => (
           <CollapsibleItem
             group="lens-evidence"
             key={`tc-${item.category}-${item.title}`}
             title={`${item.category}: ${item.title}`}
             severity={item.severity}>
+            {item.reference?.quote ? <QuoteBlock text={item.reference.quote} /> : null}
             <p>{item.whyItMatters}</p>
             {item.reference?.label ? (
               <p className="text-[11px] text-[var(--unshafted-text-faint)]">Reference: {item.reference.label}</p>
