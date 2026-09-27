@@ -59,21 +59,6 @@ const severityRank: Record<Severity, number> = { low: 0, medium: 1, high: 2 };
 const maxSeverity = (items: { severity: Severity }[]): Severity =>
   items.reduce<Severity>((max, item) => (severityRank[item.severity] > severityRank[max] ? item.severity : max), 'low');
 
-const getDecisionAction = (riskLevel: 'Low' | 'Medium' | 'High' | 'Very High') => {
-  switch (riskLevel) {
-    case 'Low':
-      return 'Likely okay to proceed';
-    case 'Medium':
-      return 'Review before signing';
-    case 'High':
-      return 'Negotiate first';
-    case 'Very High':
-      return 'Pause and get help';
-    default:
-      return 'Review before signing';
-  }
-};
-
 // ── v0.10 primitives ─────────────────────────────────────────────────────
 
 const DocStrip = ({ name, type, partyCount }: { name: string; type?: string; partyCount?: number | null }) => (
@@ -637,7 +622,14 @@ type ResultsViewRecord =
 /** Stable identity for the no-source case, so it cannot churn a dependency list. */
 const NO_WARNINGS: string[] = [];
 
-const ResultsView = ({ record }: { record: ResultsViewRecord }) => {
+const ResultsView = ({
+  record,
+  onOpenFullReport,
+}: {
+  record: ResultsViewRecord;
+  /** Present for a detailed analysis: the lenses are a preview of the report page, and say so. */
+  onOpenFullReport?: () => void;
+}) => {
   const quick = record.quickScan;
   const deep = record.deepAnalysis;
   const sourceWarnings = 'source' in record ? record.source.warnings : NO_WARNINGS;
@@ -667,6 +659,11 @@ const ResultsView = ({ record }: { record: ResultsViewRecord }) => {
     <div className="space-y-2.5">
       <LensStrip lenses={lenses} openId={activeLens.id} onChange={setOpenId} />
       <LensPanel lens={activeLens} />
+      {deep && onOpenFullReport ? (
+        <button type="button" className="popup-link-button popup-full-report-link" onClick={onOpenFullReport}>
+          See all of it in the full report →
+        </button>
+      ) : null}
     </div>
   );
 };
@@ -683,5 +680,4 @@ export {
   CompactVerdict,
   VerdictSkeleton,
   buildVerdictPreview,
-  getDecisionAction,
 };

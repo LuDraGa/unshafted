@@ -8,6 +8,7 @@ export * from './onboarding.js';
 export * from './openai-json-schema.js';
 export * from './openrouter.js';
 export * from './prompts.js';
+export * from './report-markdown.js';
 export * from './runtime.js';
 export * from './schemas.js';
 export * from './site-policy/index.js';

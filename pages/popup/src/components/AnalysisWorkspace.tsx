@@ -1,12 +1,5 @@
-import {
-  CompactVerdict,
-  DocStrip,
-  ResultsView,
-  RiskBadge,
-  VerdictSkeleton,
-  buildVerdictPreview,
-  getDecisionAction,
-} from './ResultCards';
+import { CompactVerdict, DocStrip, ResultsView, RiskBadge, VerdictSkeleton, buildVerdictPreview } from './ResultCards';
+import { openReportTab } from '../open-report';
 import { useStorage } from '@extension/shared';
 import { currentAnalysisStorage, unshaftedSettingsStorage } from '@extension/storage';
 import {
@@ -16,6 +9,7 @@ import {
   buildSuggestedPriorities,
   RUN_QUICK_SCAN_MESSAGE,
   RUN_DEEP_ANALYSIS_MESSAGE,
+  getDecisionAction,
 } from '@extension/unshafted-core';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Session } from '@extension/supabase';
@@ -313,6 +307,18 @@ export const AnalysisWorkspace = ({
         <CompactVerdict level={verdictLevel} action={verdictAction} preview={verdictPreview} />
       ) : null}
 
+      {/*
+       * The report page, for a detailed analysis. Outlined: the filled rank stays with the CTA bar's
+       * run, which spends money. The history record shares this analysis's id (`createHistoryRecord`),
+       * and the page waits a moment for it if this is clicked the instant the result lands.
+       */}
+      {deepAnalysis ? (
+        <button type="button" className="popup-outline-button" onClick={() => void openReportTab(currentAnalysis.id)}>
+          Open full report
+          <span aria-hidden="true"> ↗</span>
+        </button>
+      ) : null}
+
       {/* Quick scan running indicator (small status line below skeleton) */}
       {isQuickRunning && !quickScan ? (
         <div className="flex items-center gap-2 px-1 text-xs text-[var(--unshafted-text-muted)]">
@@ -322,7 +328,12 @@ export const AnalysisWorkspace = ({
       ) : null}
 
       {/* Lens strip + lens panel */}
-      {quickScan ? <ResultsView record={currentAnalysis} /> : null}
+      {quickScan ? (
+        <ResultsView
+          record={currentAnalysis}
+          onOpenFullReport={deepAnalysis ? () => void openReportTab(currentAnalysis.id) : undefined}
+        />
+      ) : null}
 
       {/* Deep analysis running indicator (replaces CTA while running) */}
       {isDeepRunning ? (

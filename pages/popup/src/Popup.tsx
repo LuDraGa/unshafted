@@ -7,6 +7,7 @@ import {
   analysisHistoryStorage,
   clearLegacyPersistentAnalysisState,
   currentAnalysisStorage,
+  reportChecklistStorage,
   unshaftedOnboardingStorage,
   unshaftedSettingsStorage,
 } from '@extension/storage';
@@ -28,15 +29,18 @@ import {
 import { ErrorDisplay, LoadingSpinner, RISK_TONE, SpotlightTour } from '@extension/ui';
 import {
   buildDocumentFromFile,
+  checklistTickKey,
   configurePdfWorker,
   createCurrentAnalysis,
   createHistoryRecord,
+  createReportFilename,
   createReportMarkdown,
   getActiveProviderConfig,
   getOnboardingKeyHash,
   PRIORITY_OPTIONS,
   PRIVACY_POLICY_URL,
 } from '@extension/unshafted-core';
+import { openReportTab } from '@src/open-report';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Session } from '@extension/supabase';
 import type { SpotlightTourStep } from '@extension/ui';
@@ -295,9 +299,6 @@ const storageStateCopy = {
   'drive-backed-up': 'Drive backed up',
   'restored-from-drive': 'Restored from Drive',
 } satisfies Record<HistoryRecord['storageState'], string>;
-
-const createReportFilename = (record: HistoryRecord): string =>
-  `${record.source.slug || 'unshafted-report'}-${record.createdAt.slice(0, 10)}.md`;
 
 const hasReportDetails = (record: HistoryRecord | null | undefined): boolean => Boolean(record?.quickScan);
 
@@ -1005,23 +1006,46 @@ const Popup = () => {
     [selectedHistory?.id],
   );
 
-  const copyHistoryRecord = useCallback(async (record: HistoryRecord) => {
-    await navigator.clipboard.writeText(createReportMarkdown(record));
+  /**
+   * History's Copy and Export say what the report page shows, checklist ticks included. Read on
+   * demand rather than subscribed to, so nothing about ticks sits on the popup's first paint.
+   */
+  const reportMarkdown = useCallback(async (record: HistoryRecord) => {
+    const ticked = new Set((await reportChecklistStorage.get())[record.id] ?? []);
+    return createReportMarkdown(record, { isTicked: (group, item) => ticked.has(checklistTickKey(group, item)) });
   }, []);
 
-  const exportHistoryRecord = useCallback((record: HistoryRecord) => {
-    const blob = new Blob([createReportMarkdown(record)], { type: 'text/markdown;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = createReportFilename(record);
-    anchor.click();
-    window.setTimeout(() => URL.revokeObjectURL(url), 0);
-  }, []);
+  const copyHistoryRecord = useCallback(
+    async (record: HistoryRecord) => {
+      await navigator.clipboard.writeText(await reportMarkdown(record));
+    },
+    [reportMarkdown],
+  );
 
+  const exportHistoryRecord = useCallback(
+    async (record: HistoryRecord) => {
+      const blob = new Blob([await reportMarkdown(record)], { type: 'text/markdown;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = createReportFilename(record);
+      anchor.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 0);
+    },
+    [reportMarkdown],
+  );
+
+  /**
+   * A detailed report opens the report page in its own tab (plan §11.7). A quick scan has no page
+   * to open, so it keeps the inline viewer here.
+   */
   const openHistoryRecord = useCallback((record: HistoryRecord) => {
-    setSelectedHistory(record);
     setHistoryOpen(false);
+    if (record.deepAnalysis) {
+      void openReportTab(record.id);
+      return;
+    }
+    setSelectedHistory(record);
   }, []);
 
   return (
@@ -1162,7 +1186,7 @@ const Popup = () => {
                   </button>
                   <button
                     className="popup-link-button"
-                    onClick={() => exportHistoryRecord(selectedHistory)}
+                    onClick={() => void exportHistoryRecord(selectedHistory)}
                     type="button">
                     Export .md
                   </button>
@@ -1335,7 +1359,13 @@ const Popup = () => {
                     </p>
                     <div className="mt-2 flex flex-wrap gap-3">
                       <button className="popup-link-button" onClick={() => openHistoryRecord(record)} type="button">
-                        Open
+                        {record.deepAnalysis ? (
+                          <>
+                            Open report<span aria-hidden="true"> ↗</span>
+                          </>
+                        ) : (
+                          'Open'
+                        )}
                       </button>
                       <button
                         className="popup-link-button"
@@ -1343,7 +1373,10 @@ const Popup = () => {
                         type="button">
                         Copy
                       </button>
-                      <button className="popup-link-button" onClick={() => exportHistoryRecord(record)} type="button">
+                      <button
+                        className="popup-link-button"
+                        onClick={() => void exportHistoryRecord(record)}
+                        type="button">
                         Export
                       </button>
                       <button
