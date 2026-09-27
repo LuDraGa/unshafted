@@ -339,12 +339,13 @@ const buildBlockerLens = (quick: QuickScanResult, deep: DeepAnalysisResult | nul
 
 const buildAsksLens = (quick: QuickScanResult, deep: DeepAnalysisResult | null | undefined): LensDef => {
   if (deep) {
+    // One per rendered row, and a checklist group renders as one row (#89) — as the report page counts it.
     const total =
       deep.negotiationIdeas.length +
       deep.suggestedEdits.length +
       deep.missingProtections.length +
       deep.questionsToAsk.length +
-      deep.protectionChecklist.reduce((sum, g) => sum + g.items.length, 0);
+      deep.protectionChecklist.length;
 
     return {
       id: 'asks',

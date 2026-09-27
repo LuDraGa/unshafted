@@ -18,7 +18,7 @@ on `dev/v0.8.3` and pushed; see *Commit state*.
 | P2 | Evidence stops repeating Blockers: topic concerns only, and their quote is now shown | **Done** · `ResultCards.tsx`, `test/evidence-lens.test.tsx` |
 | P3 | Rows are no longer crushed inside a height-capped lens | **Done** · `Popup.css`. Found during the walk; see below. |
 | R1–R6 | The report page, per [plan §9](deep-report-page-plan.md#9-units-in-order) | **Done**, see the R-table below |
-| [#89](https://github.com/LuDraGa/unshafted/issues/89) | Asks badge counts checklist items while the lens renders checklist groups | Filed, open |
+| [#89](https://github.com/LuDraGa/unshafted/issues/89) | Asks badge counts checklist items while the lens renders checklist groups | **Fixed** 2026-09-27 · counts one per group, as the report page does; `test/asks-lens.test.tsx` (2, red first: badge 14 against 11 rows). Close by hand when `release` → `main` merges |
 | [#90](https://github.com/LuDraGa/unshafted/issues/90) | Export filename uses the UTC date (pre-existing; found in the R6 walk) | Filed, open |
 | [#91](https://github.com/LuDraGa/unshafted/issues/91) | `update_version.sh` rewrites every occurrence of the old version (broke `prettier-plugin-tailwindcss`) | Filed, open |
 
