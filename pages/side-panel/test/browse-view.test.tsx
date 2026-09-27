@@ -105,7 +105,7 @@ describe('browse view', () => {
     await waitFor(() => expect(screen.queryByText('Window named in document')).toBeNull());
     expect(screen.queryByText('Everything else')).toBeNull();
 
-    const rows = screen.getAllByRole('button').filter(button => button.textContent?.includes('hotstar.com'));
+    const rows = screen.getAllByText('hotstar.com').map(domain => domain.closest('button'));
     expect(rows).toHaveLength(1);
     expect(within(rows[0]!).getByText('window')).toBeTruthy();
   });
