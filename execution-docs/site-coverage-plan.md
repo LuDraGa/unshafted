@@ -1,7 +1,7 @@
 # Site coverage — finding the right documents, covering the right sites, scoping big companies
 
-**Started:** 2026-09-27 · **Branch:** `dev/v0.8.3` · **Status:** S1 done 2026-09-28 (bench
-built and baselined; A1, A4 in). S2 next.
+**Started:** 2026-09-27 · **Branch:** `dev/v0.8.3` · **Status:** S2 done 2026-09-28 (A2, A3 in;
+bench 28 → 43 of 74). S3 next, after the director's `cws/` wording decision and manual test.
 
 The release PR ([#92](https://github.com/LuDraGa/unshafted/pull/92)) is back in draft while this is
 decided: the director wants more in v0.8.3 before it goes to review.
@@ -104,9 +104,35 @@ problem filed as a GitHub issue, not fixed on the spot. Findings feed A/B/C or t
 4. **Coverage (v0.8.4): websites, not apps**, the ones people use regularly, plus AI and developer
    tools.
 
+### Decisions (director, 2026-09-28, S2)
+
+5. **Origin is not the line; readability is.** "It's not exactly cross-origin or from the page's
+   own context." Measured the same day from a real Chrome extension page (the panel's own fetch:
+   no page involved, cookies omitted, an ordinary user agent), before anything was built:
+
+   | | Read directly | JS-rendered | Blocked | Other |
+   |---|---|---|---|---|
+   | Packaged: 83 analysed documents, each fetched from its own `sourceUrl` | **76** (52 hash-identical to the corpus; the 24 others checked are real edits since capture, plus some menu churn) | 4 | — | 3 TikTok (does not load from India) |
+   | Discovered: the bench's 74 hand-picked documents | **54**, whatever host they sit on | 15 (Notion, Termly, Jio, Practo, Twitch, Ola's iframe wrapper…) | 3 (Zepto's WAF challenge, Reuters) | 2 PDF (Sensibull) |
+
+   Headless Chrome with its default `HeadlessChrome` user agent was refused about 20 more of these;
+   a person's Chrome is not, so any tooling that measures this must send an ordinary user agent.
+6. **Packaged sites get the exact document.** "For packaged ones I want the exact right thing."
+   The live check fetches each analysed document's own `sourceUrl`, instead of re-discovering links
+   and taking the first same-origin one of each type — which could be another document, and never
+   reached the 7 domains whose policies sit on another host.
+7. **Discovered documents: any host we can read, the site's own domain first.** Parent-company,
+   sibling-domain and vendor-hosted documents (openai.com for chatgpt.com, Salesforce for Heroku,
+   Termly, iubenda, Notion) are offered; the site's own domain and its subdomains rank first.
+8. **Discovered documents are read automatically.** "The policy info should be available; if not,
+   it's not much use at all." When the panel opens on a site we do not cover, it fetches the top
+   document of each type (bounded) and offers only what came back as a readable policy. This
+   changes a promise in the privacy policy and the CWS justification ("only when you ask"), so the
+   wording goes to the director before `cws/` is edited.
+
 ## Sessions
 
-**Next session: S2.** *(Each session moves this line on before it ends.)*
+**Next session: S3.** *(Each session moves this line on before it ends.)*
 
 The work is split into five sessions. The director pastes the same prompt every time, and this doc
 says where things stand:
@@ -183,7 +209,14 @@ Re-run the bench after A1 and A4 and record the numbers beside the baseline.
 
 **Log.** *Done 2026-09-28.*
 
-**Commits** on `dev/v0.8.3`: *pending the director's go-ahead (see the end of this log).*
+**Commits** on `dev/v0.8.3`, pushed 2026-09-28: `70e3726` (A1 + A4 and their tests), `6512686` (the
+bench and this plan).
+
+**Manual test result** (director, recorded at the start of S2): 1 WebMD — as expected. 2 Zepto —
+Responsible Disclosure Policy appeared only after **Look again**: A1 works, and the refetch is a
+pre-existing gap, not an S1 regression. The panel reads a page once per tab and origin, and Zepto's
+bot check reloads the page on the same origin, so the first read is of the challenge page. Filed as
+[#94](https://github.com/LuDraGa/unshafted/issues/94). 3 Amazon — as expected.
 
 **A0 — the bench.**
 - `tools/corpus/bench-sites.ts`: **37 uncovered sites, 74 expected documents** (privacy + terms;
@@ -338,7 +371,158 @@ tinder's state health-data supplement winning a URL-order tie), and a same-origi
 redirects cross-origin and cannot be read (pinterest).
 ```
 
-**Log.** *Not started.*
+**Log.** *Done 2026-09-28.*
+
+**Close-out and verify.** S1's manual test is recorded in S1's log above. S1's checks all held:
+one pattern (reintroducing the stale literal fails 2 core tests); the caller test fails on a literal
+at the call site; the footer-first tests pass; eslint, test and prettier green; bench `s2-start`
+scored 28/74, **identical to S1's run on every document** at the headline.
+
+**Decisions taken with the director** (recorded above as D5–D8): origin is not the line,
+readability is; packaged sites are checked at each analysed document's own address; discovered
+documents are offered from any host, the site's own first; and a site we do not cover has its top
+documents read automatically, so only readable ones are offered. The measurement that informed them
+(76/83 packaged and 54/74 bench documents read from a real extension page) is in D5.
+
+**A2 — every document read by the extension.**
+- `packages/unshafted-core/lib/site-policy/read.ts` (new): `fetchPolicyPage` (the one request:
+  extension context, `credentials: 'omit'`, 20s timeout, a non-page body never downloaded,
+  self-contained so tooling can run its source), `readPolicyDocument`, `chooseOfferedDocuments`
+  (D8). `fetchDocumentInPage` and the in-page fetch are gone; `sameOrigin` became `ownSite` (same
+  domain, subdomains included, no PSL — `siteOf` in `discover.ts`), which orders and decides nothing
+  else. `choosePolicyUrl` prefers the site's own documents the same way, so the capture tool agrees.
+- `packages/shared/lib/utils/policy-capture.ts`: `capturePolicyDocument(url)` needs no tab.
+  `captureActiveTabPolicy`, which nothing called, went with the in-page fetch.
+- Side panel: `useLivePolicyCheck` confirms each analysed document at its own `sourceUrl` (up to 6,
+  enough for linkedin's 5), started at once and independent of discovery — so a covered site whose
+  page Chrome will not let us into is still confirmed, and two same-type documents each answer for
+  themselves instead of both staying unconfirmed. On a site we do not cover it runs
+  `chooseOfferedDocuments` after discovery; the Analyse bar says "Reading this page's documents…"
+  until it settles; every row can be read here; any typed row can be analysed, and the confirm reads
+  it before it asks.
+- AD-4 retired in `site-policy-part1-client-corpus.md`, `-part5-side-panel.md` (the network row) and
+  `-part6-self-analysis.md` (S10), and in every source comment that stated it.
+
+**A3 — hubs are followed, not analysed.**
+- `likeness.ts` (new): `judgePolicyPage` → document / hub / shell over the region the normalizer
+  reads (`extractPolicyRegion`, exposed from `normalize.ts` with **all 181 raw captures still hashing
+  to their filenames**). Designed on measured pages: document = at least 1,300 characters of prose
+  (blocks of 200+ that are not headings). The 83 analysed documents have 1,610 or more; 20 legal hubs
+  and landing pages have 991 or less, and all of them link to policies. Link density, legal vocabulary
+  and a page naming itself were measured and separated nothing prose did not. The old 400-character
+  rule is gone.
+- `readPolicyDocument` returns `{ status: 'hub', links }` for a hub. `chooseOfferedDocuments` reads
+  privacy and terms first (budget 10, 2 tries per type, a hub is not a try), follows a hub one hop
+  (its links join the candidates right where it stood), and follows up to two untyped links as
+  possible hubs, never offering them as documents.
+- Panel: a hub row explains itself ("lists documents rather than being one") and has no Analyse;
+  documents reached through a hub are listed after the page's own; the bar says "from this page".
+- Fixtures: 18 real pages reduced by `tools/corpus/make-likeness-fixture.ts` (structure, text
+  lengths and policy links kept, wording replaced, since third-party text stays out of the repo); the
+  tool refuses to write a fixture that is not judged as its page was.
+
+**Evidence.**
+- Tests first: the A2 read tests and the A3 hub tests were run red against the code before them.
+  Each new guard was broken once and failed: own-site as same-origin, three tries per type, the
+  prose floor at 5,000 and at 900, following every hop, never following untyped links, confirming
+  only the first analysis, offering without reading, and `fetchPolicyPage` reaching for a module
+  constant. `tsc -b --force` after, and the restored lines checked in `dist`.
+- 83/83 analysed corpus documents judged `document`; every labelled hub that has static HTML judged
+  `hub`; every bench document that is JS-rendered judged `shell` (their raw HTML has no text).
+- The bench now scores what the panel offers **by calling `chooseOfferedDocuments` itself**, with
+  reads made by core's own `fetchPolicyPage` inside a real Chrome extension page
+  (`tools/corpus/extension-fetch.ts`). No hand mirror is left to drift. A ref from before S2 is scored
+  by its own rule.
+- Headline (settled): **28 → 38 (A2) → 43 (A2 + A3) of 74**; see the bench record. The pre-S2 column
+  was 28/74 on the same loads in both runs. Several of the old 28 were never readable. The old rule
+  counted a document it had never fetched: Reuters and Expedia block the read, Zepto's challenge is
+  an empty page, and Practo's and Naukri's terms exist only after JavaScript. Under the read rule
+  those are honest misses.
+- `pnpm lint` 12/12, `pnpm format:check` clean, `pnpm test -- --silent=false` 16/16 (core 138,
+  side-panel 47), no console warnings.
+- Harness, at 360px: the reading state, the settled offer, a hub row's explanation and missing
+  Analyse, and the confirm measuring four read documents (one flagged as an excerpt), with no
+  horizontal overflow. It was built into a scratch folder, so `dist/` was not touched. The local
+  harness stub now answers the panel's own `fetch`.
+
+**Known limits, accepted and recorded.**
+- Other prose passes as a document. A news article (Reuters, "privacy fears…"), an FAQ (Ola), a
+  product page (Practo `/providers`) or a marketing landing page (apple.com/privacy) is judged a
+  document if it has the prose. The likeness check cannot tell a policy from other prose, and
+  nothing measured could.
+- Word matching: `terms` inside "midterms" typed a Reuters headline as its terms, reached through
+  Reuters' "Legal" *news section*, which reads as a hub because every article links to `/legal/…`.
+  Filed as [#95](https://github.com/LuDraGa/unshafted/issues/95), not fixed here.
+- A JavaScript shell whose static HTML carries a policy link judges `hub`, not `shell` (Practo), and
+  is followed. **For S3:** the "else rendered" rule should treat a zero-prose hub reached as a typed
+  document the same as a shell.
+- Mistral's legal centre is followed, but "additional terms" ranks above the rest-of-world consumer
+  terms, so the terms verdict is wrong_page.
+
+**Found in passing:** [#94](https://github.com/LuDraGa/unshafted/issues/94) (reload on the same
+origin is never re-read), [#95](https://github.com/LuDraGa/unshafted/issues/95) (word boundaries).
+
+**`cws/` wording — approved by the director 2026-09-28.** The published wording was untrue in three
+places after S2. The privacy-policy text below is applied to `cws/privacy-policy.md` in the S2 code
+commit; the two dashboard justifications wait for S5, as the last item says.
+- `cws/privacy-policy.md` §5, item 2, was "fetches those policy URLs from the page's own session …
+  when you explicitly ask": now —
+  > **The text of policy documents.** The extension fetches policy documents itself, with cookies
+  > omitted, so the request never carries your signed-in session, and extracts their text. It does
+  > this only while the side panel is open on that page, and in three cases: to check that a
+  > document we have already analyzed still matches what the site serves (reading that document at
+  > the address we analyzed it from); on a site we have not analyzed, to read the top document of
+  > each kind the page links to — terms, privacy policy, cookie policy and similar, at most ten — so
+  > it only offers you documents it can actually read; and when you ask to read or analyze a
+  > document. A document may be hosted on another domain than the page, such as a parent company's
+  > site or a policy-hosting service; it is read only because the page links to it.
+
+  The §5 intro's "It does this in a single, one-shot script run in the open tab" became "It finds
+  those documents with a single, one-shot script run in the open tab". **The effective date moves at
+  S5**, when this ships — not before, since the live 0.8.2 still behaves as the old text says.
+- The dashboard's `host_permissions` justification (986/1,000 characters): the same text as the live
+  one, except it now says the extension fetches "the text of those documents, including ones the site
+  keeps on another domain", and "the page is read by a single one-shot script that runs only while the
+  Unshafted side panel is open on it".
+- The dashboard's `scripting` justification (439/1,000): "scripting runs the one-shot script that
+  looks over the current page for links to legal documents. It runs when the side panel asks for it,
+  while the panel is open on that page, and then it is finished. The documents themselves are fetched
+  by the extension, not by this script. We never call chrome.scripting.registerContentScripts, and
+  there is no content_scripts entry in the manifest, so none of our scripts are left running on any
+  page."
+- **For S5:** the two justifications are dashboard fields. They go into the 0.8.3 submission
+  checklist, and `privacy-form-snapshot.md` changes when the dashboard does, in the same commit —
+  including its claims table, which still cites `fetchDocumentInPage`, now removed, for "fetched
+  with credentials omitted" (it is `fetchPolicyPage` in `read.ts`). The privacy
+  policy can change on `dev/v0.8.3` as soon as it is approved. It reaches the gist only when the
+  version merges to `release`.
+
+**Manual test** (in the loaded extension, after `pnpm build` or with `pnpm dev` running, and the
+extension reloaded at `chrome://extensions`):
+
+1. Open `https://github.com/` and open the side panel. It says the site is not analysed. For a
+   moment the bottom bar says **Reading this page's documents…**, then **Analyse on your own key**.
+   Under **On this page**, press **Read here** on the Privacy (or Terms) row: the statement's text
+   appears, read from `docs.github.com`. *Broken:* "could not be read", no Read here button on that
+   row, or a bar that never stops reading.
+2. Open `https://www.figma.com/` and open the side panel. The footer links only "Legal and privacy".
+   After the bar settles, press **Analyse…**. The confirm lists Figma's privacy policy and terms of
+   service (`figma.com/legal/privacy/`, `/legal/tos/`) with their sizes, and not the "Legal and
+   privacy" page itself. Press **Cancel**; nothing is sent. In the list, **Read here** on the
+   "Legal and privacy" row says it lists documents rather than being one, and that row has no
+   **Analyse…**. *Broken:* the confirm offers `figma.com/legal/`, offers nothing, or lists no terms.
+3. Open `https://chatgpt.com/` (logged out). **Analyse…** offers OpenAI's privacy policy and terms
+   from `openai.com`. *Broken:* nothing offered, or only chatgpt.com links.
+4. Open `https://www.amazon.com/` (covered). The grade and findings are as before, and the header's
+   meta line settles on **Current — verified against the live page**: all three of Amazon's
+   documents, read at their own addresses, still hash to what we analysed (measured 2026-09-28).
+   *Broken:* an error, a documents list that is empty, or a meta line stuck on "Checking against the
+   live page…".
+5. Open `https://www.uber.com/` (covered). The meta line says **Changed since we read it**: Uber
+   re-dated its privacy notice on 17 September, after capture, while its terms still match. The
+   privacy document shows as changed and the terms as current. *Broken:* "Current — verified…" for
+   the site (the change was missed), or an error.
+
 
 ### S3
 
@@ -455,8 +639,8 @@ Scope: B2 re-analysis, B3, then the release.
 | A0 bench | Done (S1) | 37 sites / 74 docs, audited; runs s1-run1, s1-run2 |
 | A1 one pattern | Done (S1) | core + shared guards, each broken once; +37 links collected, 0 privacy/terms |
 | A4 footer first | Done (S1) | 4 guards, each broken once; no bench page past the 100 cap |
-| A2 cross-origin | Not started (S2) | |
-| A3 hub pages | Not started (S2) | |
+| A2 cross-origin | Done (S2) | one fetch path (extension, cookies omitted); exact packaged check; D8 automatic reads; bench 28 → 38 |
+| A3 hub pages | Done (S2) | `judgePolicyPage` on measured pages; 83/83 analysed = document; one-hop following; bench 38 → 43 |
 | A5 JS-rendered | Not started (S3) | |
 | B1 catalogue | Not started (S4) | |
 | B2 schema + prompt | Not started (S4) | |
@@ -476,5 +660,14 @@ verdicts; "early" is the same run's reading at the `load` event.
 | s1-run1 | A1 + A4 (working tree) | 28/74 | 2 | 5 | 6 | 33 | 0 | 26 | identical verdicts on the same loads; +37 links, none privacy/terms |
 | s1-run2 | baseline (`f430cb7`, `--ref`) | 28/74 | 2 | 5 | 6 | 33 | 0 | 26 | |
 | s1-run2 | A1 + A4 (working tree) | 28/74 | 2 | 5 | 6 | 33 | 0 | 26 | 0 verdicts differ from run 1 at settled; pinterest ×2 at early |
+| s2-start | `6512686` (`--ref`) | 28/74 | 2 | 5 | 6 | 33 | 0 | 26 | S1 verified: 0 verdicts differ from s1-run2 at settled |
+| s2-a2 | pre-S2 (`6512686`, `--ref`) | 28/74 | 2 | 5 | 6 | 33 | 0 | 26 | |
+| s2-a2 | A2, read rule | **38/74** | 0 | 0 | 10 | 26 | 0 | 33 | cross-origin found (github, medium, wikipedia, heroku, chatgpt…); old "found" that never read now honest misses |
+| s2-a3 | pre-S2 (`6512686`, `--ref`) | 28/74 | 2 | 5 | 6 | 33 | 0 | 26 | same as in s2-a2: no drift on the reference |
+| s2-a3 | A2 + A3, read rule | **43/74** | 0 | 0 | 8 | 23 | 0 | 40 | +figma ×2, dyno ×2, goindigo privacy via hubs; −reuters, practo terms (other prose, #95) |
 
 Egress IN (Maharashtra), Chrome 153.0.8010.54, playwright-core 1.63.0, concurrency 4.
+
+From S2 the read rule's columns mean more than they did: "found" is a document the panel read and
+offered, not only one it listed, so `unreadable` and `lower` no longer occur. A ref from before S2
+is still scored by its own rule, which is why the reference rows keep them.

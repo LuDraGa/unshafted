@@ -9,13 +9,17 @@
  * bench opens the homepage, runs the shipped collector and ranker over it, applies the side
  * panel's own rule for what it offers, and scores every expected document.
  *
- * WHAT THE PANEL OFFERS. On a site we do not cover, the panel offers every same-origin, typed
- * document among the ranked top 20 (`analysable` in `SidePanel.tsx`), all preselected in the
- * confirm and listed in rank order in the reader. So for each expected document:
+ * WHAT THE PANEL OFFERS — by construction, not by copy. Since S2 (D8) the panel reads the top
+ * document of each type when it opens on a site we do not cover, and offers only what came back as a
+ * policy (`chooseOfferedDocuments` in core). The bench calls that same function, with reads made
+ * inside a real Chrome extension page (`extension-fetch.ts`) by core's own `fetchPolicyPage`, so the
+ * rule it scores is the rule that ships. A ref from before S2 has no such function and is scored by
+ * the rule it shipped with: every same-origin, typed document among the ranked top 20, read from
+ * inside the page. So for each expected document:
  *
  *  - found             the panel's first offer of that type is the expected document
- *  - found_unreadable  it is, but its link redirects to another origin, which the panel's in-page
- *                      fetch cannot follow (CORS) — offered, then "could not be read"
+ *  - found_unreadable  (pre-S2 rule only) it is, but its link redirects to another origin, which the
+ *                      in-page fetch could not follow (CORS) — offered, then "could not be read"
  *  - found_lower       the expected document is offered, but not first of its type
  *  - wrong_page        documents of that type are offered, and the expected one is not among them
  *  - missed            nothing of that type is offered; `reason` says where it was lost
@@ -38,14 +42,16 @@
  *
  * LIMITS, known and accepted: the collector runs in the page's main world here and in the
  * content-script isolated world in the extension, so a page that patches builtins could differ;
- * the 1280px viewport is wider than a window with the panel open. No document content is read
- * or judged — whether a page is a hub or a document is Track A3's question.
+ * the 1280px viewport is wider than a window with the panel open. Each document URL is read once
+ * per site per variant and reused across the three readings, as one open panel would.
  *
  * Every reading keeps its raw candidates and every redirect resolved, so a run can be re-scored
  * offline when the scoring changes, and the run records which collector produced it.
  */
 import { BENCH_SITES } from './bench-sites.js';
+import { extensionLaunchOptions, openExtensionFetcher } from './extension-fetch.js';
 import * as currentDiscovery from '../../packages/unshafted-core/lib/site-policy/discover.js';
+import * as currentRead from '../../packages/unshafted-core/lib/site-policy/read.js';
 import { chromium } from 'playwright-core';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -56,12 +62,13 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import type { BenchSite } from './bench-sites.js';
 import type { PolicyCandidate, RankedPolicyCandidate } from '../../packages/unshafted-core/lib/site-policy/discover.js';
+import type { FetchedPolicyPage, PolicyDocumentCapture } from '../../packages/unshafted-core/lib/site-policy/read.js';
 import type { PolicyDocType } from '../../packages/unshafted-core/lib/site-policy/types.js';
 import type { Browser, BrowserContext, Page } from 'playwright-core';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const BENCH_DIR = path.join(ROOT, 'corpus', 'bench');
-const DISCOVER_PATH = 'packages/unshafted-core/lib/site-policy/discover.ts';
+const SITE_POLICY_DIR = 'packages/unshafted-core/lib/site-policy';
 
 /** Same posture as the capture, for the same reason: see `REAL_USER_AGENT` in capture.ts. */
 const REAL_USER_AGENT =
@@ -79,17 +86,27 @@ const SITE_TIMEOUT_MS = 180_000;
 
 // ── Types ──
 
-/** The slice of the discovery module the bench drives. The same shape at any ref. */
+/**
+ * The slice of core the bench drives. Discovery exists at every ref; the reading half (`read.ts`)
+ * exists from S2, and a ref without it is scored by the pre-S2 offer rule.
+ */
 type DiscoveryModule = {
   POLICY_LINK_PATTERN: RegExp;
   collectPolicyCandidatesInPage: (patternSource: string) => PolicyCandidate[];
   rankPolicyCandidates: typeof currentDiscovery.rankPolicyCandidates;
   choosePolicyUrl: typeof currentDiscovery.choosePolicyUrl;
+  chooseOfferedDocuments?: typeof currentRead.chooseOfferedDocuments;
+  readPolicyDocument?: typeof currentRead.readPolicyDocument;
+  fetchPolicyPage?: typeof currentRead.fetchPolicyPage;
 };
+
+/** How a variant decides what the panel offers: by reading (S2 on), or by origin (before). */
+type OfferRule = 'read' | 'same-origin';
 
 type Variant = {
   name: 'current' | 'ref';
   module: DiscoveryModule;
+  offerRule: OfferRule;
   /** Proves afterwards which collector a reading came from: 0 parameters before A1, 1 after. */
   collectorArity: number;
   collectorSha256: string;
@@ -109,9 +126,23 @@ type MissReason =
   | 'not_collected'
   /** Collected and ranked, but below the cut the panel's list keeps (`rankPolicyCandidates`' default limit). */
   | 'cut_by_list_limit'
+  /** Pre-S2 rule only: listed, but on another origin, which the in-page fetch could not read. */
   | 'listed_cross_origin'
   | 'listed_untyped'
-  | 'listed_as_other_type';
+  | 'listed_as_other_type'
+  /** Read rule: listed with the right type and read, but it did not come back as a policy. */
+  | 'unreadable'
+  /** Read rule: listed with the right type, but never read — past its type's tries or the budget. */
+  | 'not_read';
+
+/** What reading one document produced, kept small enough to store every one. */
+type ReadRecord = {
+  status: PolicyDocumentCapture['status'];
+  reason?: string;
+  finalUrl?: string;
+  hash?: string;
+  length?: number;
+};
 
 type DocScore = {
   docType: PolicyDocType;
@@ -124,6 +155,8 @@ type DocScore = {
   /** Every offer of this type, in the panel's order. */
   offered: string[];
   reason?: MissReason;
+  /** For an `unreadable` miss: why reading the expected document did not produce a policy. */
+  readReason?: string;
 };
 
 type VariantReading = {
@@ -131,6 +164,8 @@ type VariantReading = {
   documentCount: number;
   analysableCount: number;
   scores: DocScore[];
+  /** Read rule: what the panel offered, in order. */
+  offers?: string[];
   /** `choosePolicyUrl`'s pick per expected type. No shipped surface calls it today; kept for the record. */
   chooser: { docType: PolicyDocType; url: string; source: 'link' | 'path-guess' }[];
 };
@@ -155,6 +190,8 @@ type SiteResult = {
   readings: Partial<Record<ReadingName, Reading>>;
   /** Every redirect the scoring resolved, so a re-score needs no network. */
   redirects: Record<string, { resolvesTo: string | null; error?: string }>;
+  /** Read rule: every document read, per variant, so a re-score needs no network. */
+  reads: Partial<Record<Variant['name'], Record<string, ReadRecord>>>;
   timedOut: boolean;
 };
 
@@ -196,22 +233,33 @@ const describeVariant = (
 ): Variant => ({
   name,
   module,
+  offerRule:
+    module.chooseOfferedDocuments && module.readPolicyDocument && module.fetchPolicyPage ? 'read' : 'same-origin',
   collectorArity: module.collectPolicyCandidatesInPage.length,
   collectorSha256: sha256(String(module.collectPolicyCandidatesInPage)),
   ...extra,
 });
 
 /**
- * The discovery module as committed at `ref`, written beside the run output and imported. `.mts`
- * so it loads as ESM wherever it sits; its only import is type-only and is erased on load.
+ * Core's site-policy directory as committed at `ref`, written beside the run output and imported:
+ * `discover.ts` always, `read.ts` when the ref has it (S2 on). The whole directory is written so
+ * their relative imports resolve; only what those two import is ever loaded. A `package.json`
+ * marks it ESM wherever it sits.
  */
 const loadRefVariant = async (ref: string): Promise<Variant> => {
   const gitSha = git('rev-parse', '--verify', `${ref}^{commit}`);
-  const source = git('show', `${gitSha}:${DISCOVER_PATH}`);
-  const file = path.join(BENCH_DIR, `.discover-${gitSha.slice(0, 12)}.mts`);
-  await writeFile(file, source, 'utf8');
-  const module = (await import(pathToFileURL(file).href)) as DiscoveryModule;
-  return describeVariant('ref', module, { gitRef: ref, gitSha });
+  const dir = path.join(BENCH_DIR, `.ref-${gitSha.slice(0, 12)}`);
+  await mkdir(dir, { recursive: true });
+  await writeFile(path.join(dir, 'package.json'), '{ "type": "module" }\n', 'utf8');
+  const files = git('ls-tree', '--name-only', `${gitSha}:${SITE_POLICY_DIR}`).split('\n').filter(Boolean);
+  for (const file of files.filter(name => name.endsWith('.ts'))) {
+    await writeFile(path.join(dir, file), git('show', `${gitSha}:${SITE_POLICY_DIR}/${file}`), 'utf8');
+  }
+  const discovery = (await import(pathToFileURL(path.join(dir, 'discover.ts')).href)) as DiscoveryModule;
+  const reading = files.includes('read.ts')
+    ? ((await import(pathToFileURL(path.join(dir, 'read.ts')).href)) as Partial<DiscoveryModule>)
+    : {};
+  return describeVariant('ref', { ...discovery, ...reading }, { gitRef: ref, gitSha });
 };
 
 const readEgress = async (): Promise<BenchRun['env']['egress']> => {
@@ -277,45 +325,82 @@ const resolveRedirect = async (context: BrowserContext, site: SiteResult, url: s
   return site.redirects[url].resolvesTo;
 };
 
-/**
- * THE PANEL'S RULE for what it offers, mirrored from `SidePanel.tsx` (`analysable`): same-origin
- * and typed, from the ranked top 20, in rank order. When Track A2/A3 change that rule, this
- * changes with it — the bench is only worth anything while it measures what ships.
- */
-const offersOfType = (documents: RankedPolicyCandidate[], docType: PolicyDocType): RankedPolicyCandidate[] =>
-  documents.filter(document => document.sameOrigin && document.docType === docType);
+/** Reads a document for one variant, once per site, whatever reading asks for it again. */
+type SiteReader = (url: string) => Promise<PolicyDocumentCapture>;
 
-const scoreReading = async (
-  context: BrowserContext,
+const makeSiteReader = (
   site: SiteResult,
-  spec: BenchSite,
   variant: Variant,
-  pageUrl: string,
-  candidates: PolicyCandidate[],
-): Promise<VariantReading> => {
-  const { rankPolicyCandidates, choosePolicyUrl } = variant.module;
-  // What the panel holds: `discoverActiveTabPolicies` ranks with the default limit, so this does too.
-  const documents = rankPolicyCandidates(candidates, { pageUrl });
-  // Everything collected, uncut — only to say where a missed document was lost.
-  const everything = rankPolicyCandidates(candidates, { pageUrl, limit: Number.MAX_SAFE_INTEGER });
-  const pageOrigin = originOf(pageUrl);
+  fetchWith: (fetchSource: string) => (url: string) => Promise<FetchedPolicyPage>,
+): SiteReader => {
+  const { readPolicyDocument, fetchPolicyPage } = variant.module;
+  if (!readPolicyDocument || !fetchPolicyPage) throw new Error(`${variant.name} has no reading half to read with.`);
+  const fetchPage = fetchWith(String(fetchPolicyPage));
+  const records = (site.reads[variant.name] ??= {});
+  const inflight = new Map<string, Promise<PolicyDocumentCapture>>();
+
+  return url => {
+    let pending = inflight.get(url);
+    if (!pending) {
+      pending = readPolicyDocument(url, fetchPage).then(capture => {
+        records[url] =
+          capture.status === 'captured'
+            ? { status: capture.status, finalUrl: capture.sourceUrl, hash: capture.hash, length: capture.text.length }
+            : { status: capture.status, reason: capture.reason };
+        return capture;
+      });
+      inflight.set(url, pending);
+    }
+    return pending;
+  };
+};
+
+/** Where an expected document that was not offered was lost, before any reading. */
+const listingReason = (
+  documents: RankedPolicyCandidate[],
+  everything: RankedPolicyCandidate[],
+  expectation: BenchSite['expected'][number],
+): { listed: RankedPolicyCandidate | undefined; reason: MissReason | null } => {
+  const listed = documents.find(document => matchesAny(document.url, expectation.urls));
+  if (!listed) {
+    const cut = everything.some(document => matchesAny(document.url, expectation.urls));
+    return { listed, reason: cut ? 'cut_by_list_limit' : 'not_collected' };
+  }
+  if (listed.docType === null) return { listed, reason: 'listed_untyped' };
+  if (listed.docType !== expectation.docType) return { listed, reason: 'listed_as_other_type' };
+  return { listed, reason: null };
+};
+
+/**
+ * THE READ RULE (S2 on): the offers are whatever core's own `chooseOfferedDocuments` returns, with
+ * reads made in a real extension page. Nothing here restates the rule.
+ */
+const scoreByReading = async (
+  variant: Variant,
+  read: SiteReader,
+  spec: BenchSite,
+  documents: RankedPolicyCandidate[],
+  everything: RankedPolicyCandidate[],
+): Promise<{ scores: DocScore[]; offers: RankedPolicyCandidate[] }> => {
+  const { offers, reads } = await variant.module.chooseOfferedDocuments!(documents, read);
+  const finalOf = (url: string): string | null => {
+    const capture = reads[url];
+    return capture?.status === 'captured' ? capture.sourceUrl : null;
+  };
+  const whyUnreadable = (url: string | undefined): string | undefined => {
+    const capture = url ? reads[url] : undefined;
+    return capture?.status === 'unreadable' ? capture.reason : undefined;
+  };
+
   const scores: DocScore[] = [];
-
   for (const expectation of spec.expected) {
-    const offers = offersOfType(documents, expectation.docType);
-    const offered = offers.map(offer => offer.url);
+    const typed = offers.filter(offer => offer.docType === expectation.docType);
+    const offered = typed.map(offer => offer.url);
+    const { listed, reason } = listingReason(documents, everything, expectation);
 
-    if (offers.length === 0) {
-      const listed = documents.find(document => matchesAny(document.url, expectation.urls));
-      const reason: MissReason = !listed
-        ? everything.some(document => matchesAny(document.url, expectation.urls))
-          ? 'cut_by_list_limit'
-          : 'not_collected'
-        : !listed.sameOrigin
-          ? 'listed_cross_origin'
-          : listed.docType === null
-            ? 'listed_untyped'
-            : 'listed_as_other_type';
+    if (typed.length === 0) {
+      const lost: MissReason = reason ?? (listed && reads[listed.url] ? 'unreadable' : 'not_read');
+      const readReason = lost === 'unreadable' ? whyUnreadable(listed?.url) : undefined;
       scores.push({
         docType: expectation.docType,
         verdict: 'missed',
@@ -323,7 +408,61 @@ const scoreReading = async (
         firstOfferResolvesTo: null,
         rankInType: null,
         offered,
-        reason,
+        reason: lost,
+        ...(readReason ? { readReason } : {}),
+      });
+      continue;
+    }
+
+    const matchIndex = typed.findIndex(
+      offer => matchesAny(offer.url, expectation.urls) || matchesAny(finalOf(offer.url), expectation.urls),
+    );
+    const readReason = matchIndex < 0 ? whyUnreadable(listed?.url) : undefined;
+    scores.push({
+      docType: expectation.docType,
+      verdict: matchIndex === 0 ? 'found' : matchIndex > 0 ? 'found_lower' : 'wrong_page',
+      firstOffer: typed[0]?.url ?? null,
+      firstOfferResolvesTo: typed[0] ? finalOf(typed[0].url) : null,
+      rankInType: matchIndex >= 0 ? matchIndex + 1 : null,
+      offered,
+      ...(readReason ? { readReason } : {}),
+    });
+  }
+  return { scores, offers };
+};
+
+/**
+ * THE PRE-S2 RULE, for a ref that has no reading half: every same-origin, typed document among the
+ * ranked top 20, read from inside the page — so a link that redirects to another origin was offered
+ * and then could not be read.
+ */
+const scoreBySameOrigin = async (
+  context: BrowserContext,
+  site: SiteResult,
+  spec: BenchSite,
+  pageUrl: string,
+  documents: RankedPolicyCandidate[],
+  everything: RankedPolicyCandidate[],
+): Promise<DocScore[]> => {
+  const sameOriginOf = (document: RankedPolicyCandidate) =>
+    (document as RankedPolicyCandidate & { sameOrigin?: boolean }).sameOrigin === true;
+  const pageOrigin = originOf(pageUrl);
+  const scores: DocScore[] = [];
+
+  for (const expectation of spec.expected) {
+    const offers = documents.filter(document => sameOriginOf(document) && document.docType === expectation.docType);
+    const offered = offers.map(offer => offer.url);
+
+    if (offers.length === 0) {
+      const { listed, reason } = listingReason(documents, everything, expectation);
+      scores.push({
+        docType: expectation.docType,
+        verdict: 'missed',
+        firstOffer: null,
+        firstOfferResolvesTo: null,
+        rankInType: null,
+        offered,
+        reason: listed && !sameOriginOf(listed) ? 'listed_cross_origin' : (reason ?? 'listed_as_other_type'),
       });
       continue;
     }
@@ -338,23 +477,53 @@ const scoreReading = async (
     // and a policy host does not send `Access-Control-Allow-Origin` for an arbitrary page origin.
     const firstUnreadable = firstResolved !== null && originOf(firstResolved) !== pageOrigin;
 
-    const verdict: Verdict =
-      matchIndex === 0
-        ? firstUnreadable
-          ? 'found_unreadable'
-          : 'found'
-        : matchIndex > 0
-          ? 'found_lower'
-          : 'wrong_page';
-
     scores.push({
       docType: expectation.docType,
-      verdict,
+      verdict:
+        matchIndex === 0
+          ? firstUnreadable
+            ? 'found_unreadable'
+            : 'found'
+          : matchIndex > 0
+            ? 'found_lower'
+            : 'wrong_page',
       firstOffer: offers[0]?.url ?? null,
       firstOfferResolvesTo: firstResolved,
       rankInType: matchIndex >= 0 ? matchIndex + 1 : null,
       offered,
     });
+  }
+  return scores;
+};
+
+const scoreReading = async (
+  context: BrowserContext,
+  site: SiteResult,
+  spec: BenchSite,
+  variant: Variant,
+  read: SiteReader | undefined,
+  pageUrl: string,
+  candidates: PolicyCandidate[],
+): Promise<VariantReading> => {
+  const { rankPolicyCandidates, choosePolicyUrl } = variant.module;
+  // What the panel holds: `discoverActiveTabPolicies` ranks with the default limit, so this does too.
+  const documents = rankPolicyCandidates(candidates, { pageUrl });
+  // Everything collected, uncut — only to say where a missed document was lost.
+  const everything = rankPolicyCandidates(candidates, { pageUrl, limit: Number.MAX_SAFE_INTEGER });
+
+  let scores: DocScore[];
+  let offers: string[] | undefined;
+  let analysableCount: number;
+  if (variant.offerRule === 'read' && read) {
+    const scored = await scoreByReading(variant, read, spec, documents, everything);
+    scores = scored.scores;
+    offers = scored.offers.map(offer => offer.url);
+    analysableCount = scored.offers.length;
+  } else {
+    scores = await scoreBySameOrigin(context, site, spec, pageUrl, documents, everything);
+    analysableCount = documents.filter(
+      document => (document as RankedPolicyCandidate & { sameOrigin?: boolean }).sameOrigin && document.docType,
+    ).length;
   }
 
   const chooser = spec.expected.flatMap(({ docType }) => {
@@ -365,13 +534,16 @@ const scoreReading = async (
   return {
     candidates,
     documentCount: documents.length,
-    analysableCount: documents.filter(document => document.sameOrigin && document.docType).length,
+    analysableCount,
     scores,
+    ...(offers ? { offers } : {}),
     chooser,
   };
 };
 
 // ── Per site ──
+
+type Readers = Partial<Record<Variant['name'], SiteReader>>;
 
 const takeReading = async (
   context: BrowserContext,
@@ -379,6 +551,7 @@ const takeReading = async (
   site: SiteResult,
   spec: BenchSite,
   variants: Variant[],
+  readers: Readers,
   name: ReadingName,
 ) => {
   const collectAll = async (): Promise<PolicyCandidate[][]> => {
@@ -411,7 +584,15 @@ const takeReading = async (
   const pageUrl = page.url();
   const reading: Reading = { pageUrl, retried, variants: {} };
   for (const [index, variant] of variants.entries()) {
-    reading.variants[variant.name] = await scoreReading(context, site, spec, variant, pageUrl, collected[index] ?? []);
+    reading.variants[variant.name] = await scoreReading(
+      context,
+      site,
+      spec,
+      variant,
+      readers[variant.name],
+      pageUrl,
+      collected[index] ?? [],
+    );
   }
   site.readings[name] = reading;
 };
@@ -422,11 +603,18 @@ const emptySite = (spec: BenchSite): SiteResult => ({
   homepage: { attempts: [], finalUrl: null, failed: false },
   readings: {},
   redirects: {},
+  reads: {},
   timedOut: false,
 });
 
 /** Mutates `site` as it goes, so whatever finished before a timeout is kept. */
-const benchSite = async (context: BrowserContext, spec: BenchSite, site: SiteResult, variants: Variant[]) => {
+const benchSite = async (
+  context: BrowserContext,
+  spec: BenchSite,
+  site: SiteResult,
+  variants: Variant[],
+  readers: Readers,
+) => {
   let page: Page | null = null;
   try {
     page = await context.newPage();
@@ -463,14 +651,14 @@ const benchSite = async (context: BrowserContext, spec: BenchSite, site: SiteRes
     } catch {
       // A page whose load event never fires is still read, as the panel would read it.
     }
-    await takeReading(context, page, site, spec, variants, 'early');
+    await takeReading(context, page, site, spec, variants, readers, 'early');
 
     try {
       await page.waitForLoadState('networkidle', { timeout: NETWORK_IDLE_TIMEOUT_MS });
     } catch {
       // Ad-heavy pages never go idle; the timeout is the point, not a failure.
     }
-    await takeReading(context, page, site, spec, variants, 'settled');
+    await takeReading(context, page, site, spec, variants, readers, 'settled');
 
     for (const _pass of [0, 1]) {
       try {
@@ -480,7 +668,7 @@ const benchSite = async (context: BrowserContext, spec: BenchSite, site: SiteRes
       }
       await page.waitForTimeout(1_500);
     }
-    await takeReading(context, page, site, spec, variants, 'scrolled');
+    await takeReading(context, page, site, spec, variants, readers, 'scrolled');
   } catch (error) {
     site.homepage.error = error instanceof Error ? error.message.split('\n')[0] : 'Bench failed.';
   } finally {
@@ -528,9 +716,11 @@ const describe = (score: DocScore | undefined): string => {
     case 'found_lower':
       return `offered #${score.rankInType}, first is ${score.firstOfferResolvesTo ?? score.firstOffer}`;
     case 'wrong_page':
-      return `WRONG → ${score.firstOfferResolvesTo ?? score.firstOffer}`;
+      return `WRONG → ${score.firstOfferResolvesTo ?? score.firstOffer}${
+        score.readReason ? ` (expected one read ${score.readReason})` : ''
+      }`;
     case 'missed':
-      return `missed (${score.reason})`;
+      return `missed (${score.reason}${score.readReason ? `: ${score.readReason}` : ''})`;
     default:
       return score.verdict;
   }
@@ -606,7 +796,9 @@ const main = async () => {
   }
 
   await mkdir(BENCH_DIR, { recursive: true });
-  const variants: Variant[] = [describeVariant('current', currentDiscovery as unknown as DiscoveryModule)];
+  const variants: Variant[] = [
+    describeVariant('current', { ...currentDiscovery, ...currentRead } as unknown as DiscoveryModule),
+  ];
   const ref = arg('ref');
   if (ref) variants.push(await loadRefVariant(ref));
 
@@ -617,11 +809,16 @@ const main = async () => {
     `[bench] ${queue.length} site(s), concurrency ${concurrency}${ref ? `, scoring ref ${ref} alongside` : ''}`,
   );
 
+  // Extensions enabled and an ordinary user agent, for the reads — see `extension-fetch.ts`.
+  const launchForReads = extensionLaunchOptions(REAL_USER_AGENT);
   const browser: Browser = await chromium.launch({
     channel: 'chrome',
     headless: true,
-    args: ['--disable-blink-features=AutomationControlled'],
+    ignoreDefaultArgs: launchForReads.ignoreDefaultArgs,
+    args: ['--disable-blink-features=AutomationControlled', ...(launchForReads.args ?? [])],
   });
+  const needsReads = variants.some(variant => variant.offerRule === 'read');
+  const fetcher = needsReads ? await openExtensionFetcher(browser, path.join(BENCH_DIR, '.probe-extension')) : null;
   const results: SiteResult[] = [];
   const cursor = { index: 0 };
 
@@ -646,7 +843,12 @@ const main = async () => {
         }, SITE_TIMEOUT_MS);
       });
       try {
-        await Promise.race([benchSite(context, spec, site, variants), timedOut]);
+        const readers: Readers = {};
+        for (const variant of variants) {
+          if (variant.offerRule === 'read' && fetcher)
+            readers[variant.name] = makeSiteReader(site, variant, fetcher.fetchWith);
+        }
+        await Promise.race([benchSite(context, spec, site, variants, readers), timedOut]);
       } finally {
         clearTimeout(timer);
         // Closing the context aborts whatever was still pending on it after a timeout.
