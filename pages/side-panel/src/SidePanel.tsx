@@ -196,25 +196,31 @@ const UncoveredView = ({
   const [confirming, setConfirming] = useState<{ preselected: string | null } | null>(null);
 
   /*
-   * S10: cross-origin documents are unreadable from the page, so they are not analysable either.
+   * D8: what is offered is what was READ. When the panel opens here, the top document of each type
+   * is read, and only one that came back as a policy is offered (`check.offers`). S10 still holds —
+   * a document we could not read is one we must not analyse — but it is now decided by reading the
+   * document, not by guessing from its origin (AD-4, retired in S2).
    *
-   * An untyped candidate is excluded for a different and stronger reason. `docType` drives the
-   * brief and the disclosure checklist the prompt reads the document AGAINST, and it is stored on
-   * the analysis as a claim about what the document IS. Discovery leaves it null on a link that is
-   * plainly legal but names no type we recognise ("Legal"), and defaulting those to `terms` would
+   * An untyped candidate is never offered, for a different and stronger reason. `docType` drives
+   * the brief and the disclosure checklist the prompt reads the document AGAINST, and it is stored
+   * on the analysis as a claim about what the document IS. Discovery leaves it null on a link that
+   * is plainly legal but names no type we recognise ("Legal"), and defaulting those to `terms` would
    * read a privacy policy against the wrong checklist and then file the result — in the user's own
-   * Drive — asserting it was the terms. The reader's filename fallback is cosmetic; this one would
-   * be a false claim about a real company's document, which is the one thing this corpus never
-   * does. They stay listed and readable; they are simply not offered.
+   * Drive — asserting it was the terms. They stay listed and readable; they are simply not offered.
+   *
+   * A row's own "Analyse…" can ask for a typed document the automatic reads did not pick — a second
+   * terms document, say. The confirm reads it on that explicit ask and shows whether it can be read.
    */
   const discovery = check.discovery;
-  const analysable = useMemo(
-    () =>
-      discovery?.status === 'discovered'
-        ? discovery.documents.filter(candidate => candidate.sameOrigin && candidate.docType !== null)
-        : [],
-    [discovery],
-  );
+  const offers = check.offers;
+  const reading = discovery?.status === 'discovered' && offers === null;
+  const analysable = useMemo(() => offers ?? [], [offers]);
+  const confirmable = useMemo(() => {
+    const asked = confirming?.preselected;
+    if (!asked || analysable.some(candidate => candidate.url === asked)) return analysable;
+    const document = discovery?.status === 'discovered' ? discovery.documents.find(item => item.url === asked) : null;
+    return document ? [...analysable, document] : analysable;
+  }, [analysable, confirming, discovery]);
 
   // A run belongs to a domain. One started on another tab's site is somebody else's progress bar.
   const run = runState.domain === hostname ? runState : null;
@@ -301,7 +307,8 @@ const UncoveredView = ({
       <AnalyseBar
         domain={hostname}
         check={check}
-        candidates={analysable}
+        candidates={confirmable}
+        reading={reading}
         run={run}
         hasResults={hasResults}
         confirming={confirming}

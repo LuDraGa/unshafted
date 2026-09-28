@@ -93,7 +93,7 @@ test('choosing a URL survives a malformed page URL', () => {
  * The reader (D9) lists documents for a person, so unlike `choosePolicyUrl` it must not throw
  * away a candidate for being the wrong type — only sort it down.
  */
-test('ranking keeps every document and leads with the same-origin typed ones', () => {
+test('ranking keeps every document and leads with the site’s own typed ones', () => {
   const ranked = rankPolicyCandidates(
     [
       candidate('https://cdn.other.example/privacy', 'Privacy Policy'),
@@ -116,7 +116,7 @@ test('ranking keeps every document and leads with the same-origin typed ones', (
 
   // An unclassifiable policy link is still listed, just typed as null and sorted below.
   assert.equal(ranked[2]?.docType, null);
-  assert.equal(ranked[3]?.sameOrigin, false);
+  assert.equal(ranked[3]?.ownSite, false);
 });
 
 test('ranking folds in-page anchors into one document', () => {
@@ -145,12 +145,13 @@ test('every doc type has at least one well-known path', () => {
 });
 
 /**
- * `chrome.scripting.executeScript({ func })` STRINGIFIES the function, so anything it closes
- * over is gone at the injection site. That produces a runtime ReferenceError in the page, which
+ * `chrome.scripting.executeScript({ func })` STRINGIFIES the collector, and the bench evaluates
+ * `fetchPolicyPage`'s source inside a real extension page, so anything either closes over is gone
+ * where it runs. That produces a runtime ReferenceError in the page, which
  * neither the type-checker nor a normal unit test would catch — this is the only guard.
  */
 test('injected functions close over nothing from module scope', async () => {
-  const { collectPolicyCandidatesInPage, fetchDocumentInPage } = await import('../index.mts');
+  const { collectPolicyCandidatesInPage, fetchPolicyPage } = await import('../index.mts');
 
   const moduleScopeNames = [
     'POLICY_LINK_PATTERN',
@@ -160,9 +161,15 @@ test('injected functions close over nothing from module scope', async () => {
     'scoreCandidate',
     'choosePolicyUrl',
     'rankPolicyCandidates',
+    // read.ts — `fetchPolicyPage` is evaluated from source inside an extension page by tooling.
+    'computePolicyHash',
+    'readPolicyDocument',
+    'judgePolicyPage',
+    'MAX_TRIES_PER_TYPE',
+    'MAX_AUTOMATIC_READS',
   ];
 
-  for (const injected of [collectPolicyCandidatesInPage, fetchDocumentInPage]) {
+  for (const injected of [collectPolicyCandidatesInPage, fetchPolicyPage]) {
     const source = String(injected);
     for (const name of moduleScopeNames) {
       assert.ok(

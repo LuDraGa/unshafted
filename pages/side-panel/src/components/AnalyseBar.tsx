@@ -20,6 +20,7 @@ export const AnalyseBar = ({
   domain,
   check,
   candidates,
+  reading,
   run,
   hasResults,
   confirming,
@@ -28,8 +29,10 @@ export const AnalyseBar = ({
 }: {
   domain: string;
   check: LivePolicyCheck;
-  /** Same-origin and typed only — see the `analysable` filter in `SidePanel.tsx`. */
+  /** Read and typed — see `analysable` in `SidePanel.tsx` (D8). */
   candidates: readonly RankedPolicyCandidate[];
+  /** The page's top documents are still being read, so there is nothing to offer yet. */
+  reading: boolean;
   /** This domain's run, when there is one. */
   run: SitePolicyRunState | null;
   hasResults: boolean;
@@ -60,6 +63,21 @@ export const AnalyseBar = ({
     );
   }
 
+  /*
+   * D8 reads before it offers, so for a moment after the panel opens there is nothing to offer and
+   * something happening. Saying so keeps the offer from appearing out of nowhere a second later.
+   */
+  if (reading) {
+    return (
+      <div className="panel-cta-bar">
+        <div className="panel-cta-text">
+          <p className="panel-cta-title">Reading this page’s documents…</p>
+          <p className="panel-cta-scope">You are offered only what we can read</p>
+        </div>
+      </div>
+    );
+  }
+
   if (candidates.length === 0) return null;
 
   const count = candidates.length === 1 ? '1 document' : `${candidates.length} documents`;
@@ -68,7 +86,8 @@ export const AnalyseBar = ({
     <div className="panel-cta-bar">
       <div className="panel-cta-text">
         <p className="panel-cta-title">{hasResults ? 'Run these again on your key' : 'Analyse on your own key'}</p>
-        <p className="panel-cta-scope">{count} on this page · we do not review the result</p>
+        {/* "From", not "on": a document reached through a hub (A3) is one link away from the page. */}
+        <p className="panel-cta-scope">{count} from this page · we do not review the result</p>
       </div>
       <button
         className={hasResults ? 'panel-button' : 'panel-button-primary'}

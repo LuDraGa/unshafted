@@ -28,12 +28,12 @@ AI-generated risk analysis results (quick scans and deep analyses) are stored lo
 
 ### 5. Website content (policy documents only)
 
-To tell you what a site makes you agree to, the extension reads the page you are viewing. It does this in a **single, one-shot script run in the open tab**, and only while the Unshafted side panel is open on that page. There is no persistent content script, nothing runs in the background on pages you are not looking at, and nothing is left behind on a page after the read.
+To tell you what a site makes you agree to, the extension reads the page you are viewing. It finds those documents with a **single, one-shot script run in the open tab**, and only while the Unshafted side panel is open on that page. There is no persistent content script, nothing runs in the background on pages you are not looking at, and nothing is left behind on a page after the read.
 
 Two things are read:
 
 1. **The links on the page.** The extension collects the anchor links on the current page and keeps only those whose text or URL identifies a legal document — terms of service, privacy policy, cookie policy, EULA, acceptable use, and similar. Everything else on the page is discarded and never leaves the tab.
-2. **The text of a policy document, when there is a reason to read it.** The extension fetches those policy URLs from the page's own session and extracts their text. This happens to check whether a document we have already analyzed still matches what the site is currently serving, and when you explicitly ask to read or analyze a document.
+2. **The text of policy documents.** The extension fetches policy documents itself, with cookies omitted, so the request never carries your signed-in session, and extracts their text. It does this only while the side panel is open on that page, and in three cases: to check that a document we have already analyzed still matches what the site serves (reading that document at the address we analyzed it from); on a site we have not analyzed, to read the top document of each kind the page links to — terms, privacy policy, cookie policy and similar, at most ten — so it only offers you documents it can actually read; and when you ask to read or analyze a document. A document may be hosted on another domain than the page, such as a parent company's site or a policy-hosting service; it is read only because the page links to it.
 
 **Where this text goes.** Nothing here is sent to Unshafted. Policy text is hashed on your device (SHA-256) to compare against our published corpus, and the comparison happens locally. If — and only if — you explicitly click to analyze a site's documents, the policy text is sent to the AI provider **you** configured, using **your own** API key, exactly as an uploaded contract is (see the AI provider section below). If you have enabled Drive backup, the resulting analysis is written to your own Google Drive.
 

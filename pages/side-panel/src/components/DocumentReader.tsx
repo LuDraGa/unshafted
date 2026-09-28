@@ -31,9 +31,8 @@ import type { ReactNode } from 'react';
  * overlay of its own, the way the popup keeps History out of the analysis it sits beside.
  *
  * Discovery finding nothing is a normal outcome, not an error: some sites link their policies
- * only from a signed-in surface, and 7 of 36 corpus domains host them cross-origin where an
- * in-page fetch cannot reach. That state says so and points at the source URLs the document
- * cards already carry, which are where we read them from.
+ * only from a signed-in surface, or from a menu that has to be opened first. That state says so and
+ * points at the source URLs the document cards already carry, which are where we read them from.
  */
 
 const READ_TEXT_LIMIT = 400_000;
@@ -84,29 +83,25 @@ const DocumentRow = ({
       */}
       <div className="panel-actions">
         {/*
-          Only same-origin documents can be fetched from the page's context (AD-4). A
-          cross-origin one is still listed, because opening it in a tab is a real answer.
+          Every document can be read here, wherever it is hosted: the extension reads it itself
+          (D5; AD-4, which limited this to same-origin documents, is retired).
         */}
-        {candidate.sameOrigin ? (
-          <button className="panel-text-button" onClick={toggle} type="button" aria-expanded={open}>
-            {open ? 'Hide text' : 'Read here'}
-          </button>
-        ) : null}
+        <button className="panel-text-button" onClick={toggle} type="button" aria-expanded={open}>
+          {open ? 'Hide text' : 'Read here'}
+        </button>
 
         <a className="panel-text-button" href={candidate.url} target="_blank" rel="noreferrer">
           Open page ↗
         </a>
 
         {/*
-          S10: a cross-origin document gets no "Analyse" for the same reason it gets no "Read
-          here" — we cannot fetch its text from the page (AD-4), and analysing a document we
-          could not read would be a finding about a company drawn from nothing.
+          No `docType`, no analyse button — see `analysable` in `SidePanel.tsx`. The row keeps
+          "Read here": reading a document we cannot name is fine, grading one is not. A typed
+          document that turns out unreadable is caught by the confirm, which reads before it asks
+          (S10). One already read as a hub gets no button: it is a list of documents, never analysed,
+          and its documents are rows of their own.
         */}
-        {/*
-          No `docType`, no analyse button — see the `analysable` filter in `SidePanel.tsx`. The row
-          keeps "Read here": reading a document we cannot name is fine, grading one is not.
-        */}
-        {candidate.sameOrigin && candidate.docType && onAnalyse ? (
+        {candidate.docType && onAnalyse && capture?.status !== 'hub' ? (
           <button className="panel-text-button" onClick={() => onAnalyse(candidate)} type="button">
             Analyse…
           </button>
@@ -137,9 +132,9 @@ const DocumentRow = ({
             </>
           ) : (
             <p className="m-0 text-[11px] text-[var(--unshafted-text-faint)]">
-              {capture?.status === 'unreadable'
-                ? 'This link did not return a readable document. Opening it in a tab will still work.'
-                : 'This page cannot be read from here right now. Opening it in a tab will still work.'}
+              {capture?.status === 'hub'
+                ? 'This page lists documents rather than being one. The ones it links to are in this list.'
+                : 'This link did not return a readable document. Opening it in a tab will still work.'}
             </p>
           )}
         </div>
@@ -285,7 +280,14 @@ export const DocumentReader = ({
     );
   }
 
-  const documents = discovery.documents;
+  /*
+   * A3: a document the panel reached through a hub is not on the page, but it is what the page led
+   * to, and it may be what is offered for analysis — so it is listed, after the page's own links.
+   */
+  const documents = [
+    ...discovery.documents,
+    ...(check.offers ?? []).filter(offer => !discovery.documents.some(document => document.url === offer.url)),
+  ];
 
   // 3. LOOKED, FOUND NOTHING. A real answer, so it says so in one line and offers the one retry
   //    that can help: a site whose footer renders late will list its documents on a second look.

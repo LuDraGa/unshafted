@@ -5,6 +5,8 @@ export * from './index-format.js';
 export * from './corpus-bundle.js';
 export * from './seed.js';
 export * from './discover.js';
+export * from './read.js';
+export * from './likeness.js';
 export * from './local-analysis.js';
 export * from './prompt.js';
 export type * from './types.js';

@@ -23,8 +23,8 @@ import type { LivePolicyCheck } from '@src/hooks/useLivePolicyCheck';
  * candidates through the reader's own cache — the same one "Read here" fills, so a document
  * already opened costs nothing — and shows "measuring…" until they land.
  *
- * Cross-origin documents never reach this sheet. AD-4 means we cannot read them from the page, and
- * S10 is that a document we cannot read is one we must not analyse.
+ * A document we could not read never reaches the analysis (S10): it is listed here, excluded and
+ * not counted. Since S2 that is decided by reading it, wherever it is hosted — not by its origin.
  */
 
 /**
@@ -43,7 +43,9 @@ type Measurement =
   | { state: 'measuring' }
   | { state: 'ready'; chars: number; text: string; hash: string }
   /** Captured nothing usable. Listed, excluded, and not counted against the spend. */
-  | { state: 'unreadable' };
+  | { state: 'unreadable' }
+  /** A list of documents rather than one (A3). Listed, excluded, never analysed. */
+  | { state: 'hub' };
 
 const candidateLabel = (candidate: RankedPolicyCandidate): string =>
   candidate.label || (candidate.docType ? DOC_TYPE_LABELS[candidate.docType] : shortenUrl(candidate.url));
@@ -51,6 +53,7 @@ const candidateLabel = (candidate: RankedPolicyCandidate): string =>
 const measure = (check: LivePolicyCheck, url: string): Measurement => {
   const entry = check.reads[url];
   if (!entry || entry.state === 'loading') return { state: 'measuring' };
+  if (entry.capture.status === 'hub') return { state: 'hub' };
   if (entry.capture.status !== 'captured') return { state: 'unreadable' };
   return { state: 'ready', chars: entry.capture.text.length, text: entry.capture.text, hash: entry.capture.hash };
 };
@@ -81,8 +84,8 @@ export const AnalyseConfirm = ({
 }: {
   domain: string;
   /**
-   * Same-origin and typed only. The caller filters; S10 and the untyped exclusion are not this
-   * component's judgement to make.
+   * Typed only, and read or about to be. The caller filters; S10 and the untyped exclusion are not
+   * this component's judgement to make.
    */
   candidates: readonly RankedPolicyCandidate[];
   /** A single URL when the user asked from a document row, null when they asked for the site. */
@@ -203,11 +206,13 @@ export const AnalyseConfirm = ({
               <span className="panel-confirm-size">
                 {measurement.state === 'measuring'
                   ? 'Measuring…'
-                  : measurement.state === 'unreadable'
-                    ? 'This page could not be read from here, so it cannot be analysed.'
-                    : `${measurement.chars.toLocaleString()} characters${
-                        measurement.chars > SITE_POLICY_ANALYSIS_CHAR_LIMIT ? ' — an excerpt will be read' : ''
-                      }`}
+                  : measurement.state === 'hub'
+                    ? 'This page lists documents rather than being one, so it is not analysed.'
+                    : measurement.state === 'unreadable'
+                      ? 'This page could not be read from here, so it cannot be analysed.'
+                      : `${measurement.chars.toLocaleString()} characters${
+                          measurement.chars > SITE_POLICY_ANALYSIS_CHAR_LIMIT ? ' — an excerpt will be read' : ''
+                        }`}
               </span>
             </span>
           </label>

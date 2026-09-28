@@ -5,19 +5,22 @@ import type { PolicyDocType } from './types.js';
  *
  * Split deliberately into two halves:
  *
- *  - `collectPolicyCandidatesInPage` / `fetchDocumentInPage` are INJECTED into the page via
- *    `chrome.scripting.executeScript({ func })`, which STRINGIFIES them. They therefore cannot
- *    reference anything outside their own bodies — no imports, no module constants, no helpers.
- *    Every value they need is declared inline. Breaking that rule produces a `ReferenceError`
- *    at the injection site, not a compile error, so it will not be caught by type-checking.
+ *  - `collectPolicyCandidatesInPage` is INJECTED into the page via
+ *    `chrome.scripting.executeScript({ func })`, which STRINGIFIES it. It therefore cannot
+ *    reference anything outside its own body — no imports, no module constants, no helpers.
+ *    Every value it needs is declared inline or passed in. Breaking that rule produces a
+ *    `ReferenceError` at the injection site, not a compile error, so type-checking will not
+ *    catch it. `fetchPolicyPage` in `read.ts` keeps the same rule for tooling's sake.
  *
  *  - Everything else is pure and unit-tested here.
  *
- * Why the fetch happens in the page (AD-4): `activeTab` grants access to the active tab on a
- * user gesture, but whether an EXTENSION-CONTEXT `fetch()` to that origin is reliably covered is
- * murky across Chrome versions. Fetching from the page's own context is same-origin by
- * construction and needs no such guarantee. The cost is that cross-origin policy hosts are not
- * reachable this way — we degrade rather than ask for host permissions.
+ * AD-4 IS RETIRED (S2, 2026-09-28). It said documents were fetched from inside the page, because
+ * under `activeTab` an extension-context fetch was not reliably covered — so only same-origin
+ * documents were readable, and `docs.github.com`, `openai.com` for chatgpt.com and every
+ * vendor-hosted policy were listed and never read. The extension has held `<all_urls>` since
+ * 2026-09-07, and from an extension page with host access a fetch needs no CORS headers. So the
+ * page is now read for its LINKS only, and every document is read by the extension itself (see
+ * `read.ts`). Origin decides the order documents are listed in, never whether they can be read.
  */
 
 type PolicyCandidate = {
@@ -39,16 +42,12 @@ type RankedPolicyCandidate = {
   label: string;
   /** Null when the link is plainly a policy but names no type we recognise ("Legal"). */
   docType: PolicyDocType | null;
-  /** AD-4: only same-origin documents can be fetched from the page context. */
-  sameOrigin: boolean;
-};
-
-type InPageFetchResult = {
-  ok: boolean;
-  status: number;
-  html: string;
-  finalUrl: string;
-  error?: string;
+  /**
+   * The link is on the page's own site: the same domain, subdomains included (`docs.github.com`
+   * from `github.com`). It orders the list — a site's own documents before another company's —
+   * and decides nothing else: every document is read the same way (D5).
+   */
+  ownSite: boolean;
 };
 
 /** Anchor text / href signals that a link points at a policy document. */
@@ -115,6 +114,27 @@ const wellKnownPolicyPaths = (docType: PolicyDocType): string[] => {
   return paths[docType];
 };
 
+/**
+ * Second-level labels that sit under a two-letter country code as a public suffix: `co.uk`,
+ * `com.au`, `co.in`. NOT a Public Suffix List, deliberately — `candidateDomains` in
+ * `index-format.ts` says why there is none at runtime. This decides ranking only, never what may
+ * be read, so a suffix it misses costs a document its place in the order and nothing else. A
+ * multi-tenant host (`notion.site`, `herokuapp.com`) reads as one site for the same reason, and
+ * with the same cost.
+ */
+const COUNTRY_SECOND_LEVEL = new Set(['co', 'com', 'net', 'org', 'gov', 'ac', 'edu', 'ltd', 'plc', 'ne', 'or', 'go']);
+
+/** The site a host belongs to: its last two labels, or three under a country's generic suffix. */
+const siteOf = (hostname: string): string => {
+  const labels = hostname.toLowerCase().replace(/\.$/, '').split('.').filter(Boolean);
+  if (labels.length <= 2) return labels.join('.');
+  const [second = '', top = ''] = labels.slice(-2);
+  const take = top.length === 2 && COUNTRY_SECOND_LEVEL.has(second) ? 3 : 2;
+  return labels.slice(-take).join('.');
+};
+
+const isOwnSite = (url: URL, pageUrl: URL): boolean => siteOf(url.hostname) === siteOf(pageUrl.hostname);
+
 const scoreCandidate = (candidate: PolicyCandidate, wanted: PolicyDocType, pageUrl: URL): number => {
   let url: URL;
   try {
@@ -127,8 +147,8 @@ const scoreCandidate = (candidate: PolicyCandidate, wanted: PolicyDocType, pageU
   if (guessDocType(candidate.href, candidate.text) !== wanted) return -1;
 
   let score = 0;
-  // AD-4: only same-origin documents are reachable via an in-page fetch.
-  if (url.origin === pageUrl.origin) score += 100;
+  // The site's own document before another company's. Any of them can be read (D5).
+  if (isOwnSite(url, pageUrl)) score += 100;
   if (candidate.inFooterRegion) score += 20;
   // Anchor text is a stronger signal than a URL that merely contains the word.
   if (POLICY_LINK_PATTERN.test(candidate.text)) score += 15;
@@ -177,8 +197,8 @@ const choosePolicyUrl = (
  * discarded for being the wrong type — a document we cannot classify is still a document the
  * user may want to read, it just sorts last.
  *
- * Same-origin first because AD-4 means only those are actually fetchable from the page context;
- * a cross-origin policy host is listed (the user can still open it in a tab) but never leads.
+ * The site's own documents first: every document can be read (D5), but a page that links Google's
+ * privacy policy beside its own is telling the reader about its own first.
  */
 const rankPolicyCandidates = (
   candidates: PolicyCandidate[],
@@ -208,11 +228,11 @@ const rankPolicyCandidates = (
     const key = url.toString();
 
     const docType = guessDocType(candidate.href, candidate.text);
-    const sameOrigin = url.origin === pageUrl.origin;
+    const ownSite = isOwnSite(url, pageUrl);
     const label = candidate.text.trim();
 
     let score = 0;
-    if (sameOrigin) score += 100;
+    if (ownSite) score += 100;
     if (docType) score += 30;
     if (candidate.inFooterRegion) score += 10;
     if (label) score += 5;
@@ -224,13 +244,13 @@ const rankPolicyCandidates = (
       if (!existing.label && label) existing.label = label;
       continue;
     }
-    seen.set(key, { url: key, label: label || existing?.label || '', docType, sameOrigin, score });
+    seen.set(key, { url: key, label: label || existing?.label || '', docType, ownSite, score });
   }
 
   return [...seen.values()]
     .sort((left, right) => right.score - left.score || left.url.localeCompare(right.url))
     .slice(0, options.limit ?? 20)
-    .map(({ url, label, docType, sameOrigin }) => ({ url, label, docType, sameOrigin }));
+    .map(({ url, label, docType, ownSite }) => ({ url, label, docType, ownSite }));
 };
 
 /**
@@ -284,33 +304,6 @@ const collectPolicyCandidatesInPage = (patternSource: string): PolicyCandidate[]
   return [...footerRegion, ...elsewhere].slice(0, 100);
 };
 
-/**
- * INJECTED INTO THE PAGE — must stay entirely self-contained. See the module comment.
- *
- * Runs in the content-script isolated world, which shares the page's origin, so this is a
- * same-origin request and needs no host permission.
- */
-const fetchDocumentInPage = async (url: string): Promise<InPageFetchResult> => {
-  try {
-    const response = await fetch(url, { credentials: 'omit', redirect: 'follow' });
-    const html = await response.text();
-    return {
-      ok: response.ok,
-      status: response.status,
-      html: html.slice(0, 4_000_000),
-      finalUrl: response.url || url,
-    };
-  } catch (error) {
-    return {
-      ok: false,
-      status: 0,
-      html: '',
-      finalUrl: url,
-      error: error instanceof Error ? error.message : 'Fetch failed in page context.',
-    };
-  }
-};
-
 export {
   POLICY_LINK_PATTERN,
   guessDocType,
@@ -318,6 +311,5 @@ export {
   choosePolicyUrl,
   rankPolicyCandidates,
   collectPolicyCandidatesInPage,
-  fetchDocumentInPage,
 };
-export type { PolicyCandidate, ChosenPolicyUrl, RankedPolicyCandidate, InPageFetchResult };
+export type { PolicyCandidate, ChosenPolicyUrl, RankedPolicyCandidate };

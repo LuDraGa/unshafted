@@ -83,7 +83,7 @@ export type SitePolicyAnalysisTarget = {
   /** The document's absolute URL, as discovered on the page. */
   sourceUrl: string;
   docType: PolicyDocType;
-  /** Normalized text, captured in the panel from the user's own session (AD-4). */
+  /** Normalized text, read by the extension with cookies omitted (D5). */
   text: string;
   /** `sha256` of `text` — computed at capture, so the local analysis is keyed like a corpus one. */
   contentHash: string;
