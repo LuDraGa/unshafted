@@ -11,6 +11,7 @@ import type {
   PolicyCacheEntrySchema,
   PolicyDomainCacheEntrySchema,
   PolicyDomainIndexSchema,
+  PolicyReadModeSchema,
   RequiredDisclosureSchema,
   SitePolicyAnalysisSchema,
   VerticalSchema,
@@ -21,6 +22,7 @@ export type PolicyDocType = z.infer<typeof PolicyDocTypeSchema>;
 export type Vertical = z.infer<typeof VerticalSchema>;
 export type DisclosureRegime = z.infer<typeof DisclosureRegimeSchema>;
 export type DocumentSurface = z.infer<typeof DocumentSurfaceSchema>;
+export type PolicyReadMode = z.infer<typeof PolicyReadModeSchema>;
 export type DisclosureStatus = z.infer<typeof DisclosureStatusSchema>;
 export type ActionEffort = z.infer<typeof ActionEffortSchema>;
 export type DeadlineKind = z.infer<typeof DeadlineKindSchema>;

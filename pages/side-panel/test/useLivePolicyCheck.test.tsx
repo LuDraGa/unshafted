@@ -11,19 +11,29 @@
 import { act, render, screen } from '@testing-library/react';
 import { useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { SitePolicyAnalysis } from '@extension/unshafted-core';
+import type { RankedPolicyCandidate, SitePolicyAnalysis } from '@extension/unshafted-core';
 
 const discoverActiveTabPolicies = vi.fn();
 const capturePolicyDocument = vi.fn();
+/** The two ways the panel may open a page (A5), as markers a test can recognise in a call. */
+const fromTab = vi.fn();
+const renderFromTab = vi.fn(() => fromTab);
+const renderInBackgroundTab = vi.fn();
 vi.mock('@extension/shared', () => ({
   discoverActiveTabPolicies: () => discoverActiveTabPolicies(),
-  capturePolicyDocument: (url: string) => capturePolicyDocument(url),
+  capturePolicyDocument: (url: string, render?: unknown) => capturePolicyDocument(url, render),
+  renderFromTab: (tabId: number) => renderFromTab(tabId),
+  renderInBackgroundTab,
 }));
 
 const { useLivePolicyCheck } = await import('@src/hooks/useLivePolicyCheck');
 
-const analysis = (contentHash: string, docType = 'privacy', sourceUrl = `https://first.example/${contentHash}`) =>
-  ({ contentHash, docType, sourceUrl }) as unknown as SitePolicyAnalysis;
+const analysis = (
+  contentHash: string,
+  docType = 'privacy',
+  sourceUrl = `https://first.example/${contentHash}`,
+  readMode: 'raw' | 'rendered' = 'raw',
+) => ({ contentHash, docType, sourceUrl, readMode }) as unknown as SitePolicyAnalysis;
 
 /** Referentially stable, as `useDomainAnalyses` guarantees for a given domain. */
 const ANALYSES = [analysis('aaa')];
@@ -40,12 +50,16 @@ const deferred = <T,>() => {
 const Probe = ({
   initialUrl = 'https://first.example/page',
   analyses = ANALYSES,
+  toOpen,
 }: {
   initialUrl?: string;
   analyses?: SitePolicyAnalysis[];
+  /** The document the "open" button asks the panel to read by opening (A5). */
+  toOpen?: RankedPolicyCandidate;
 }) => {
   const [{ tabId, url }, setTab] = useState({ tabId: 1 as number | null, url: initialUrl as string | null });
-  const { discovery, discovering, offers, freshness, reads } = useLivePolicyCheck(tabId, url, analyses);
+  const { discovery, discovering, offers, freshness, reads, openDocument } = useLivePolicyCheck(tabId, url, analyses);
+  const opened = toOpen ? reads[toOpen.url] : undefined;
 
   return (
     <div>
@@ -54,9 +68,17 @@ const Probe = ({
       <output data-testid="freshness">{Object.values(freshness).join(',') || '—'}</output>
       <output data-testid="reads">{Object.keys(reads).length}</output>
       <output data-testid="offers">{offers ? offers.map(offer => offer.url).join(',') || 'none' : '—'}</output>
+      <output data-testid="opened">
+        {opened ? (opened.state === 'done' ? opened.capture.status : opened.state) : '—'}
+      </output>
       <button type="button" onClick={() => setTab({ tabId: 2, url: 'https://second.example/page' })}>
         switch
       </button>
+      {toOpen ? (
+        <button type="button" onClick={() => openDocument(toOpen)}>
+          open
+        </button>
+      ) : null}
     </div>
   );
 };
@@ -75,13 +97,16 @@ const discovered = (tabId: number, url: string, docType = 'privacy') => ({
   documents: [{ url, ownSite: true, docType }],
 });
 
-const captured = (hash: string) => ({
+const captured = (hash: string, readMode: 'raw' | 'rendered' = 'raw') => ({
   status: 'captured',
   hash,
   text: 'policy',
   sourceUrl: '',
   usedMainContainer: true,
+  readMode,
 });
+
+const unreadable = (reason = 'too-short') => ({ status: 'unreadable', reason, readMode: 'raw' });
 
 /** Let discovery's display floor and every read settle. */
 const settle = () =>
@@ -93,6 +118,7 @@ describe('useLivePolicyCheck', () => {
   beforeEach(() => {
     discoverActiveTabPolicies.mockReset();
     capturePolicyDocument.mockReset();
+    renderFromTab.mockClear();
     vi.useRealTimers();
   });
 
@@ -168,7 +194,7 @@ describe('useLivePolicyCheck', () => {
 
   it('leaves a document unconfirmed when its own address cannot be read', async () => {
     discoverActiveTabPolicies.mockResolvedValue(discovered(1, 'https://first.example/privacy'));
-    capturePolicyDocument.mockResolvedValue({ status: 'unreadable', reason: 'fetch-failed' });
+    capturePolicyDocument.mockResolvedValue(unreadable('fetch-failed'));
 
     render(<Probe />);
     await settle();
@@ -199,7 +225,7 @@ describe('useLivePolicyCheck', () => {
       ],
     });
     capturePolicyDocument.mockImplementation(async (url: string) =>
-      url.endsWith('/privacy') ? captured('p') : { status: 'unreadable', reason: 'too-short' },
+      url.endsWith('/privacy') ? captured('p') : unreadable(),
     );
 
     render(<Probe analyses={NONE} />);
@@ -219,6 +245,139 @@ describe('useLivePolicyCheck', () => {
 
     expect(screen.getByTestId('offers').textContent).toBe('none');
     expect(capturePolicyDocument).not.toHaveBeenCalled();
+  });
+
+  // ── A5: pages whose text only exists once they have run ──
+
+  it('reads the page the reader is on from their own tab, and every other document without opening it', async () => {
+    discoverActiveTabPolicies.mockResolvedValue({
+      status: 'discovered',
+      tabId: 1,
+      documents: [
+        { url: 'https://first.example/privacy', ownSite: true, docType: 'privacy' },
+        { url: 'https://first.example/terms', ownSite: true, docType: 'terms' },
+      ],
+    });
+    capturePolicyDocument.mockResolvedValue(captured('p'));
+
+    render(<Probe initialUrl="https://first.example/privacy#cookies" analyses={NONE} />);
+    await settle();
+
+    const calls = Object.fromEntries(capturePolicyDocument.mock.calls.map(([url, how]) => [url, how]));
+    expect(calls['https://first.example/privacy']).toBe(fromTab);
+    expect(calls['https://first.example/terms']).toBeUndefined();
+    expect(renderFromTab).toHaveBeenCalledWith(1);
+    // Nothing is ever opened in the background without a click.
+    expect(Object.values(calls)).not.toContain(renderInBackgroundTab);
+  });
+
+  it('confirms an analysed document from the reader’s tab when that is where they are', async () => {
+    discoverActiveTabPolicies.mockResolvedValue(discovered(1, 'https://first.example/aaa'));
+    capturePolicyDocument.mockResolvedValue(captured('aaa', 'rendered'));
+
+    render(<Probe initialUrl="https://first.example/aaa" />);
+    await settle();
+
+    expect(capturePolicyDocument).toHaveBeenCalledWith('https://first.example/aaa', fromTab);
+    // A rendered read that hashes to the analysis is current, however it was read.
+    expect(read().freshness).toBe('current');
+  });
+
+  it('never calls a document changed on a hash read another way than the analysis was', async () => {
+    discoverActiveTabPolicies.mockResolvedValue(discovered(1, 'https://first.example/privacy'));
+    capturePolicyDocument.mockResolvedValue(captured('zzz', 'rendered'));
+
+    render(<Probe />);
+    await settle();
+
+    expect(read().freshness).toBe('unconfirmed');
+  });
+
+  it('never calls a document changed on a raw read of one analysed rendered', async () => {
+    discoverActiveTabPolicies.mockResolvedValue(discovered(1, 'https://first.example/privacy'));
+    capturePolicyDocument.mockResolvedValue(captured('zzz', 'raw'));
+
+    render(<Probe analyses={[analysis('aaa', 'privacy', 'https://first.example/aaa', 'rendered')]} />);
+    await settle();
+
+    expect(read().freshness).toBe('unconfirmed');
+  });
+
+  /*
+   * S3 measured it: opened three times each, 2 of 29 rendered documents did not hash alike (a
+   * chat widget, a policy held twice on a cold load). Rendered against rendered is still noise.
+   */
+  it('never calls a document changed on a rendered read, even of one analysed rendered', async () => {
+    discoverActiveTabPolicies.mockResolvedValue(discovered(1, 'https://first.example/privacy'));
+    capturePolicyDocument.mockResolvedValue(captured('zzz', 'rendered'));
+
+    render(<Probe analyses={[analysis('aaa', 'privacy', 'https://first.example/aaa', 'rendered')]} />);
+    await settle();
+
+    expect(read().freshness).toBe('unconfirmed');
+  });
+
+  it('opens a document in the background only on a click, and offers what it reads', async () => {
+    const privacy = { url: 'https://first.example/privacy', label: '', ownSite: true, docType: 'privacy' as const };
+    discoverActiveTabPolicies.mockResolvedValue({ status: 'discovered', tabId: 1, documents: [privacy] });
+    capturePolicyDocument.mockResolvedValue(unreadable());
+
+    render(<Probe analyses={NONE} toOpen={privacy} />);
+    await settle();
+    expect(screen.getByTestId('offers').textContent).toBe('none');
+    expect(capturePolicyDocument.mock.calls.every(([, how]) => how !== renderInBackgroundTab)).toBe(true);
+
+    const opening = deferred<unknown>();
+    capturePolicyDocument.mockReturnValueOnce(opening.promise);
+    await act(async () => {
+      screen.getByRole('button', { name: 'open' }).click();
+    });
+    expect(capturePolicyDocument).toHaveBeenLastCalledWith(privacy.url, renderInBackgroundTab);
+    expect(screen.getByTestId('opened').textContent).toBe('opening');
+
+    await act(async () => {
+      opening.settle(captured('p', 'rendered'));
+    });
+    expect(screen.getByTestId('opened').textContent).toBe('captured');
+    expect(screen.getByTestId('offers').textContent).toBe(privacy.url);
+  });
+
+  it('offers an opened document in place of whatever of its type was offered', async () => {
+    const first = { url: 'https://first.example/privacy', label: '', ownSite: true, docType: 'privacy' as const };
+    const second = { url: 'https://first.example/privacy-2', label: '', ownSite: true, docType: 'privacy' as const };
+    const terms = { url: 'https://first.example/terms', label: '', ownSite: true, docType: 'terms' as const };
+    discoverActiveTabPolicies.mockResolvedValue({ status: 'discovered', tabId: 1, documents: [first, second, terms] });
+    capturePolicyDocument.mockImplementation(async (url: string) => (url === first.url ? unreadable() : captured(url)));
+
+    render(<Probe analyses={NONE} toOpen={first} />);
+    await settle();
+    expect(screen.getByTestId('offers').textContent).toBe(`${second.url},${terms.url}`);
+
+    capturePolicyDocument.mockResolvedValueOnce(captured('p', 'rendered'));
+    await act(async () => {
+      screen.getByRole('button', { name: 'open' }).click();
+    });
+    await settle();
+    expect(screen.getByTestId('offers').textContent).toBe(`${first.url},${terms.url}`);
+  });
+
+  it('confirms a covered site’s document the reader opened at its own address', async () => {
+    const source = { url: 'https://first.example/aaa', label: '', ownSite: true, docType: 'privacy' as const };
+    discoverActiveTabPolicies.mockResolvedValue(discovered(1, source.url));
+    capturePolicyDocument.mockResolvedValue(unreadable());
+
+    render(<Probe toOpen={source} />);
+    await settle();
+    expect(read().freshness).toBe('unconfirmed');
+
+    capturePolicyDocument.mockResolvedValueOnce(captured('aaa', 'rendered'));
+    await act(async () => {
+      screen.getByRole('button', { name: 'open' }).click();
+    });
+    await settle();
+    expect(read().freshness).toBe('current');
+    // A covered site offers nothing, opened or not.
+    expect(screen.getByTestId('offers').textContent).toBe('—');
   });
 
   it('abandons the previous page’s results the moment the tab changes', async () => {

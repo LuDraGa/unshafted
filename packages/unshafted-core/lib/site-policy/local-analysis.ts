@@ -1,6 +1,6 @@
 import { SitePolicyAnalysisSchema } from './schemas.js';
 import { z } from 'zod';
-import type { PolicyDocType } from './types.js';
+import type { PolicyDocType, PolicyReadMode } from './types.js';
 
 /**
  * An analysis the USER ran, on their own key — not one we published (Part 6, S2).
@@ -83,10 +83,15 @@ export type SitePolicyAnalysisTarget = {
   /** The document's absolute URL, as discovered on the page. */
   sourceUrl: string;
   docType: PolicyDocType;
-  /** Normalized text, read by the extension with cookies omitted (D5). */
+  /**
+   * Normalized text, read by the extension with cookies omitted (D5) — or, for a page that builds
+   * its text with JavaScript, read from the page once opened (A5).
+   */
   text: string;
   /** `sha256` of `text` — computed at capture, so the local analysis is keyed like a corpus one. */
   contentHash: string;
+  /** Which of those two readings `text` is, recorded on the analysis as it is on a corpus one. */
+  readMode: PolicyReadMode;
 };
 
 export type RunSitePolicyAnalysisRequest = {

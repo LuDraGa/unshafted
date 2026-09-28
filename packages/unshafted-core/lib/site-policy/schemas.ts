@@ -84,6 +84,14 @@ export const VerticalSchema = z.enum([
  */
 export const DocumentSurfaceSchema = z.enum(['footer', 'signup', 'checkout', 'in_app']);
 
+/**
+ * How a document's text was read (A5): the HTML the server sent (`raw`), or the page as JavaScript
+ * built it once opened (`rendered`) — for a site that sends no policy text until its script runs.
+ * The two are different readings of one document and need not hash alike, and a rendered page can
+ * vary between loads, so only a raw read of a raw analysis may ever call a document changed.
+ */
+export const PolicyReadModeSchema = z.enum(['raw', 'rendered']);
+
 export const DisclosureRegimeSchema = z.enum(['GLBA', 'CCPA', 'GDPR', 'COPPA', 'other']);
 export const DisclosureStatusSchema = z.enum(['present', 'absent', 'not_applicable']);
 export const ActionEffortSchema = z.enum(['low', 'medium', 'high']);
@@ -168,6 +176,12 @@ export const SitePolicyAnalysisSchema = z.object({
    * its hash is still reproducible after a normalizer change — and the hash is the version.
    */
   normalizerVersion: z.string().min(1),
+  /**
+   * How the text `contentHash` is taken over was read (A5). Defaults to `raw`, which every analysis
+   * made before S3 of the site coverage work was: an optional field with a default, so no published
+   * analysis changes meaning and `schemaVersion` does not move.
+   */
+  readMode: PolicyReadModeSchema.default('raw'),
   model: z.string().min(1),
   analyzedAt: z.string().datetime(),
   summary: z.string().min(1),

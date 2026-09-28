@@ -7,7 +7,7 @@ import {
 import { useStorageValue } from '@src/hooks/useStorageValue';
 import { DOC_TYPE_LABELS, shortenUrl } from '@src/lib/presentation';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { RankedPolicyCandidate, RunSitePolicyAnalysisRequest } from '@extension/unshafted-core';
+import type { PolicyReadMode, RankedPolicyCandidate, RunSitePolicyAnalysisRequest } from '@extension/unshafted-core';
 import type { LivePolicyCheck } from '@src/hooks/useLivePolicyCheck';
 
 /**
@@ -41,7 +41,7 @@ const SMALL_MODEL_PATTERN = /mini|nano|flash|haiku|8b|7b|instruct/i;
 
 type Measurement =
   | { state: 'measuring' }
-  | { state: 'ready'; chars: number; text: string; hash: string }
+  | { state: 'ready'; chars: number; text: string; hash: string; readMode: PolicyReadMode }
   /** Captured nothing usable. Listed, excluded, and not counted against the spend. */
   | { state: 'unreadable' }
   /** A list of documents rather than one (A3). Listed, excluded, never analysed. */
@@ -52,10 +52,12 @@ const candidateLabel = (candidate: RankedPolicyCandidate): string =>
 
 const measure = (check: LivePolicyCheck, url: string): Measurement => {
   const entry = check.reads[url];
-  if (!entry || entry.state === 'loading') return { state: 'measuring' };
+  // Still reading — or opening the page in the background, on the reader's click (A5).
+  if (!entry || entry.state !== 'done') return { state: 'measuring' };
   if (entry.capture.status === 'hub') return { state: 'hub' };
   if (entry.capture.status !== 'captured') return { state: 'unreadable' };
-  return { state: 'ready', chars: entry.capture.text.length, text: entry.capture.text, hash: entry.capture.hash };
+  const { text, hash, readMode } = entry.capture;
+  return { state: 'ready', chars: text.length, text, hash, readMode };
 };
 
 /** The user has a key but has not pointed it anywhere we can name. Handled as "no key" (S7). */
@@ -161,6 +163,7 @@ export const AnalyseConfirm = ({
         docType: candidate.docType!,
         text: measurement.state === 'ready' ? measurement.text : '',
         contentHash: measurement.state === 'ready' ? measurement.hash : '',
+        readMode: measurement.state === 'ready' ? measurement.readMode : 'raw',
       })),
     };
 

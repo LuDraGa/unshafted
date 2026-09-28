@@ -1,7 +1,8 @@
 # Site coverage — finding the right documents, covering the right sites, scoping big companies
 
-**Started:** 2026-09-27 · **Branch:** `dev/v0.8.3` · **Status:** S2 done 2026-09-28 (A2, A3 in;
-bench 28 → 43 of 74). S3 next, after the director's `cws/` wording decision and manual test.
+**Started:** 2026-09-27 · **Branch:** `dev/v0.8.3` · **Status:** S3 done 2026-09-28 (A5 in: Track A
+complete; bench 43 of 74 unasked, +15 by opening the page). S4 next, after the director's S3 manual
+test.
 
 The release PR ([#92](https://github.com/LuDraGa/unshafted/pull/92)) is back in draft while this is
 decided: the director wants more in v0.8.3 before it goes to review.
@@ -132,7 +133,7 @@ problem filed as a GitHub issue, not fixed on the spot. Findings feed A/B/C or t
 
 ## Sessions
 
-**Next session: S3.** *(Each session moves this line on before it ends.)*
+**Next session: S4.** *(Each session moves this line on before it ends.)*
 
 The work is split into five sessions. The director pastes the same prompt every time, and this doc
 says where things stand:
@@ -373,6 +374,14 @@ redirects cross-origin and cannot be read (pinterest).
 
 **Log.** *Done 2026-09-28.*
 
+**Commits** on `dev/v0.8.3`, pushed 2026-09-28: `a681a8b` (A2 + A3, the `cws/` privacy-policy text),
+`ccf5cfa` (the bench scoring what the panel offers, from a real extension page).
+
+**Manual test result** (director, recorded at the start of S3): all five steps as expected — GitHub's
+statement read from `docs.github.com`, Figma's confirm listing the two documents and not the hub,
+OpenAI's documents offered on chatgpt.com, Amazon settling on *Current*, Uber on *Changed since we
+read it*.
+
 **Close-out and verify.** S1's manual test is recorded in S1's log above. S1's checks all held:
 one pattern (reintroducing the stale literal fails 2 core tests); the caller test fails on a literal
 at the call site; the footer-first tests pass; eslint, test and prettier green; bench `s2-start`
@@ -559,7 +568,181 @@ Check whether cws/privacy-policy.md needs a sentence about opening a background 
 show me the wording first (it publishes to the gist CWS review reads).
 ```
 
-**Log.** *Not started.*
+**Log.** *Done 2026-09-28.*
+
+**Close-out and verify.** S2's manual test is recorded in S2's log above (all five as expected).
+Every S1 and S2 check held: one link pattern (reintroducing the stale literal fails 2 core tests;
+restored from a copy, core 138/138, `dist` rebuilt with `--force`); AD-4 retired in the Part 1, 5
+and 6 docs; `cws/privacy-policy.md` carries S2's approved text; `pnpm lint` 12/12, `format:check`
+clean, `test --silent=false` 16/16. Bench `s3-start` (`--ref=6512686`, `--compare=s2-a3`): **43/74,
+the reference 28/74, and not one verdict different from S2's record** at the headline.
+
+**Decisions taken in the session.**
+- **Rendered reads never claim *changed*** (the scope's "tell me which"). Measured, not assumed:
+  rendered documents hashed alike on three loads each in one run (29/29) and not in the next
+  (27/29). Expedia's privacy page grew a live-chat widget's heading on one load; Instagram's, on a
+  cold load, held its whole policy twice (text 1 is exactly text 2 twice over) while still changing
+  at the reader's 12s bound. Neither is a normalizer rule that would not be a guess about other
+  sites' markup, and noise can only make a false mismatch, never a false match. So a rendered read
+  that matches confirms *current*; one that differs is *unconfirmed*; only a raw read of a raw
+  analysis may say *changed*.
+- **`readMode` on the analysis schema**, optional with default `raw` — every analysis before S3 was
+  read raw, so none changes meaning and `schemaVersion` stays 1. **For S4:** this is already in the
+  schema when S4 decides whether `products` moves the version.
+- **Hubs are opened too.** S2 proposed treating a zero-prose hub reached as a typed document like a
+  shell; measured, **7 of the 13 real hub fixtures have zero prose** (Figma, GitHub, Heroku, Postman,
+  Stripe, Vercel, dyno), so that rule would stop following them. Instead the literal rule: anything
+  that is not a document on its raw read — shell, refused request, bot check's empty answer, or hub —
+  is what opening may read. A real hub opened is still a hub.
+- **The director approved the `cws/privacy-policy.md` wording** (below) and it is in the S3 commit.
+
+**A5 — policies that exist only after JavaScript runs.**
+- `packages/unshafted-core/lib/site-policy/read.ts`: **`readPolicyPage`, the rule** — raw HTML if it
+  is a document (A3's judgement), else the page opened and read by `readRenderedPageInPage`, through
+  the same normalizer; a PDF is never opened. `readPolicyDocument(url, fetch, render?)` is built on
+  it. Every result carries `readMode` (on a document: which text the hash is over; on a hub or an
+  unreadable page: whether opening was tried). `readRenderedPageInPage` is injected, self-contained
+  and helper-free: it waits for the load event and 1.5s without text changes, gives a page still
+  under 2,000 characters until 8s to fill in, and reads `outerHTML` at 12s at the latest.
+  `isSamePage` decides that the tab the reader is on is the document.
+- `packages/shared/lib/utils/policy-capture.ts`: `readInBackgroundTab` (a tab with `active: false`,
+  read, closed in `finally`; a second read if a bot check reloads the page mid-read), self-contained
+  with the reader passed in so tooling runs its exact source; `renderInBackgroundTab`;
+  `renderFromTab` (refuses a tab that has moved off the document).
+- Side panel: the page the reader is on is read from their own tab when it is the document —
+  automatically, since nothing is opened (D8 reads and the D6 confirm both). Anywhere else a row that
+  did not read offers **Read it by opening the page**, only on click (`openDocument`); what it reads
+  is offered in place of its type's offer, and a covered site's analysis at that address learns it
+  is current. Rows say why they could not be read and whether opening was tried. `readMode` travels
+  into analyses run on the user's own key.
+- `tools/corpus/capture.ts` **adopts the identical rule inside a real extension**: raw through core's
+  `fetchPolicyPage`, rendered through shared's `readInBackgroundTab` (`extension-fetch.ts` gained
+  `scripting` and `renderWith`). Its raw read used to be a page navigation's body, which carries the
+  cookies the homepage set — exactly why Facebook, Instagram and Reddit captured as documents while
+  the panel's cookieless fetch gets a shell. It records `readMode` (and a new `hub` status), and
+  `build-curated.ts` / `write-analysis.ts` carry `readMode` into analyses. `--corpus=<dir>` captures
+  into a scratch corpus. S2's leftover AD-4 comment and note in it are gone.
+- `tools/corpus/bench-rendered.ts` (new, `pnpm -F @extension/corpus-tools bench:rendered`): opens every
+  bench, packaged and F5 document whose raw read is not a document, N times through the shipped
+  path, and reports stability and what varies. `bench-discovery.ts` now makes the click: an expected
+  document not found unasked, listed under its type and not a document raw, is opened and scored
+  `byOpening`; the headline stays what the panel offers unasked.
+- AD-1 amended in `site-policy-part1-client-corpus.md`; the manifest's `scripting` comment updated.
+
+**Evidence.**
+- Tests first: the new core tests run against HEAD's `read.ts` (with only a stub export added so the
+  file imports) fail 12 of 12 A5 cases; green after. Ten guards broken once each, all red, each file
+  restored from a copy and hash-checked, then `tsc -b --force` and the restored lines checked in
+  `dist`: PDFs opened (1 red), hubs never opened (3), a raw hub losing its links after an empty open
+  (1), no thin wait (2), an inner named function in the reader (5 — the tsx `__name` trap), any hash
+  difference as *changed* (1), the tab never read in place (2), the click opening nothing (1), a
+  moved tab read as the document (1), the opened tab never closed (3).
+- **Rendered stability** (`bench-rendered`, 3 loads each, a fresh browser per run, so load 1 is
+  cold): 21 bench, 8 packaged and 11 F5 documents are not documents raw; **29 become documents by
+  opening**; stable 29/29 (`s3-stability`), then 27/29 with the final reader (`s3-final`, the two
+  above). Control: a server-rendered page read rendered hashes like its raw read on 10 of 12
+  (ChatGPT's two differ).
+- **Cold first loads**: before the thin wait, 3 of 9 cold reads of Postman privacy and Adobe's two
+  offer terms came back as a shell (read 1.5s after an early quiet, at 70–93 characters); after it,
+  16 of 16 read the document, with the hashes warm loads give.
+- **The five packaged documents a cookieless fetch sees as a shell** (Facebook privacy and cookie,
+  Instagram privacy, Reddit privacy, eBay's state disclosures) **hash to the corpus exactly when
+  opened**, on every settled load: the panel can now confirm them as current, from the page itself.
+- **Capture and panel agree**: `capture.ts --corpus=<scratch>` on myntra.com and swiggy.com captures
+  all four JS-rendered privacy and terms documents as `rendered`, and every hash equals the panel
+  path's (`0a169e19`, `7d6e8512`, `80b9fb16`, `f28b0fcb`). The committed `corpus/` was not touched.
+- **Discovery bench** (`s3-a5`, `--ref=ccf5cfa`): **41/74 unasked, +15 by opening the page** —
+  chatpdf ×2, futuretools ×2, postman ×2, expedia ×2, zepto ×2, practo ×2, naukri terms, blinkit ×2.
+  The reference scored 42; the one difference is Blinkit privacy, whose read was refused on the
+  working tree's request but not the reference's on the same load. Blinkit alone, twice: 2/2 on both.
+  So unasked is S2's 43 in substance, and **56 of 74 documents are reachable in at most one click**.
+- `pnpm lint` 12/12, `format:check` clean, `pnpm test -- --silent=false` 16/16 (core 153, shared 12,
+  side panel 55), no console warnings. `tools/corpus` type-checks (its tsconfig gained `chrome`
+  types, since the bench and capture now run shared's tab code; a type error that predates S3 in
+  `bench-discovery.ts` went with the line it was on). `type-check` and `build` are the director's.
+- Harness, 360px, built into a scratch folder (`dist/` untouched): an uncovered site whose privacy
+  and terms are shells offers only its cookie policy; the privacy row explains and offers the open;
+  *Opening it in a background tab…*; one tab opened on the privacy URL and closed; the text with
+  "· read from the opened page"; the bar goes from 1 to 2 documents. Opening that finds nothing says
+  so once, with no second button. On the JS-rendered privacy page itself it is offered with no tab
+  opened. A hub row keeps its explanation and offers the open. No horizontal overflow.
+
+**Known limits, accepted and recorded.**
+- **Opening is on click only**, as scoped: a site whose documents are all built by JavaScript
+  (ChatPDF, Futuretools) offers nothing until the reader opens one. D8's automatic reads stay raw.
+- **The page itself is recognised only if it links to itself**, which footers almost always do
+  (Myntra, Practo do; Reddit's does not — a covered site does not need it, since its confirm reads
+  each analysis at its own address).
+- **Opened and still nothing**: Ola (policies in cross-origin iframes), Reuters (bot wall), WhatsApp
+  from India, TikTok (does not load from India); ICICI's terms and Adobe's privacy are real hubs.
+- **A policy on a page still changing at 12s is read as it stands** — Instagram's doubled text would
+  go to an analysis twice over. Harmless to freshness (it cannot claim *changed*); it costs tokens.
+- **JS-rendered documents never show *changed***, by decision above; a real change to one reads as
+  *Last read on …*. Recapturing the five packaged ones under the new rule (Track C) would label
+  their analyses `rendered` but, by the same decision, not change that.
+- Discovery misses A5 cannot reach: Twitch, Notion terms, Jio and Perplexity links are never
+  collected (behind a click, or not in the footer), Practo terms is still offered as `/providers`
+  unasked (opening its own row replaces it), Steam's terms need a word the pattern lacks.
+
+**Found in passing:** [#96](https://github.com/LuDraGa/unshafted/issues/96) — `tools/corpus/report.ts`
+still says the extension cannot reach cross-origin or JavaScript-rendered documents.
+
+**`cws/` wording — approved by the director 2026-09-28, applied in the S3 commit.**
+- `cws/privacy-policy.md` §5: "single, one-shot script" became "one-shot script"; item 2 gained a
+  paragraph on reading the open tab when it is the document, and on **Read it by opening the page**
+  (a background tab carrying the reader's session, as if they opened the link, only the text kept);
+  "What is never read" excepts a document the reader asked to have opened; "What we do NOT collect"
+  now says the link read discards the rest in the tab and a policy page's menus are dropped on the
+  device. **The effective date still moves at S5.**
+- **For S5, the dashboard drafts** (supersede S2's; they go into the 0.8.3 submission checklist with
+  `privacy-form-snapshot.md` in the same commit, whose claims table must also cite `fetchPolicyPage`
+  and the background-tab read):
+  - `host_permissions` (990/1,000): "Unshafted tells people what the site they are on makes them
+    agree to, so it has to read that site's page to find the legal documents it links to, such as
+    terms of service and privacy policy, and then read their text, including documents kept on
+    another domain. activeTab cannot do this: Chrome grants it only when someone clicks the toolbar
+    icon and takes it away the moment the tab navigates, so a side panel left open while a person
+    browses is refused on every new page. The page is read by one-shot scripts that run only while
+    the Unshafted side panel is open on it; nothing is registered to run in the background. We keep
+    only links that identify a legal document and discard the rest inside the tab. Documents are
+    fetched with credentials omitted. A document whose text only appears once its page runs is read
+    from that page if the person is on it, or on their click from a background tab we open and
+    close. No page content and no record of the sites someone visits is ever sent to us."
+  - `scripting` (624/1,000): "scripting runs two one-shot scripts, each only when the side panel
+    asks, while it is open on that page. One looks over the current page for links to legal
+    documents. The other reads a legal document's text from a page where that text only exists once
+    the page has run: the page the person is on, when it is itself the document, or a page the
+    extension opened in a background tab because the person asked it to read that document. Each
+    runs once and is finished. We never call chrome.scripting.registerContentScripts, and there is
+    no content_scripts entry in the manifest, so none of our scripts are left running on any page."
+  - `tabs` (806/1,000): the live text, with one sentence added before "All of this stays local":
+    "When someone asks the panel to read a document by opening it, we open that document in a
+    background tab and close the tab once it is read."
+
+**Manual test** (in the loaded extension, after `pnpm build` or with `pnpm dev` running, and the
+extension reloaded at `chrome://extensions`):
+
+1. Open `https://www.chatpdf.com/` and the side panel. Its privacy policy and terms live on Notion
+   and have no text until the page runs, so after *Reading this page's documents…* nothing is
+   offered and the bottom bar goes away. Under **On this page**, press **Read here** on the Privacy
+   Policy row: it says its text did not come with the page, with a **Read it by opening the page**
+   button. Press it. A tab appears beside yours without taking focus, and closes by itself within
+   about ten seconds; the row then shows the policy's text, ending "· read from the opened page",
+   and the bar offers **1 document**. *Broken:* no button, a tab that stays open or takes focus,
+   "Opening it showed no policy text", or the text of some other page.
+2. Open `https://www.myntra.com/privacypolicy` itself and the side panel. Without pressing anything,
+   the bar settles on **Analyse on your own key** with the privacy policy among what it offers, and
+   **no tab opens**: the text was read from the page you are on. **Read here** on its row shows the
+   text. *Broken:* privacy not offered, or a background tab flashing open.
+3. Open `https://www.reddit.com/` (covered). The header's meta line settles on **Last read on 4 Sep
+   2026** — Reddit's privacy policy is a shell to the extension's own fetch, so it cannot be
+   confirmed from here. Now open `https://www.reddit.com/policies/privacy-policy`: it settles on
+   **Current — verified against the live page**, read from the page itself. Best signed out: signed
+   in, the page may carry your account in its text and settle on *Last read on…* instead, which is
+   the safe outcome and worth telling me, not a failure. *Broken:* *Changed since we read it* on
+   either page, or an error.
+4. Open `https://www.amazon.com/` (covered, not JavaScript-rendered). As in S2: **Current — verified
+   against the live page**. *Broken:* anything else, or an error.
 
 ### S4
 
@@ -641,7 +824,7 @@ Scope: B2 re-analysis, B3, then the release.
 | A4 footer first | Done (S1) | 4 guards, each broken once; no bench page past the 100 cap |
 | A2 cross-origin | Done (S2) | one fetch path (extension, cookies omitted); exact packaged check; D8 automatic reads; bench 28 → 38 |
 | A3 hub pages | Done (S2) | `judgePolicyPage` on measured pages; 83/83 analysed = document; one-hop following; bench 38 → 43 |
-| A5 JS-rendered | Not started (S3) | |
+| A5 JS-rendered | Done (S3) | one rule both sides (`readPolicyPage`); capture = panel hashes; stable 29/29 then 27/29 → rendered never claims *changed*; bench +15 by opening |
 | B1 catalogue | Not started (S4) | |
 | B2 schema + prompt | Not started (S4) | |
 | B2 re-analysis | Not started (S5) | |
@@ -665,8 +848,28 @@ verdicts; "early" is the same run's reading at the `load` event.
 | s2-a2 | A2, read rule | **38/74** | 0 | 0 | 10 | 26 | 0 | 33 | cross-origin found (github, medium, wikipedia, heroku, chatgpt…); old "found" that never read now honest misses |
 | s2-a3 | pre-S2 (`6512686`, `--ref`) | 28/74 | 2 | 5 | 6 | 33 | 0 | 26 | same as in s2-a2: no drift on the reference |
 | s2-a3 | A2 + A3, read rule | **43/74** | 0 | 0 | 8 | 23 | 0 | 40 | +figma ×2, dyno ×2, goindigo privacy via hubs; −reuters, practo terms (other prose, #95) |
+| s3-start | `6512686` (`--ref`) | 28/74 | 2 | 5 | 6 | 33 | 0 | 26 | |
+| s3-start | S2 (`ccf5cfa`, working tree) | **43/74** | 0 | 0 | 8 | 23 | 0 | 38 | S2 verified: 0 verdicts differ from s2-a3 at settled |
+| s3-a5 | S2 (`ccf5cfa`, `--ref`) | 42/74 | 0 | 0 | 8 | 24 | 0 | 39 | blinkit terms refused on this load |
+| s3-a5 | A5 (working tree) | **41/74 +15 by opening** | 0 | 0 | 8 | 25 | 0 | 38 (+15) | blinkit ×2 refused on this load (2/2 alone, twice); by opening: chatpdf, futuretools, postman, expedia, zepto, practo, blinkit ×2 each, naukri terms |
 
 Egress IN (Maharashtra), Chrome 153.0.8010.54, playwright-core 1.63.0, concurrency 4.
+
+"+N by opening" (from S3) counts expected documents the panel does not offer unasked but reads when
+the reader presses **Read it by opening the page** on the row it lists them under. It is reported
+beside the headline and never folded into it.
+
+**Rendered-read record** (`bench-rendered.ts`, 3 loads each, loads of one URL sequential in one
+extension profile, so load 1 is cold):
+
+| Run | Reader | Not a document raw | Documents once opened | Stable | Load 1 not a document | Control (rendered = raw) |
+|---|---|---|---|---|---|---|
+| s3-stability | quiet 1.5s, bound 12s | 40 (21 bench, 8 packaged, 11 F5) | 29 | **29/29** | 3 (postman privacy, adobe offer terms ×2) | 10/12 (chatgpt ×2 differ) |
+| s3-final | + thin wait (under 2,000 chars, to 8s) | 40 | 29 | **27/29** (expedia privacy: a chat widget; instagram privacy: text doubled on a cold load at the bound) | 0 | 10/12 |
+
+The five packaged documents among them hash to the corpus on every settled load. Opened and still
+not a document: reuters terms, ola ×2, icici terms (hub), adobe privacy (hub), whatsapp ×3, and
+tiktok ×3 (does not load from India).
 
 From S2 the read rule's columns mean more than they did: "found" is a document the panel read and
 offered, not only one it listed, so `unreadable` and `lower` no longer occur. A ref from before S2

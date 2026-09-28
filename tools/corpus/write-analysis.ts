@@ -5,7 +5,7 @@
  *
  * The body carries only the analytic content — `hash8`, `summary`, `riskLevel`, `confidence`,
  * `exposures`, `availableActions`, `requiredDisclosures`, and optionally extra `domains` when
- * one document governs several sites. Everything else (contentHash, docType, verticals,
+ * one document governs several sites. Everything else (contentHash, docType, verticals, readMode,
  * sourceUrl, normalizerVersion, schemaVersion) is copied from `curated.json`, which is copied
  * from the manifest, which is what the capture actually observed.
  *
@@ -70,6 +70,8 @@ const main = async () => {
     sourceUrl: entry.sourceUrl,
     promptVersion: PROMPT_VERSION,
     normalizerVersion: POLICY_NORMALIZER_VERSION,
+    // A curated.json written before S3 has no readMode; every capture before it was raw.
+    readMode: entry.readMode ?? 'raw',
     model: ANALYST_MODEL,
     analyzedAt: new Date().toISOString(),
     peerDeviation: [],

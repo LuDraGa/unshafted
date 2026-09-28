@@ -132,6 +132,7 @@ export const runSitePolicyAnalysis = async (
       sourceUrl: target.sourceUrl,
       promptVersion: SITE_POLICY_PROMPT_VERSION,
       normalizerVersion: POLICY_NORMALIZER_VERSION,
+      readMode: target.readMode,
       model: resolved.deepModel,
       analyzedAt: new Date().toISOString(),
       summary: result.summary,

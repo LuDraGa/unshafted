@@ -1,5 +1,5 @@
 import type { Market, SiteTag } from './sites.js';
-import type { PolicyDocType } from '../../packages/unshafted-core/lib/site-policy/types.js';
+import type { PolicyDocType, PolicyReadMode } from '../../packages/unshafted-core/lib/site-policy/types.js';
 
 /**
  * The manifest — the MAP, and the actual deliverable of this session.
@@ -19,8 +19,13 @@ export type DocumentSurface = 'footer' | 'signup' | 'checkout' | 'in_app';
 export type CaptureStatus =
   /** Fetched, normalized and hashed. */
   | 'captured'
-  /** Reached, but the normalized text is too short to be a real policy — SPA shell, wall, stub. */
+  /**
+   * Reached, but not a document or a hub by A3's measure even after opening the page — a shell, a
+   * wall. (Before S3 of the site coverage work: normalized text under 2,000 characters.)
+   */
   | 'thin'
+  /** A page that lists policy documents rather than being one (A3), even after opening it. */
+  | 'hub'
   /** Non-2xx response. */
   | 'http_error'
   /** Transport failed entirely — DNS, TLS, timeout, connection reset. */
@@ -50,8 +55,10 @@ export type CapturedDocument = {
   /** Host of `finalUrl`. May differ from the site — `policies.google.com` serves three sites. */
   host: string | null;
   /**
-   * False means the extension CANNOT fetch this document: AD-4 fetches from inside the page,
-   * which is same-origin by construction. Counting these is one of this pass's outputs.
+   * Whether the extension can read this document at all. Always true since S2: the extension reads
+   * every linked document itself, wherever it is hosted. It was false for a cross-origin document
+   * while AD-4 (fetch from inside the page, same-origin by construction) stood, and older captures
+   * still say so.
    */
   reachableByClient: boolean;
 
@@ -76,10 +83,20 @@ export type CapturedDocument = {
   normalizedLength: number | null;
   /** False correlates with noisier text — the normalizer fell back to the whole document. */
   usedMainContainer: boolean | null;
+  /**
+   * Which reading `contentHash` is over (A5): the raw HTML, or the page as JavaScript built it once
+   * opened. On a document that could not be captured, whether opening it was tried. Absent on
+   * captures made before S3, which were all raw.
+   */
+  readMode?: PolicyReadMode | null;
 
   /** What a plain Node `fetch()` computes — i.e. what a Part 2 server would get. */
   nodeFetch: ComparisonFetch;
-  /** Rendered DOM, captured ONLY when canonical text was thin, to separate SPA from bad URL. */
+  /**
+   * Before S3 only: the rendered DOM of a document whose raw text was thin, recorded to tell an SPA
+   * shell from a bad URL. Since S3 a rendered read is the canonical one when the raw HTML is not a
+   * document (`readMode`), so nothing records this any more.
+   */
   rendered?: ComparisonFetch;
 
   capturedAt: string;

@@ -25,7 +25,7 @@
  */
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import type { FetchedPolicyPage } from '../../packages/unshafted-core/lib/site-policy/read.js';
+import type { FetchedPolicyPage, RenderedPolicyPage } from '../../packages/unshafted-core/lib/site-policy/read.js';
 import type { Browser, CDPSession, LaunchOptions } from 'playwright-core';
 
 /** Launch options a browser needs before `openExtensionFetcher` can load into it. */
@@ -37,8 +37,22 @@ const extensionLaunchOptions = (userAgent: string): Pick<LaunchOptions, 'ignoreD
 type ExtensionFetcher = {
   /** A fetch that runs `fetchSource` — `String(fetchPolicyPage)` from the core being measured. */
   fetchWith: (fetchSource: string) => (url: string) => Promise<FetchedPolicyPage>;
+  /**
+   * The panel's rendered read (A5): `openSource` is `String(readInBackgroundTab)` from shared and
+   * `readerSource` is `String(readRenderedPageInPage)` from core, so a page is opened in a
+   * background tab of the extension's own and read exactly as the panel reads it.
+   */
+  renderWith: (openSource: string, readerSource: string) => (url: string) => Promise<RenderedPolicyPage | null>;
   extensionId: string;
 };
+
+/**
+ * Sources are compiled by `tsx`, whose esbuild wraps named inner functions in `__name(…)`. The probe
+ * page has no such helper, so each evaluation brings a no-op one. The in-page reader must not need
+ * it — it is stringified again into the target page, where this shim does not follow it — and core
+ * guards that with a test.
+ */
+const withNameShim = (source: string) => `((__name) => (${source}))((target) => target)`;
 
 type TargetMessage = { id?: number; result?: { result?: { value?: unknown }; exceptionDetails?: unknown } };
 
@@ -55,7 +69,9 @@ const openExtensionFetcher = async (browser: Browser, dir: string): Promise<Exte
       manifest_version: 3,
       name: 'unshafted-bench-probe',
       version: '0.0.1',
-      // The extension's own grant, and nothing else: no scripts, no permissions beyond host access.
+      // The extension's own grants: host access for the reads, `scripting` for the rendered read,
+      // the panel's own pair. Opening and closing a tab needs no permission.
+      permissions: ['scripting'],
       host_permissions: ['<all_urls>'],
     }),
   );
@@ -99,7 +115,7 @@ const openExtensionFetcher = async (browser: Browser, dir: string): Promise<Exte
     (fetchSource: string) =>
     async (url: string): Promise<FetchedPolicyPage> => {
       const response = await call('Runtime.evaluate', {
-        expression: `(${fetchSource})(${JSON.stringify(url)})`,
+        expression: `(${withNameShim(fetchSource)})(${JSON.stringify(url)})`,
         awaitPromise: true,
         returnByValue: true,
       });
@@ -116,7 +132,18 @@ const openExtensionFetcher = async (browser: Browser, dir: string): Promise<Exte
       );
     };
 
-  return { fetchWith, extensionId };
+  const renderWith =
+    (openSource: string, readerSource: string) =>
+    async (url: string): Promise<RenderedPolicyPage | null> => {
+      const response = await call('Runtime.evaluate', {
+        expression: `(${withNameShim(openSource)})(${JSON.stringify(url)}, ${readerSource})`,
+        awaitPromise: true,
+        returnByValue: true,
+      });
+      return (response.result?.result?.value as RenderedPolicyPage | null | undefined) ?? null;
+    };
+
+  return { fetchWith, renderWith, extensionId };
 };
 
 export { extensionLaunchOptions, openExtensionFetcher };

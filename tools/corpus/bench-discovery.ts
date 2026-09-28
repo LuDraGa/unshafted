@@ -47,9 +47,18 @@
  *
  * Every reading keeps its raw candidates and every redirect resolved, so a run can be re-scored
  * offline when the scoring changes, and the run records which collector produced it.
+ *
+ * ONE CLICK FURTHER (A5, S3). A document whose raw HTML is not a document — built by JavaScript,
+ * behind a bot check — is never offered automatically; its row offers "Read it by opening the
+ * page". For every expected document the panel did not find on its own, but lists under the right
+ * type, the bench makes that click: it opens the page exactly as the panel does (shared's
+ * `readInBackgroundTab` with core's `readRenderedPageInPage`, in the probe extension) and records
+ * `byOpening`. The headline stays what the panel offers unasked; "+N by opening" is reported beside
+ * it, never folded in.
  */
 import { BENCH_SITES } from './bench-sites.js';
 import { extensionLaunchOptions, openExtensionFetcher } from './extension-fetch.js';
+import { readInBackgroundTab } from '../../packages/shared/lib/utils/policy-capture.js';
 import * as currentDiscovery from '../../packages/unshafted-core/lib/site-policy/discover.js';
 import * as currentRead from '../../packages/unshafted-core/lib/site-policy/read.js';
 import { chromium } from 'playwright-core';
@@ -62,7 +71,11 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import type { BenchSite } from './bench-sites.js';
 import type { PolicyCandidate, RankedPolicyCandidate } from '../../packages/unshafted-core/lib/site-policy/discover.js';
-import type { FetchedPolicyPage, PolicyDocumentCapture } from '../../packages/unshafted-core/lib/site-policy/read.js';
+import type {
+  FetchedPolicyPage,
+  PolicyDocumentCapture,
+  PolicyPageRender,
+} from '../../packages/unshafted-core/lib/site-policy/read.js';
 import type { PolicyDocType } from '../../packages/unshafted-core/lib/site-policy/types.js';
 import type { Browser, BrowserContext, Page } from 'playwright-core';
 
@@ -98,6 +111,8 @@ type DiscoveryModule = {
   chooseOfferedDocuments?: typeof currentRead.chooseOfferedDocuments;
   readPolicyDocument?: typeof currentRead.readPolicyDocument;
   fetchPolicyPage?: typeof currentRead.fetchPolicyPage;
+  /** From S3: the in-page reader a page is opened with. A ref without it cannot open pages. */
+  readRenderedPageInPage?: typeof currentRead.readRenderedPageInPage;
 };
 
 /** How a variant decides what the panel offers: by reading (S2 on), or by origin (before). */
@@ -142,7 +157,12 @@ type ReadRecord = {
   finalUrl?: string;
   hash?: string;
   length?: number;
+  /** From S3: raw or rendered — see `PolicyReadModeSchema`. */
+  readMode?: string;
 };
+
+/** What opening an expected document's page on the reader's click produced (A5). */
+type OpenOutcome = 'found' | 'hub' | 'unreadable';
 
 type DocScore = {
   docType: PolicyDocType;
@@ -157,6 +177,11 @@ type DocScore = {
   reason?: MissReason;
   /** For an `unreadable` miss: why reading the expected document did not produce a policy. */
   readReason?: string;
+  /**
+   * Not found unasked, listed under its type, and not a document on its raw read: what opening its
+   * page on the reader's click produced. Absent when there was nothing to open.
+   */
+  byOpening?: OpenOutcome;
 };
 
 type VariantReading = {
@@ -192,6 +217,8 @@ type SiteResult = {
   redirects: Record<string, { resolvesTo: string | null; error?: string }>;
   /** Read rule: every document read, per variant, so a re-score needs no network. */
   reads: Partial<Record<Variant['name'], Record<string, ReadRecord>>>;
+  /** Every page opened on a simulated click (A5), current variant only. */
+  opened?: Record<string, ReadRecord>;
   timedOut: boolean;
 };
 
@@ -328,6 +355,55 @@ const resolveRedirect = async (context: BrowserContext, site: SiteResult, url: s
 /** Reads a document for one variant, once per site, whatever reading asks for it again. */
 type SiteReader = (url: string) => Promise<PolicyDocumentCapture>;
 
+const recordOf = (capture: PolicyDocumentCapture): ReadRecord =>
+  capture.status === 'captured'
+    ? {
+        status: capture.status,
+        finalUrl: capture.sourceUrl,
+        hash: capture.hash,
+        length: capture.text.length,
+        readMode: capture.readMode,
+      }
+    : capture.status === 'unreadable'
+      ? { status: capture.status, reason: capture.reason, readMode: capture.readMode }
+      : { status: capture.status, finalUrl: capture.sourceUrl, readMode: capture.readMode };
+
+/** A5: its raw read was not a document, it has not been opened, and it is a page at all. */
+const canOpen = (capture: PolicyDocumentCapture | undefined): boolean =>
+  capture !== undefined &&
+  capture.readMode === 'raw' &&
+  (capture.status === 'hub' || (capture.status === 'unreadable' && capture.reason !== 'not-html'));
+
+/**
+ * Opens a document's page as the panel does on "Read it by opening the page": the raw read first,
+ * then the page opened in a background tab of the probe extension. Once per site per URL.
+ */
+const makeSiteOpener = (
+  site: SiteResult,
+  variant: Variant,
+  fetchWith: (fetchSource: string) => (url: string) => Promise<FetchedPolicyPage>,
+  renderWith: (openSource: string, readerSource: string) => PolicyPageRender,
+): SiteReader | undefined => {
+  const { readPolicyDocument, fetchPolicyPage, readRenderedPageInPage } = variant.module;
+  if (!readPolicyDocument || !fetchPolicyPage || !readRenderedPageInPage) return undefined;
+  const fetchPage = fetchWith(String(fetchPolicyPage));
+  const render = renderWith(String(readInBackgroundTab), String(readRenderedPageInPage));
+  const records = (site.opened ??= {});
+  const inflight = new Map<string, Promise<PolicyDocumentCapture>>();
+
+  return url => {
+    let pending = inflight.get(url);
+    if (!pending) {
+      pending = readPolicyDocument(url, fetchPage, render).then(capture => {
+        records[url] = recordOf(capture);
+        return capture;
+      });
+      inflight.set(url, pending);
+    }
+    return pending;
+  };
+};
+
 const makeSiteReader = (
   site: SiteResult,
   variant: Variant,
@@ -343,10 +419,7 @@ const makeSiteReader = (
     let pending = inflight.get(url);
     if (!pending) {
       pending = readPolicyDocument(url, fetchPage).then(capture => {
-        records[url] =
-          capture.status === 'captured'
-            ? { status: capture.status, finalUrl: capture.sourceUrl, hash: capture.hash, length: capture.text.length }
-            : { status: capture.status, reason: capture.reason };
+        records[url] = recordOf(capture);
         return capture;
       });
       inflight.set(url, pending);
@@ -378,6 +451,7 @@ const listingReason = (
 const scoreByReading = async (
   variant: Variant,
   read: SiteReader,
+  open: SiteReader | undefined,
   spec: BenchSite,
   documents: RankedPolicyCandidate[],
   everything: RankedPolicyCandidate[],
@@ -427,6 +501,21 @@ const scoreByReading = async (
       offered,
       ...(readReason ? { readReason } : {}),
     });
+  }
+
+  // A5: the click the panel offers on a row it could not read. Only rows it lists under the
+  // expected type — a row it types otherwise would open as the wrong kind of document.
+  if (open) {
+    for (const score of scores) {
+      if (score.verdict === 'found') continue;
+      const expectation = spec.expected.find(item => item.docType === score.docType)!;
+      const { listed, reason } = listingReason(documents, everything, expectation);
+      if (!listed || reason) continue;
+      const raw = reads[listed.url] ?? (await read(listed.url));
+      if (!canOpen(raw)) continue;
+      const opened = await open(listed.url);
+      score.byOpening = opened.status === 'captured' ? 'found' : opened.status;
+    }
   }
   return { scores, offers };
 };
@@ -502,6 +591,7 @@ const scoreReading = async (
   spec: BenchSite,
   variant: Variant,
   read: SiteReader | undefined,
+  open: SiteReader | undefined,
   pageUrl: string,
   candidates: PolicyCandidate[],
 ): Promise<VariantReading> => {
@@ -515,7 +605,7 @@ const scoreReading = async (
   let offers: string[] | undefined;
   let analysableCount: number;
   if (variant.offerRule === 'read' && read) {
-    const scored = await scoreByReading(variant, read, spec, documents, everything);
+    const scored = await scoreByReading(variant, read, open, spec, documents, everything);
     scores = scored.scores;
     offers = scored.offers.map(offer => offer.url);
     analysableCount = scored.offers.length;
@@ -544,6 +634,8 @@ const scoreReading = async (
 // ── Per site ──
 
 type Readers = Partial<Record<Variant['name'], SiteReader>>;
+/** The simulated click, per variant: only a variant that can open pages has one. */
+type Openers = Partial<Record<Variant['name'], SiteReader>>;
 
 const takeReading = async (
   context: BrowserContext,
@@ -552,6 +644,7 @@ const takeReading = async (
   spec: BenchSite,
   variants: Variant[],
   readers: Readers,
+  openers: Openers,
   name: ReadingName,
 ) => {
   const collectAll = async (): Promise<PolicyCandidate[][]> => {
@@ -590,6 +683,7 @@ const takeReading = async (
       spec,
       variant,
       readers[variant.name],
+      openers[variant.name],
       pageUrl,
       collected[index] ?? [],
     );
@@ -614,6 +708,7 @@ const benchSite = async (
   site: SiteResult,
   variants: Variant[],
   readers: Readers,
+  openers: Openers,
 ) => {
   let page: Page | null = null;
   try {
@@ -651,14 +746,14 @@ const benchSite = async (
     } catch {
       // A page whose load event never fires is still read, as the panel would read it.
     }
-    await takeReading(context, page, site, spec, variants, readers, 'early');
+    await takeReading(context, page, site, spec, variants, readers, openers, 'early');
 
     try {
       await page.waitForLoadState('networkidle', { timeout: NETWORK_IDLE_TIMEOUT_MS });
     } catch {
       // Ad-heavy pages never go idle; the timeout is the point, not a failure.
     }
-    await takeReading(context, page, site, spec, variants, readers, 'settled');
+    await takeReading(context, page, site, spec, variants, readers, openers, 'settled');
 
     for (const _pass of [0, 1]) {
       try {
@@ -668,7 +763,7 @@ const benchSite = async (
       }
       await page.waitForTimeout(1_500);
     }
-    await takeReading(context, page, site, spec, variants, readers, 'scrolled');
+    await takeReading(context, page, site, spec, variants, readers, openers, 'scrolled');
   } catch (error) {
     site.homepage.error = error instanceof Error ? error.message.split('\n')[0] : 'Bench failed.';
   } finally {
@@ -698,16 +793,31 @@ const tally = (sites: SiteResult[], reading: ReadingName, variant: Variant['name
   return counts;
 };
 
-const headlineLine = (counts: Record<Verdict, number>): string => {
+/** Expected documents not found unasked that one "Read it by opening the page" click reads (A5). */
+const foundByOpening = (sites: SiteResult[], reading: ReadingName, variant: Variant['name']): number =>
+  sites.reduce(
+    (sum, site) =>
+      sum +
+      (site.readings[reading]?.variants[variant]?.scores.filter(score => score.byOpening === 'found').length ?? 0),
+    0,
+  );
+
+const headlineLine = (counts: Record<Verdict, number>, opened: number): string => {
   const total = VERDICTS.reduce((sum, verdict) => sum + counts[verdict], 0);
   return (
-    `found ${counts.found}/${total - counts.failed} · unreadable ${counts.found_unreadable} · ` +
-    `lower ${counts.found_lower} · wrong page ${counts.wrong_page} · missed ${counts.missed} · failed ${counts.failed}`
+    `found ${counts.found}/${total - counts.failed}${opened ? ` (+${opened} by opening)` : ''} · ` +
+    `unreadable ${counts.found_unreadable} · lower ${counts.found_lower} · wrong page ${counts.wrong_page} · ` +
+    `missed ${counts.missed} · failed ${counts.failed}`
   );
 };
 
 const describe = (score: DocScore | undefined): string => {
   if (!score) return 'failed';
+  const opened = score.byOpening ? ` · opening it → ${score.byOpening}` : '';
+  return describeVerdict(score) + opened;
+};
+
+const describeVerdict = (score: DocScore): string => {
   switch (score.verdict) {
     case 'found':
       return 'found';
@@ -732,7 +842,12 @@ const report = (run: BenchRun, variants: Variant[], previous: BenchRun | null) =
     console.log(`[bench] ${name}`);
     for (const reading of READINGS) {
       const marker = reading === HEADLINE ? '*' : ' ';
-      console.log(`  ${marker}${reading.padEnd(9)} ${headlineLine(tally(run.sites, reading, variant.name))}`);
+      console.log(
+        `  ${marker}${reading.padEnd(9)} ${headlineLine(
+          tally(run.sites, reading, variant.name),
+          foundByOpening(run.sites, reading, variant.name),
+        )}`,
+      );
     }
   }
   console.log(`  (* headline: the panel opened on a loaded page)`);
@@ -844,11 +959,17 @@ const main = async () => {
       });
       try {
         const readers: Readers = {};
+        const openers: Openers = {};
         for (const variant of variants) {
-          if (variant.offerRule === 'read' && fetcher)
+          if (variant.offerRule === 'read' && fetcher) {
             readers[variant.name] = makeSiteReader(site, variant, fetcher.fetchWith);
+            // The click is scored for the working tree only: a ref is the baseline it improves on.
+            if (variant.name === 'current') {
+              openers[variant.name] = makeSiteOpener(site, variant, fetcher.fetchWith, fetcher.renderWith);
+            }
+          }
         }
-        await Promise.race([benchSite(context, spec, site, variants, readers), timedOut]);
+        await Promise.race([benchSite(context, spec, site, variants, readers, openers), timedOut]);
       } finally {
         clearTimeout(timer);
         // Closing the context aborts whatever was still pending on it after a timeout.

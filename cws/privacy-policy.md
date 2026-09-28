@@ -28,16 +28,18 @@ AI-generated risk analysis results (quick scans and deep analyses) are stored lo
 
 ### 5. Website content (policy documents only)
 
-To tell you what a site makes you agree to, the extension reads the page you are viewing. It finds those documents with a **single, one-shot script run in the open tab**, and only while the Unshafted side panel is open on that page. There is no persistent content script, nothing runs in the background on pages you are not looking at, and nothing is left behind on a page after the read.
+To tell you what a site makes you agree to, the extension reads the page you are viewing. It finds those documents with a **one-shot script run in the open tab**, and only while the Unshafted side panel is open on that page. There is no persistent content script, nothing runs in the background on pages you are not looking at, and nothing is left behind on a page after the read.
 
 Two things are read:
 
 1. **The links on the page.** The extension collects the anchor links on the current page and keeps only those whose text or URL identifies a legal document — terms of service, privacy policy, cookie policy, EULA, acceptable use, and similar. Everything else on the page is discarded and never leaves the tab.
 2. **The text of policy documents.** The extension fetches policy documents itself, with cookies omitted, so the request never carries your signed-in session, and extracts their text. It does this only while the side panel is open on that page, and in three cases: to check that a document we have already analyzed still matches what the site serves (reading that document at the address we analyzed it from); on a site we have not analyzed, to read the top document of each kind the page links to — terms, privacy policy, cookie policy and similar, at most ten — so it only offers you documents it can actually read; and when you ask to read or analyze a document. A document may be hosted on another domain than the page, such as a parent company's site or a policy-hosting service; it is read only because the page links to it.
 
+   Some sites send a document's text only once the page has run in a browser. When the page you are viewing is itself one of these documents and its text arrives that way, the extension reads the text from the open tab, with a second one-shot script. Anywhere else it waits for you: if you choose **Read it by opening the page**, it opens that document in a background tab, reads its text once the page has loaded, and closes the tab. That tab is an ordinary tab of your browser, so the site sees the visit as yours, with your cookies and signed-in session, as it would if you opened the link yourself; the extension keeps only the document's text.
+
 **Where this text goes.** Nothing here is sent to Unshafted. Policy text is hashed on your device (SHA-256) to compare against our published corpus, and the comparison happens locally. If — and only if — you explicitly click to analyze a site's documents, the policy text is sent to the AI provider **you** configured, using **your own** API key, exactly as an uploaded contract is (see the AI provider section below). If you have enabled Drive backup, the resulting analysis is written to your own Google Drive.
 
-**What is never read.** Page content that is not a policy document, form fields, passwords, cookies, page contents on tabs where the panel is not open, and anything on a page you have not opened the panel on. The extension does not build, store, or transmit a record of the sites you visit.
+**What is never read.** Page content that is not a policy document, form fields, passwords, cookies, page contents on tabs where the panel is not open (other than a document you asked it to read by opening, in the tab it opens for that and then closes), and anything on a page you have not opened the panel on. The extension does not build, store, or transmit a record of the sites you visit.
 
 ### 6. Usage counters
 
@@ -152,7 +154,7 @@ What we do NOT collect
 ----------------------
 
 - No browsing history. The extension reads the page you have the panel open on, in the moment, to find its policy documents; it does not record, store, or transmit which sites you visited
-- No page content beyond policy documents. Everything else the one-shot read touches is discarded inside the tab and never leaves your device
+- No page content beyond policy documents. The link read keeps only legal-document links and discards the rest inside the tab, and a policy page's menus and other page furniture are dropped on your device as its text is extracted. Nothing else from the page leaves your device
 - No analytics, telemetry, or crash reporting
 - No cookies, fingerprinting, or tracking
 - No location data

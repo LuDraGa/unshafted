@@ -60,6 +60,23 @@ consensus in Part 2) falls out of this one property.
 
 Hash over **normalized** text, never raw HTML, so an unrelated site redesign does not churn it.
 
+> **Amended 2026-09-28 (site coverage S3, A5): raw if it is a document, else rendered.** Which HTML
+> the normalizer reads is now one rule, `readPolicyPage` in
+> `packages/unshafted-core/lib/site-policy/read.ts`, applied identically by the panel and the corpus
+> capture: the raw HTML the server sends, if it is a document (A3's `judgePolicyPage`); otherwise the
+> page as JavaScript builds it, opened and read once it settles (`readRenderedPageInPage`), through the
+> same normalizer. Some sites send no policy text at all — Notion, Termly, Practo, Myntra, Swiggy —
+> and five packaged documents (Facebook ×2, Instagram, Reddit, eBay) are a shell to a cookieless fetch.
+> Every result records which reading it is (`readMode`, also on the analysis). A rendered read that
+> matches an analysis's hash confirms it — noise can make two readings of one document differ, never
+> two documents agree — but **only a raw read may ever claim *changed***. Raw and rendered text of one
+> document need not agree (2 of 12 server-rendered pages measured did not), and rendered pages are not
+> stable enough to accuse: opened three times each (`bench-rendered.ts`), 29 of 29 hashed alike in one
+> run and 27 of 29 in the next — Expedia's privacy page grew a live-chat widget's heading on one load,
+> and Instagram's held its whole policy twice on a cold load still changing at the reader's bound.
+> The hash is still the version; what changed is which text of a JS-built document it is the version
+> of, and that such a version can confirm but never accuse.
+
 ### AD-2 — Two lookups that must never be conflated
 
 |  | Domain check | Hash check |
@@ -271,7 +288,8 @@ Fires only on an explicit user gesture — the popup opening, or a click within 
 5. **`robots.txt` is a dead end** — it is disallow rules, it does not point at policies. Do not
    build on it.
 6. Fetch the chosen URL *in the page context* (AD-4), return HTML. *(Since S2 of the site coverage
-   work: fetched by the extension itself — AD-4 is retired.)*
+   work: fetched by the extension itself — AD-4 is retired. Since S3, a page whose raw HTML is not a
+   document is read rendered — see AD-1's amendment.)*
 7. Normalize → hash.
 
 - [x] Injected discovery function — shipped as `collectPolicyCandidatesInPage`, not the

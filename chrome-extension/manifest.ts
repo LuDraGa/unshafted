@@ -33,7 +33,9 @@ const manifest = {
   version: packageJson.version,
   description: '__MSG_extensionDescription__',
   // `tabs` reads tab URLs for the ambient badge (bundled index, zero network).
-  // `scripting` runs the one-shot policy discovery and fetch in the page.
+  // `scripting` runs one-shot scripts in a page: the link discovery, and, for a policy whose text
+  // only exists once its page has run, the read of that page — the tab the reader is on, or one
+  // opened in the background on their click (A5). Documents themselves are fetched by the extension.
   // `sidePanel` renders the analysis in Chrome's own panel — beside the page, never inside it.
   // `activeTab` is kept alongside `host_permissions` on purpose: it is what still works if a user
   // ever revokes site access from chrome://extensions, and it costs nothing to declare.

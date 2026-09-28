@@ -1,7 +1,7 @@
 import { RefreshIcon } from '@src/components/Icons';
 import { DOC_TYPE_LABELS, downloadFilename, shortenUrl } from '@src/lib/presentation';
 import { useState } from 'react';
-import type { RankedPolicyCandidate, SitePolicyAnalysis } from '@extension/unshafted-core';
+import type { PolicyDocumentCapture, RankedPolicyCandidate, SitePolicyAnalysis } from '@extension/unshafted-core';
 import type { LivePolicyCheck } from '@src/hooks/useLivePolicyCheck';
 import type { ReactNode } from 'react';
 
@@ -51,6 +51,74 @@ const downloadText = (filename: string, text: string) => {
 const documentLabel = (candidate: RankedPolicyCandidate): string =>
   candidate.label || (candidate.docType ? DOC_TYPE_LABELS[candidate.docType] : shortenUrl(candidate.url));
 
+/**
+ * Whether opening the page may still read it (A5): its raw HTML was not a document, it has not been
+ * opened yet, and it is a page at all — a tab showing a PDF has nothing to read.
+ */
+const canOpen = (capture: PolicyDocumentCapture | null): boolean =>
+  capture !== null &&
+  capture.readMode === 'raw' &&
+  (capture.status === 'hub' || (capture.status === 'unreadable' && capture.reason !== 'not-html'));
+
+const Note = ({ children }: { children: ReactNode }) => (
+  <p className="m-0 text-[11px] text-[var(--unshafted-text-faint)]">{children}</p>
+);
+
+/**
+ * The one way past a page whose text is built by JavaScript. A button, and only ever a button: the
+ * page opens in a tab of the reader's own, carrying their session, so it happens when they ask and
+ * never on its own — and the line under it says what the click will do before they make it.
+ */
+const OpenToRead = ({ onOpen }: { onOpen: () => void }) => (
+  <>
+    <div className="panel-actions">
+      <button className="panel-button" type="button" onClick={onOpen}>
+        Read it by opening the page
+      </button>
+    </div>
+    <Note>Opens it in a background tab, reads it once it has loaded, and closes it.</Note>
+  </>
+);
+
+/** What the row says when a read produced no text, and the way on where there is one. */
+const NoText = ({ capture, onOpen }: { capture: PolicyDocumentCapture; onOpen: () => void }) => {
+  const openable = canOpen(capture);
+
+  if (capture.status === 'hub') {
+    return (
+      <>
+        <Note>This page lists documents rather than being one. The ones it links to are in this list.</Note>
+        {/* A page whose script has not run can look like a hub: Practo's privacy policy does. */}
+        {openable ? (
+          <>
+            <Note>Some sites only show a policy’s text once the page runs.</Note>
+            <OpenToRead onOpen={onOpen} />
+          </>
+        ) : null}
+      </>
+    );
+  }
+  if (capture.status !== 'unreadable') return null;
+  if (capture.reason === 'not-html')
+    return <Note>This is a file, not a page — most likely a PDF. Open it to read it.</Note>;
+  if (!openable) {
+    return (
+      <Note>
+        Opening it showed no policy text either. It may need you to be signed in, or keep its text in an embedded frame.
+      </Note>
+    );
+  }
+  return (
+    <>
+      <Note>
+        Its text did not come with the page. The site builds it with JavaScript as the page opens, or turns away plain
+        requests.
+      </Note>
+      <OpenToRead onOpen={onOpen} />
+    </>
+  );
+};
+
 const DocumentRow = ({
   candidate,
   domain,
@@ -62,15 +130,16 @@ const DocumentRow = ({
   check: LivePolicyCheck;
   onAnalyse?: (candidate: RankedPolicyCandidate) => void;
 }) => {
-  const [open, setOpen] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const entry = check.reads[candidate.url];
 
   const toggle = () => {
-    if (!open) check.readDocument(candidate.url);
-    setOpen(!open);
+    if (!expanded) check.readDocument(candidate.url);
+    setExpanded(!expanded);
   };
 
   const capture = entry?.state === 'done' ? entry.capture : null;
+  const open = () => check.openDocument(candidate);
 
   return (
     <div className="panel-row panel-reader-row">
@@ -86,8 +155,8 @@ const DocumentRow = ({
           Every document can be read here, wherever it is hosted: the extension reads it itself
           (D5; AD-4, which limited this to same-origin documents, is retired).
         */}
-        <button className="panel-text-button" onClick={toggle} type="button" aria-expanded={open}>
-          {open ? 'Hide text' : 'Read here'}
+        <button className="panel-text-button" onClick={toggle} type="button" aria-expanded={expanded}>
+          {expanded ? 'Hide text' : 'Read here'}
         </button>
 
         <a className="panel-text-button" href={candidate.url} target="_blank" rel="noreferrer">
@@ -119,24 +188,26 @@ const DocumentRow = ({
         ) : null}
       </div>
 
-      {open ? (
+      {expanded ? (
         <div className="mt-2">
           {!entry || entry.state === 'loading' ? (
-            <p className="m-0 text-[11px] text-[var(--unshafted-text-faint)]">Reading…</p>
+            <Note>Reading…</Note>
+          ) : entry.state === 'opening' ? (
+            <p className="m-0 flex items-center text-[11px] text-[var(--unshafted-text-faint)]">
+              <span className="panel-busy-dot" aria-hidden="true" />
+              Opening it in a background tab…
+            </p>
           ) : capture?.status === 'captured' ? (
             <>
               <pre className="panel-reader-text">{capture.text.slice(0, READ_TEXT_LIMIT)}</pre>
               <p className="m-0 mt-1 text-[10px] text-[var(--unshafted-text-faint)]">
                 Normalized text · {capture.text.length.toLocaleString()} characters · {capture.hash.slice(0, 12)}
+                {capture.readMode === 'rendered' ? ' · read from the opened page' : ''}
               </p>
             </>
-          ) : (
-            <p className="m-0 text-[11px] text-[var(--unshafted-text-faint)]">
-              {capture?.status === 'hub'
-                ? 'This page lists documents rather than being one. The ones it links to are in this list.'
-                : 'This link did not return a readable document. Opening it in a tab will still work.'}
-            </p>
-          )}
+          ) : capture ? (
+            <NoText capture={capture} onOpen={open} />
+          ) : null}
         </div>
       ) : null}
     </div>

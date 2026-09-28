@@ -1,5 +1,10 @@
-import { capturePolicyDocument, discoverActiveTabPolicies } from '@extension/shared';
-import { chooseOfferedDocuments } from '@extension/unshafted-core';
+import {
+  capturePolicyDocument,
+  discoverActiveTabPolicies,
+  renderFromTab,
+  renderInBackgroundTab,
+} from '@extension/shared';
+import { chooseOfferedDocuments, isSamePage } from '@extension/unshafted-core';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { PolicyDiscoveryResult, PolicyDocumentCapture } from '@extension/shared';
 import type { RankedPolicyCandidate, SitePolicyAnalysis } from '@extension/unshafted-core';
@@ -30,6 +35,12 @@ import type { RankedPolicyCandidate, SitePolicyAnalysis } from '@extension/unsha
  *
  * The reader shares this hook's cache so that a document the check already read opens instantly,
  * and so that reading it costs no second request.
+ *
+ * A5: a document whose raw HTML is not a document — built by JavaScript, or behind a bot check —
+ * is read by opening the page, in two places only. When the page the reader is on IS that document,
+ * it is read from their own tab, as it stands: nothing is opened. Anywhere else it waits for their
+ * click (`openDocument`), because opening a page means a tab in their window, carrying their
+ * session.
  */
 
 /**
@@ -64,7 +75,11 @@ type DocumentFreshness =
   /** We could not read the live page. Says nothing about the document either way. */
   | 'unconfirmed';
 
-type ReaderEntry = { state: 'loading' } | { state: 'done'; capture: PolicyDocumentCapture };
+type ReaderEntry =
+  | { state: 'loading' }
+  /** Being read by opening the page in a background tab, on the reader's click (A5). */
+  | { state: 'opening' }
+  | { state: 'done'; capture: PolicyDocumentCapture };
 
 /** What a run answers for. Two runs are the same run when all four match. */
 type RunIdentity = {
@@ -114,6 +129,12 @@ type LivePolicyCheck = {
   reads: Record<string, ReaderEntry>;
   readDocument: (url: string) => void;
   /**
+   * Read a document by opening it in a background tab, read and closed (A5) — only ever on the
+   * reader's click. A document it reads is offered for analysis if nothing of its type was, and a
+   * covered site's analysis at that address learns whether it is still current.
+   */
+  openDocument: (document: RankedPolicyCandidate) => void;
+  /**
    * Look at the page again, on a user's click.
    *
    * This button used to be a lie. Under `activeTab` the common failure was a revoked grant, and
@@ -147,10 +168,43 @@ const originOf = (url: string | null): string | null => {
   }
 };
 
-/** What a live read says about the one document it was asked about. */
+/**
+ * A document the reader opened, offered in place of whatever of its type was offered (A5). They
+ * asked for this one by name — the page's own link for that type — which is a stronger claim than
+ * the next-best document the automatic reads settled on. Null stays null: a covered site offers
+ * nothing, and a site still being read has not decided yet.
+ */
+const offerOpened = (
+  offers: readonly RankedPolicyCandidate[] | null,
+  document: RankedPolicyCandidate,
+  capture: PolicyDocumentCapture,
+): readonly RankedPolicyCandidate[] | null => {
+  if (!offers || capture.status !== 'captured' || !document.docType) return offers;
+  if (offers.some(offer => offer.url === document.url)) return offers;
+  const index = offers.findIndex(offer => offer.docType === document.docType);
+  return index < 0 ? [...offers, document] : offers.map((offer, at) => (at === index ? document : offer));
+};
+
+/**
+ * What a live read says about the one document it was asked about.
+ *
+ * A matching hash is current however it was read: noise can make two readings of one document
+ * differ, never make two different documents agree. A different hash says the document CHANGED
+ * only when both it and the analysis are raw reads (A5, decided on measurement in S3):
+ *
+ *  - across the two readings a difference is no evidence at all. The HTML a server sends and the
+ *    page JavaScript builds from it are different texts of one document (ChatGPT's differ);
+ *  - and a rendered page is not stable enough to accuse. Opened three times each, 2 of 29 rendered
+ *    documents did not hash alike: Expedia's privacy page grew a live-chat widget's heading on one
+ *    load, and Instagram's held its whole policy twice on a cold load still changing at the
+ *    reader's bound. A panel that called either "changed" would be wrong about a real company.
+ *
+ * Everything else that differs stays unconfirmed, the honest resting state.
+ */
 const freshnessOf = (analysis: SitePolicyAnalysis, capture: PolicyDocumentCapture): DocumentFreshness => {
   if (capture.status !== 'captured') return 'unconfirmed';
-  return capture.hash === analysis.contentHash ? 'current' : 'changed';
+  if (capture.hash === analysis.contentHash) return 'current';
+  return capture.readMode === 'raw' && analysis.readMode === 'raw' ? 'changed' : 'unconfirmed';
 };
 
 const useLivePolicyCheck = (
@@ -181,6 +235,15 @@ const useLivePolicyCheck = (
 
   /** URLs already read or in flight. A ref, so a re-render cannot re-request one. */
   const requested = useRef(new Set<string>());
+  /**
+   * Where the tab is NOW. A ref, not a dependency: an in-site navigation is not a new run, but
+   * whether a document is the page the reader is on is a question about the moment it is read.
+   * Kept current by an effect declared ahead of the run's, so it has always caught up by then.
+   */
+  const pageUrlNow = useRef(pageUrl);
+  useEffect(() => {
+    pageUrlNow.current = pageUrl;
+  }, [pageUrl]);
   const origin = originOf(pageUrl);
   const attemptKey = `${tabId}:${origin}`;
 
@@ -232,10 +295,16 @@ const useLivePolicyCheck = (
         return { ...current, ...change(current) };
       });
 
-    /** Read one document into this run's cache, so the reader can show it without asking again. */
+    /**
+     * Read one document into this run's cache, so the reader can show it without asking again. The
+     * page the reader is on is read from their own tab if its raw HTML is not the document (A5).
+     */
     const read = async (url: string): Promise<PolicyDocumentCapture> => {
       requested.current.add(url);
-      const capture = await capturePolicyDocument(url);
+      const capture = await capturePolicyDocument(
+        url,
+        isSamePage(url, pageUrlNow.current) ? renderFromTab(tabId) : undefined,
+      );
       if (!disposed) update(current => ({ reads: { ...current.reads, [url]: { state: 'done', capture } } }));
       return capture;
     };
@@ -307,24 +376,60 @@ const useLivePolicyCheck = (
     [attemptKey],
   );
 
-  const readDocument = useCallback((url: string) => {
-    if (requested.current.has(url)) return;
+  const readDocument = useCallback(
+    (url: string) => {
+      if (requested.current.has(url)) return;
 
-    requested.current.add(url);
-    /*
-     * Merges into whichever run record is in state, and does nothing if there is none. The reader
-     * lists documents out of `discovery`, so a record always exists by the time this is reachable —
-     * and if one somehow is not there, there is no discovery to read against either.
-     */
-    const merge = (entry: ReaderEntry) =>
-      setRun(previous => (previous ? { ...previous, reads: { ...previous.reads, [url]: entry } } : previous));
+      requested.current.add(url);
+      /*
+       * Merges into whichever run record is in state, and does nothing if there is none. The reader
+       * lists documents out of `discovery`, so a record always exists by the time this is reachable —
+       * and if one somehow is not there, there is no discovery to read against either.
+       */
+      const merge = (entry: ReaderEntry) =>
+        setRun(previous => (previous ? { ...previous, reads: { ...previous.reads, [url]: entry } } : previous));
 
-    merge({ state: 'loading' });
+      merge({ state: 'loading' });
 
-    void capturePolicyDocument(url).then(capture => {
-      merge({ state: 'done', capture });
-    });
-  }, []);
+      const fromTab = tabId !== null && isSamePage(url, pageUrlNow.current);
+      void capturePolicyDocument(url, fromTab ? renderFromTab(tabId) : undefined).then(capture => {
+        merge({ state: 'done', capture });
+      });
+    },
+    [tabId],
+  );
+
+  const openDocument = useCallback(
+    (document: RankedPolicyCandidate) => {
+      const { url } = document;
+      /** Onto the run it was asked from only: once the tab has moved on, that record is another page's. */
+      const merge = (change: (current: Run) => Partial<Run>) =>
+        setRun(previous =>
+          previous && previous.tabId === tabId && previous.origin === origin
+            ? { ...previous, ...change(previous) }
+            : previous,
+        );
+
+      requested.current.add(url);
+      merge(current => ({ reads: { ...current.reads, [url]: { state: 'opening' } } }));
+
+      void capturePolicyDocument(url, renderInBackgroundTab).then(capture => {
+        merge(current => ({
+          reads: { ...current.reads, [url]: { state: 'done', capture } },
+          offers: offerOpened(current.offers, document, capture),
+          freshness: {
+            ...current.freshness,
+            ...Object.fromEntries(
+              current.analyses
+                .filter(analysis => analysis.sourceUrl === url)
+                .map(analysis => [analysis.contentHash, freshnessOf(analysis, capture)]),
+            ),
+          },
+        }));
+      });
+    },
+    [tabId, origin],
+  );
 
   /*
    * Derived, not reset in the effect. A record that answers for a different tab, origin, attempt
@@ -342,6 +447,7 @@ const useLivePolicyCheck = (
     freshness: current?.freshness ?? pendingFreshness,
     reads: current?.reads ?? NO_READS,
     readDocument,
+    openDocument,
     rediscover,
   };
 };

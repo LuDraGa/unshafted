@@ -7,10 +7,23 @@
  * decides only the ORDER documents are listed in. What decides whether a document is offered for
  * analysis is whether reading it produced a policy.
  */
-import { chooseOfferedDocuments, fetchPolicyPage, rankPolicyCandidates, readPolicyDocument } from '../index.mts';
+import {
+  chooseOfferedDocuments,
+  computePolicyHash,
+  fetchPolicyPage,
+  rankPolicyCandidates,
+  readPolicyDocument,
+  readRenderedPageInPage,
+} from '../index.mts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import type { FetchedPolicyPage, PolicyDocumentCapture, RankedPolicyCandidate } from '../index.mts';
+import type {
+  FetchedPolicyPage,
+  PolicyDocumentCapture,
+  PolicyPageRender,
+  RankedPolicyCandidate,
+  RenderedPolicyPage,
+} from '../index.mts';
 
 // Long enough to be a document under A3's prose floor (1,300 characters), not just the old 400.
 const POLICY_TEXT = `<main><h1>Privacy Policy</h1><p>${'We collect personal information to run the service. '.repeat(40)}</p></main>`;
@@ -151,6 +164,218 @@ test('an error status, a non-page and a shell each say why they could not be rea
   );
 });
 
+// ── A5: raw if it is a document, else rendered ──
+
+/** What a JS-rendered policy's server sends: an empty app root, no text at all. */
+const SHELL = '<html><body><div id="root"></div><script src="/app.js"></script></body></html>';
+/**
+ * Practo's privacy policy as the server sends it: 282 characters of site menu carrying one policy
+ * link, no prose — indistinguishable on its raw HTML from a legal hub.
+ */
+const MENU_WITH_ONE_LINK =
+  '<html><body><div><a href="/about">About Company</a> <a href="/careers">Careers</a> ' +
+  '<a href="/providers">Terms of service</a></div><div id="root"></div></body></html>';
+const HUB =
+  '<html><body><main><h1>Legal</h1><ul><li><a href="/legal/privacy">Privacy Policy</a></li>' +
+  '<li><a href="/legal/terms">Terms of Service</a></li></ul></main></body></html>';
+
+/** A way to open pages that records what it was asked to open, and answers from a table. */
+const opener = (pages: Record<string, string | null>) => {
+  const opened: string[] = [];
+  const render: PolicyPageRender = async url => {
+    opened.push(url);
+    const html = pages[url];
+    return html ? { html, url: `${url}#opened` } : null;
+  };
+  return { render, opened };
+};
+
+test('a policy whose raw HTML is an empty app shell is read by opening the page', async () => {
+  const { render, opened } = opener({ 'https://example.com/privacy': POLICY_TEXT });
+  const captured = await readPolicyDocument('https://example.com/privacy', async () => page({ html: SHELL }), render);
+
+  assert.deepEqual(opened, ['https://example.com/privacy']);
+  assert.equal(captured.status, 'captured');
+  if (captured.status !== 'captured') return;
+  assert.equal(captured.readMode, 'rendered');
+  // Where the opened page ended up, not where the link pointed.
+  assert.equal(captured.sourceUrl, 'https://example.com/privacy#opened');
+});
+
+test('a rendered read goes through the same normalizer, so the same page hashes the same', async () => {
+  const { render } = opener({ u: POLICY_TEXT });
+  const rendered = await readPolicyDocument('u', async () => page({ html: SHELL }), render);
+  const raw = await readPolicyDocument('u', async () => page({ html: POLICY_TEXT }));
+
+  assert.equal(rendered.status, 'captured');
+  assert.equal(raw.status, 'captured');
+  if (rendered.status !== 'captured' || raw.status !== 'captured') return;
+  assert.equal(rendered.hash, (await computePolicyHash(POLICY_TEXT)).hash);
+  assert.equal(rendered.hash, raw.hash);
+  assert.deepEqual([raw.readMode, rendered.readMode], ['raw', 'rendered']);
+});
+
+test('a raw document is never opened', async () => {
+  const { render, opened } = opener({ u: POLICY_TEXT });
+  const captured = await readPolicyDocument('u', async () => page(), render);
+
+  assert.deepEqual(opened, []);
+  assert.equal(captured.status === 'captured' && captured.readMode, 'raw');
+});
+
+test('without a way to open it, a shell stays unreadable and says it has not been opened', async () => {
+  const result = await readPolicyDocument('u', async () => page({ html: SHELL }));
+  assert.deepEqual(result, { status: 'unreadable', reason: 'too-short', readMode: 'raw' });
+});
+
+test('a page that reads as a hub is opened too, because an unrun script can look like one', async () => {
+  const { render, opened } = opener({ u: POLICY_TEXT });
+  const captured = await readPolicyDocument('u', async () => page({ html: MENU_WITH_ONE_LINK }), render);
+
+  assert.deepEqual(opened, ['u']);
+  assert.equal(captured.status === 'captured' && captured.readMode, 'rendered');
+});
+
+test('a real hub, opened, is still a hub — with the links the opened page carries', async () => {
+  const { render } = opener({ u: HUB });
+  const result = await readPolicyDocument('u', async () => page({ html: MENU_WITH_ONE_LINK }), render);
+
+  assert.equal(result.status, 'hub');
+  if (result.status !== 'hub') return;
+  assert.equal(result.readMode, 'rendered');
+  assert.deepEqual(
+    result.links.map(link => link.href),
+    ['/legal/privacy', '/legal/terms'],
+  );
+});
+
+test('a refused request and a bot check’s empty answer are both opened', async () => {
+  const { render, opened } = opener({ refused: POLICY_TEXT, challenged: POLICY_TEXT });
+  const results = await Promise.all([
+    readPolicyDocument('refused', async () => page({ ok: false, status: 403, html: '' }), render),
+    readPolicyDocument('challenged', async () => page({ status: 202, html: '' }), render),
+  ]);
+
+  assert.deepEqual(opened.sort(), ['challenged', 'refused']);
+  assert.deepEqual(
+    results.map(result => result.status),
+    ['captured', 'captured'],
+  );
+});
+
+test('a PDF is never opened: a tab showing one has no page to read', async () => {
+  const { render, opened } = opener({ u: POLICY_TEXT });
+  const result = await readPolicyDocument('u', async () => page({ contentType: 'application/pdf', html: '' }), render);
+
+  assert.deepEqual(opened, []);
+  assert.deepEqual(result, { status: 'unreadable', reason: 'not-html', readMode: 'raw' });
+});
+
+test('a page that could not be opened keeps its raw result, still marked unopened', async () => {
+  const { render } = opener({ u: null });
+  const result = await readPolicyDocument('u', async () => page({ html: SHELL }), render);
+  assert.deepEqual(result, { status: 'unreadable', reason: 'too-short', readMode: 'raw' });
+});
+
+test('opened and still nothing: a shell is final, and a raw hub keeps its links', async () => {
+  const { render } = opener({ shell: SHELL, hub: SHELL });
+  const [shell, hub] = await Promise.all([
+    readPolicyDocument('shell', async () => page({ html: SHELL }), render),
+    readPolicyDocument('hub', async () => page({ html: HUB }), render),
+  ]);
+
+  assert.deepEqual(shell, { status: 'unreadable', reason: 'too-short', readMode: 'rendered' });
+  assert.equal(hub.status, 'hub');
+  if (hub.status !== 'hub') return;
+  assert.equal(hub.readMode, 'rendered');
+  assert.equal(hub.links.length, 2);
+});
+
+// ── A5: the in-page reader ──
+
+/**
+ * Runs the in-page reader from its SOURCE, in a scope that holds only the globals a page gives it
+ * — as `executeScript` does — against a page stub and a clock the test drives. Anything the reader
+ * closed over from this module, or a `__name` helper `tsx` wrapped around an inner function, is a
+ * ReferenceError here exactly as it would be in the page.
+ */
+const runReader = async (script: (now: number) => { readyState: string; text: string }) => {
+  let now = 0;
+  const html = { current: '' };
+  const document = {
+    get readyState() {
+      return script(now).readyState;
+    },
+    get body() {
+      const { text } = script(now);
+      return { textContent: text, innerText: text };
+    },
+    documentElement: {
+      get outerHTML() {
+        html.current = `<html><body>${script(now).text}</body></html>`;
+        return html.current;
+      },
+    },
+  };
+  const clock = { now: () => now };
+  const setTimeout = (callback: () => void, ms: number) => {
+    now += ms;
+    callback();
+  };
+  const reader = new Function(
+    'document',
+    'location',
+    'Date',
+    'setTimeout',
+    `return (${String(readRenderedPageInPage)});`,
+  )(document, { href: 'https://example.com/opened' }, clock, setTimeout) as () => Promise<RenderedPolicyPage>;
+  const page = await reader();
+  return { page, elapsed: now };
+};
+
+test('the in-page reader waits for the load event and for the text to stop changing', async () => {
+  // Loads at 1s; JavaScript keeps adding text until 4s; then nothing changes.
+  const { page, elapsed } = await runReader(now => ({
+    readyState: now < 1_000 ? 'loading' : 'complete',
+    text: 'x'.repeat(Math.min(now, 4_000)),
+  }));
+
+  assert.equal(page.url, 'https://example.com/opened');
+  assert.equal(page.html, `<html><body>${'x'.repeat(4_000)}</body></html>`);
+  // Read after 1.5s of quiet, not the moment the text first looked still.
+  assert.ok(elapsed >= 5_500 && elapsed < 6_000, `read at ${elapsed}ms`);
+});
+
+test('a page gone quiet while still thin is given time to build its text', async () => {
+  // Adobe's offer terms on a cold load: loaded at 1s, 90 characters of chrome, the policy at 5s.
+  const { page, elapsed } = await runReader(now => ({
+    readyState: now < 1_000 ? 'loading' : 'complete',
+    text: now < 5_000 ? 'x'.repeat(90) : 'x'.repeat(30_000),
+  }));
+
+  assert.equal(page.html.length, '<html><body></body></html>'.length + 30_000);
+  assert.ok(elapsed >= 6_500 && elapsed < 7_000, `read at ${elapsed}ms`);
+});
+
+test('a page that stays thin is read at the thin bound, as it stands', async () => {
+  // A real hub: little text, and nothing more is coming.
+  const { elapsed } = await runReader(now => ({
+    readyState: now < 1_000 ? 'loading' : 'complete',
+    text: 'x'.repeat(600),
+  }));
+  assert.ok(elapsed >= 8_000 && elapsed < 8_500, `read at ${elapsed}ms`);
+});
+
+test('the in-page reader stops waiting at its bound on a page that never goes quiet', async () => {
+  // A ticker that keeps adding and removing a line: its length never holds still.
+  const { elapsed } = await runReader(now => ({ readyState: 'complete', text: 'x'.repeat(1 + ((now / 250) % 2)) }));
+  assert.ok(elapsed >= 12_000 && elapsed < 12_500, `read at ${elapsed}ms`);
+});
+
+test('the in-page reader declares no inner function for tsx to wrap in a helper the page lacks', () => {
+  assert.ok(!String(readRenderedPageInPage).includes('__name'), String(readRenderedPageInPage));
+});
+
 // ── D8: what a site we do not cover is offered ──
 
 const reader = (outcomes: Record<string, PolicyDocumentCapture['status']>) => {
@@ -158,8 +383,8 @@ const reader = (outcomes: Record<string, PolicyDocumentCapture['status']>) => {
   const read = async (url: string): Promise<PolicyDocumentCapture> => {
     asked.push(url);
     return outcomes[url] === 'captured'
-      ? { status: 'captured', hash: url, text: 'policy', sourceUrl: url, usedMainContainer: true }
-      : { status: 'unreadable', reason: 'too-short' };
+      ? { status: 'captured', hash: url, text: 'policy', sourceUrl: url, usedMainContainer: true, readMode: 'raw' }
+      : { status: 'unreadable', reason: 'too-short', readMode: 'raw' };
   };
   return { read, asked };
 };
