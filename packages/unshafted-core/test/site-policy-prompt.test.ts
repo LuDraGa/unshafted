@@ -1,7 +1,9 @@
 import {
   buildSitePolicyAnalysisSystemPrompt,
   buildSitePolicyAnalysisUserPrompt,
+  gradedProducts,
   PolicyDocTypeSchema,
+  PRODUCT_CATALOGUE,
   VerticalSchema,
 } from '../index.mts';
 import assert from 'node:assert/strict';
@@ -113,7 +115,15 @@ test('the model is asked for the analytic content only', () => {
   const prompt = userPrompt();
   const contract = prompt.slice(prompt.indexOf('Return a JSON object'), prompt.indexOf('Definitions:'));
 
-  for (const key of ['summary', 'riskLevel', 'confidence', 'exposures', 'availableActions', 'requiredDisclosures']) {
+  for (const key of [
+    'summary',
+    'riskLevel',
+    'confidence',
+    'productScopes',
+    'exposures',
+    'availableActions',
+    'requiredDisclosures',
+  ]) {
     assert.match(contract, new RegExp(`"${key}"`));
   }
   for (const provenance of ['contentHash', 'normalizerVersion', 'promptVersion', 'model', 'schemaVersion']) {
@@ -140,4 +150,55 @@ test('every document type and vertical produces a complete prompt', () => {
     const prompt = userPrompt({ verticals: [vertical] });
     assert.doesNotMatch(prompt, /undefined/, `${vertical} left a hole in the prompt`);
   }
+});
+
+/**
+ * B2. A company that publishes one policy across many products gets the closed list, and a reader
+ * on one product then sees that product's grade. Every id has to reach the model, or the model
+ * either drops findings into "company-wide" or invents an id the validator will reject.
+ */
+test("a catalogue company's document is scoped to its own closed product list", () => {
+  for (const entry of PRODUCT_CATALOGUE) {
+    const prompt = userPrompt({ domain: entry.domains[0]!, company: entry });
+
+    assert.match(prompt, new RegExp(`This is ${entry.name}'s policy for many products at once`));
+    for (const product of entry.products) {
+      assert.ok(prompt.includes(`- ${product.id} — ${product.name}`), `${entry.id}: ${product.id} is not offered`);
+    }
+
+    const grade = prompt.slice(prompt.indexOf('grade each one:'), prompt.indexOf('tag only:'));
+    for (const product of gradedProducts(entry)) assert.ok(grade.includes(`- ${product.id} —`), product.id);
+    for (const product of entry.products.filter(item => item.matchers.length === 0)) {
+      assert.ok(!grade.includes(`- ${product.id} —`), `${product.id} has no page and must not be graded`);
+    }
+
+    assert.match(prompt, /Leave the list empty when anyone using any .+ product this document governs is exposed/);
+    assert.match(prompt, /exactly one entry for each product in the first list/);
+    assert.doesNotMatch(prompt, /undefined/);
+
+    // Another company's ids never reach this document's prompt.
+    for (const other of PRODUCT_CATALOGUE.filter(item => item.id !== entry.id)) {
+      for (const product of other.products) assert.ok(!prompt.includes(`- ${product.id} —`), product.id);
+    }
+  }
+});
+
+test('a document outside the catalogue is told to leave every product field empty', () => {
+  for (const prompt of [userPrompt(), userPrompt({ company: null })]) {
+    assert.match(prompt, /This document is not scoped by product/);
+    assert.match(prompt, /every "products" list is empty, and "productScopes" is empty/);
+    assert.doesNotMatch(prompt, /grade each one:/);
+  }
+});
+
+test('the output contract defines products on findings and the product scope', () => {
+  const prompt = userPrompt();
+  const definitions = prompt.slice(prompt.indexOf('Definitions:'));
+
+  assert.match(definitions, /Exposure = \{[^\n]*"products": string\[\]/);
+  assert.match(definitions, /AvailableAction = \{[^\n]*"products": string\[\]/);
+  assert.match(
+    definitions,
+    /ProductScope = \{ "product": string, "riskLevel": "Low" \| "Medium" \| "High" \| "Very High", "summary": string \}/,
+  );
 });

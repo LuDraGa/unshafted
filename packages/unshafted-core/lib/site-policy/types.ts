@@ -12,6 +12,7 @@ import type {
   PolicyDomainCacheEntrySchema,
   PolicyDomainIndexSchema,
   PolicyReadModeSchema,
+  ProductScopeSchema,
   RequiredDisclosureSchema,
   SitePolicyAnalysisSchema,
   VerticalSchema,
@@ -30,6 +31,7 @@ export type Exposure = z.infer<typeof ExposureSchema>;
 export type AvailableAction = z.infer<typeof AvailableActionSchema>;
 export type RequiredDisclosure = z.infer<typeof RequiredDisclosureSchema>;
 export type PeerDeviation = z.infer<typeof PeerDeviationSchema>;
+export type ProductScope = z.infer<typeof ProductScopeSchema>;
 export type SitePolicyAnalysis = z.infer<typeof SitePolicyAnalysisSchema>;
 export type PolicyDomainIndex = z.infer<typeof PolicyDomainIndexSchema>;
 export type PolicyCacheEntry = z.infer<typeof PolicyCacheEntrySchema>;

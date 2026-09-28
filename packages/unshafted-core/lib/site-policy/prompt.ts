@@ -1,7 +1,9 @@
+import { gradedProducts } from './products.js';
+import type { CatalogueCompany } from './products.js';
 import type { PolicyDocType, Vertical } from './types.js';
 
 /**
- * The executable prompt behind `site-policy-prompt-v1` (Part 6, S4).
+ * The executable prompt behind `site-policy-prompt-v2` (Part 6, S4; v2 is B2 of the site coverage work).
  *
  * `adhesion-rubric-v1` never had one — the 83 corpus analyses came out of an Opus session reading
  * complete documents from `corpus/text/` and emitting JSON through `tools/corpus/write-analysis.ts`.
@@ -9,15 +11,15 @@ import type { PolicyDocType, Vertical } from './types.js';
  * string: that string asserts a complete read, hand-validated against the schema, and this runs a
  * possibly-excerpted document through whatever model the user configured.
  *
- * WHY THE MODEL IS ASKED FOR SIX KEYS AND NOT TWENTY.
+ * WHY THE MODEL IS ASKED FOR SEVEN KEYS AND NOT TWENTY.
  *
  * `write-analysis.ts` takes only the analytic content and copies contentHash, docType, verticals,
  * sourceUrl and the rest out of `curated.json` — because hand-transcribing a 64-character hash into
  * 85 files is a silent-corruption machine, and a wrong hash produces an object that validates
  * perfectly and that no client will ever find. A model asked to restate provenance is the same
  * machine with a worse operator: it would rewrite an observed fact as a plausible one. So the
- * contract below is `summary`, `riskLevel`, `confidence`, `exposures`, `availableActions`,
- * `requiredDisclosures`, and the caller fills everything else from the capture.
+ * contract below is `summary`, `riskLevel`, `confidence`, `productScopes`, `exposures`,
+ * `availableActions`, `requiredDisclosures`, and the caller fills everything else from the capture.
  *
  * The checklists are lifted from the disclosure names the corpus actually used, by document type
  * and vertical. That keeps a local analysis speaking the same vocabulary as a published one, which
@@ -284,6 +286,48 @@ CALIBRATION
 Return JSON only.
 `.trim();
 
+/**
+ * B2 of the site coverage work: how a document one company publishes across many products is scoped
+ * to them. Exported on its own because it is also the brief for the corpus's own analysts (S5), and
+ * one wording is what keeps a published scoping and one run on a user's key comparable — the same
+ * reason the checklists above are shared.
+ *
+ * The product list is closed and comes from the catalogue, never from the model: an id it invents
+ * is rejected by `validate-analysis.ts` on the corpus and dropped by `scopeToCatalogue` on a run.
+ */
+export const buildProductScopeBrief = (company: CatalogueCompany | null | undefined): string => {
+  if (!company) {
+    return `Products. This document is not scoped by product: every "products" list is empty, and "productScopes" is empty.`;
+  }
+
+  const graded = gradedProducts(company);
+  const namedOnly = company.products.filter(product => product.matchers.length === 0);
+  const entries = (items: typeof graded) => items.map(product => `- ${product.id} — ${product.name}`).join('\n');
+
+  return `Products. This is ${company.name}'s policy for many products at once, and the person reading
+it is using one of them. Scope what you find to the products it applies to, using only these ids.
+
+Products a person can be using on a ${company.name} page — grade each one:
+${entries(graded)}
+
+Products the document may name, which have no page of their own — tag only:
+${entries(namedOnly)}
+
+- exposures[].products and availableActions[].products: the ids of the products whose USE exposes
+  the reader to it. Leave the list empty when anyone using any ${company.name} product this document governs is exposed.
+  That is the common case, and it is a claim too: it says the finding follows the reader into
+  every product. A product named in passing does not scope a finding to it. Tag a product because
+  the document confines the clause to it, never because it makes a good example; where it confines
+  a clause to several products, list them all.
+- productScopes: exactly one entry for each product in the first list, in that order. Each is what
+  a person using THAT product faces from this document — the company-wide findings plus that
+  product's own: "riskLevel" on the calibration above, and a "summary" of two to four sentences
+  that leads with what matters most to someone using that product. A product the document says
+  nothing specific about still gets an entry: its grade is the company-wide findings' grade, and
+  its summary leads with the company-wide findings that bear hardest on that product's use.
+- The top-level summary and riskLevel still describe the whole document, across every product.`;
+};
+
 export const buildSitePolicyAnalysisUserPrompt = (params: {
   domain: string;
   sourceUrl: string;
@@ -291,6 +335,8 @@ export const buildSitePolicyAnalysisUserPrompt = (params: {
   verticals?: Vertical[];
   preparedText: string;
   excerpted: boolean;
+  /** The catalogue company whose policy this is (`catalogueCompanyForDomain`), or none. */
+  company?: CatalogueCompany | null;
 }): string => {
   const verticals = params.verticals?.filter(vertical => vertical !== 'other') ?? [];
   const verticalChecklist = [...new Set(verticals.flatMap(vertical => VERTICAL_CHECKLIST[vertical]))];
@@ -335,19 +381,23 @@ to you — but it means absent from THIS document, not from the site. Where a ne
 might reasonably carry the disclosure, say so in the note.
 `
 }
+${buildProductScopeBrief(params.company)}
+
 Return a JSON object with exactly these keys:
 {
   "summary": string,
   "riskLevel": "Low" | "Medium" | "High" | "Very High",
   "confidence": "low" | "medium" | "high",
+  "productScopes": ProductScope[],
   "exposures": Exposure[],
   "availableActions": AvailableAction[],
   "requiredDisclosures": RequiredDisclosure[]
 }
 
 Definitions:
-- Exposure = { "title": string, "severity": "low" | "medium" | "high", "category": "Payment" | "Liability" | "Indemnity" | "IP" | "Confidentiality" | "Disputes" | "Termination" | "Renewal" | "Exclusivity" | "Data/Privacy", "whatItMeans": string, "whyItMatters": string, "reference"?: { "label": string, "quote"?: string } }
-- AvailableAction = { "action": string, "howTo": string, "effort": "low" | "medium" | "high", "deadline"?: { "kind": "relative_to_signup" | "absolute" | "none", "days"?: integer, "description": string }, "reference"?: { "label": string, "quote"?: string } }
+- Exposure = { "title": string, "severity": "low" | "medium" | "high", "category": "Payment" | "Liability" | "Indemnity" | "IP" | "Confidentiality" | "Disputes" | "Termination" | "Renewal" | "Exclusivity" | "Data/Privacy", "whatItMeans": string, "whyItMatters": string, "products": string[], "reference"?: { "label": string, "quote"?: string } }
+- AvailableAction = { "action": string, "howTo": string, "effort": "low" | "medium" | "high", "products": string[], "deadline"?: { "kind": "relative_to_signup" | "absolute" | "none", "days"?: integer, "description": string }, "reference"?: { "label": string, "quote"?: string } }
+- ProductScope = { "product": string, "riskLevel": "Low" | "Medium" | "High" | "Very High", "summary": string }
 - RequiredDisclosure = { "name": string, "regime": "GLBA" | "CCPA" | "GDPR" | "COPPA" | "other", "status": "present" | "absent" | "not_applicable", "note": string }
 
 Emit no other key. contentHash, domain, docType, verticals, surfaces, sourceUrl, promptVersion,

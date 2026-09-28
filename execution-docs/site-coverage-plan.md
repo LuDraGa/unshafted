@@ -1,8 +1,9 @@
 # Site coverage — finding the right documents, covering the right sites, scoping big companies
 
-**Started:** 2026-09-27 · **Branch:** `dev/v0.8.3` · **Status:** S3 done 2026-09-28 (A5 in: Track A
-complete; bench 43 of 74 unasked, +15 by opening the page). S4 next, after the director's S3 manual
-test.
+**Started:** 2026-09-27 · **Branch:** `dev/v0.8.3` · **Status:** S4 done 2026-09-29 (B1 catalogue and
+B2 schema, prompt and validator in; nine documents await product scoping, ~250–350k tokens in-session).
+S5 next, after the director's S4 manual test; it opens by settling how the badge shows a product
+grade.
 
 The release PR ([#92](https://github.com/LuDraGa/unshafted/pull/92)) is back in draft while this is
 decided: the director wants more in v0.8.3 before it goes to review.
@@ -133,7 +134,7 @@ problem filed as a GitHub issue, not fixed on the spot. Findings feed A/B/C or t
 
 ## Sessions
 
-**Next session: S4.** *(Each session moves this line on before it ends.)*
+**Next session: S5.** *(Each session moves this line on before it ends.)*
 
 The work is split into five sessions. The director pastes the same prompt every time, and this doc
 says where things stand:
@@ -570,6 +571,14 @@ show me the wording first (it publishes to the gist CWS review reads).
 
 **Log.** *Done 2026-09-28.*
 
+**Commit** on `dev/v0.8.3`, pushed 2026-09-28: `3e121c6` (A5 on both sides, the stability bench, the
+approved `cws/privacy-policy.md` text).
+
+**Manual test result** (director, recorded at the start of S4): all four steps as expected — ChatPDF's
+policy read by opening the page in a background tab that closed itself, Myntra's privacy policy
+offered from the page itself with no tab opened, Reddit on *Last read on 4 Sep 2026* and its policy
+page on *Current — verified*, Amazon on *Current — verified*.
+
 **Close-out and verify.** S2's manual test is recorded in S2's log above (all five as expected).
 Every S1 and S2 check held: one link pattern (reintroducing the stale literal fails 2 core tests;
 restored from a copy, core 138/138, `dist` rebuilt with `--force`); AD-4 retired in the Part 1, 5
@@ -778,7 +787,217 @@ schemaVersion changes and write down why (there are no installed users to protec
 List the documents that need re-analysis and estimate the cost; don't run them.
 ```
 
-**Log.** *Not started.*
+**Log.** *Done 2026-09-29.*
+
+**Commits:** not yet; the director approves the commit (below).
+
+**Close-out and verify.** S3's manual test is recorded in S3's log above (all four as expected).
+Every S1–S3 check held:
+- **Track A done.** `3e121c6` is on `origin/dev/v0.8.3`.
+- **The bench matches S3.** Bench `s4-start` (`--ref=ccf5cfa`, `--compare=s3-a5`) found **43/74 unasked,
+  +13 by opening** — 56 reachable in at most one click, as in S3. The only verdicts that differ are
+  Blinkit ×2, now found unasked: S3's load was refused those reads, and S3 had recorded them as 2/2
+  when run alone. The JS-rendered cases are found by opening them (ChatPDF, Futuretools, Postman,
+  Expedia, Zepto, Practo, Naukri terms).
+- **Rendered reads cannot claim *changed*.** `useLivePolicyCheck.ts:207` says *changed* only when
+  both the read and the analysis are raw.
+- **No leftovers from Track A.** The collector compiles the pattern it is passed, and the literal
+  lives only in the export. "400" survives only in two comments. `sameOrigin` appears nowhere.
+- **Checks green.** `pnpm lint` 12/12, `format:check` clean, `test --silent=false` 16/16 (core 153).
+
+**Decisions taken in the session, for the director to overrule.**
+- **What the catalogue holds is measured, and the rule is written down.** A product is in the
+  catalogue when a corpus finding or summary names it, or when the company's documents name it three
+  or more times. It is **graded** when people use it as a website. A graded product has URL matchers,
+  and every multi-product analysis grades it. A product with no website of its own (Windows, Chrome,
+  Pixel, a watch) is **named only**: a finding can still be tagged with it, which keeps that finding
+  out of every other product's view, but no tab resolves to it. The measurement is in the table below.
+- **Four companies, and no more.** No other covered company's findings name more than a handful of
+  its own products. The highest are Snapchat (4 of 20 terms findings, all features inside one app),
+  Zomato (Gold, 2 of 21) and LinkedIn (Premium, 2 of 12).
+- **"Multi-product" is decided by site.** A document is multi-product when its `domain` belongs to a
+  catalogue company. That is exactly the nine documents below, and a committed-bundle test pins it.
+  **Limit:** a single-product document on one of those sites (YouTube's own terms, Instagram's Terms
+  of Use) would also be treated as company-wide. None is in the corpus. When Track C captures the
+  first one, it adds a per-document marker.
+- **Ids are strings in the schema; the closed list is enforced by code.** `validate-analysis.ts`
+  enforces it against the document's own company, and `scopeToCatalogue` does the same for runs on
+  the reader's key. As an enum, every product added later would make older clients reject whole any
+  published object that names it.
+- **Every graded product gets a grade, even with no findings of its own.** Someone reading in Gmail
+  and someone reading in Maps are hurt by different company-wide findings, and the grade and summary
+  are what B3 leads with.
+- **`schemaVersion` stays 1.** `products` and `productScopes` are additions with defaults, as
+  `readMode` was in S3. An older client strips them and reads the document exactly as it did before.
+  This client reads an object from before them as unscoped, which is what it is. The reason is
+  written on the field in `schemas.ts`.
+- **The prompt for runs on the reader's own key becomes `site-policy-prompt-v2`**, because its output
+  contract changed. `adhesion-rubric-v1` is S5's to decide (see *For S5*).
+- **An unscoped multi-product analysis fails validation.** It is reported apart from invalid ones and
+  exits 1 until S5 scopes it, because B3 cannot scope a document that has not been scoped.
+
+**B1 — the product catalogue.** `packages/unshafted-core/lib/site-policy/products.ts`:
+- **`PRODUCT_CATALOGUE`**: each company lists the domains that resolve to it, and its products.
+  - A product's matchers compare its host exactly, after `www.` is removed, because `google.com` must
+    not claim the root of `accounts.google.com`.
+  - A path matches at a segment boundary. `exact` covers the one case that needs it: Google's
+    homepage is Search.
+- **`resolveProduct(url)`** returns `{ company, product | null }`, or `null` for a site in no company.
+  The most specific matcher wins, so `amazon.com/gp/video` is Prime Video and the rest of `amazon.com`
+  is shopping.
+- **`catalogueCompanyForDomain`** finds a document's company. **`gradedProducts`** lists the products a
+  page can resolve to.
+- **Left out on purpose:**
+  - sister companies with policies of their own: LinkedIn, GitHub, WhatsApp's own site, Twitch,
+    Audible;
+  - country sites: `google.co.in`, `amazon.in`. The corpus covers neither today, and google.com no
+    longer redirects by country;
+  - products the documents barely name: Messenger 2, Blogger 2, Google News 1, Threads 0. So
+    messenger.com stays uncovered, and `facebook.com/messages` resolves to Facebook.
+
+| Company | Graded (a tab can be on it) | Named only | Findings naming a product |
+|---|---|---|---|
+| Google (`google.com`, `youtube.com`) | Search, YouTube, Maps, Gmail, Drive, Docs/Sheets/Slides, Photos, Calendar, Meet, Chat, Voice, Play, Gemini, Translate (14) | Chrome, Android, Assistant, Fi, Fitbit, Google Fit, Pixel, Nest | YouTube 3, Search 2, Gmail 2, Android 2, Voice 2, one each for 12 more; Maps 12 and Calendar 4 in the text |
+| Microsoft (+ bing, live, office, microsoft365, xbox, msn) | Bing, Copilot, Outlook, Teams, OneDrive, Microsoft 365, Xbox, MSN, Family Safety (9) | Windows, Edge, Store, Surface, SwiftKey, Skype, enterprise and developer products | Windows 11, Bing 5, Edge 5, Xbox 5, Copilot 4, Outlook 3 of 35; MSN 23 in the text |
+| Meta (`facebook.com`, `instagram.com`, `meta.ai`) | Facebook, Instagram, Meta AI (3) | WhatsApp | Facebook 4, Instagram 4, WhatsApp 4 of 31 (the Accounts Centre merge) |
+| Amazon (`amazon.com`, `primevideo.com`) | Shopping, Prime Video, Amazon Music, Alexa, Kindle (5) | Devices, physical stores, Gift Cards | Prime Video 2, Music 2, Alexa 2, Gift Cards 2, devices 1, stores 1 of 31 |
+
+**B2 — schema, prompt, validator.**
+- **Schema** (`schemas.ts`): `products: string[]` (default `[]`) on every exposure and available
+  action. Empty means company-wide: anyone using any product the document governs is exposed.
+  `productScopes: [{ product, riskLevel, summary }]` (default `[]`) on the analysis; the top-level
+  grade and summary still describe the whole document. The response schema is
+  `SitePolicyModelResponseSchema`: one definition in core, replacing three copies (the run on the
+  reader's key, the calibration script, the tests).
+- **Prompt** (`prompt.ts`): `buildProductScopeBrief(company)` is exported, because it is also the
+  brief for S5's analysts.
+  - It gives the closed list in two parts: the graded products, each to be graded, and the
+    named-only ones, to tag only.
+  - It asks for tags only where the document confines a clause to a product, and for a grade and a
+    two-to-four-sentence summary for each graded product.
+  - For every other document it says to leave products empty.
+  - `buildSitePolicyAnalysisUserPrompt` takes `company`. The run on the reader's key passes
+    `catalogueCompanyForDomain(target.domain)` and pipes the result through `scopeToCatalogue`, which
+    drops any id that is not the company's own rather than failing a paid run. A finding whose ids
+    all drop becomes company-wide, which shows it on every product and so hides nothing.
+- **Validator:** `productScoping(analysis)` in core returns `not_applicable`, `missing`, `complete`
+  or `invalid`, with every problem named. `validate-analysis.ts` rejects `invalid` and reports
+  `missing` as *unscoped*. It judges ids against the document's company, so `xbox` on a Google
+  document fails as surely as an invented id. A grade must exist for every graded product, once, and
+  never for a named-only one. `write-analysis.ts` passes the new keys through unchanged.
+
+**Evidence.**
+- **Tests first.** Against stub exports, 19 of the 43 tests in the three touched core files failed.
+  The ones that passed were the existing tests and a few catalogue invariants that hold vacuously on
+  an empty catalogue; a test pinning the four companies now stops that. There are **23 new core
+  tests**, 176 in all, plus **2 in `packages/shared`** that drive `runSitePolicyAnalysis` over a
+  stubbed `fetch`: without them, removing the scoping from the run would have left every test green.
+- **Every guard broken once: 17 mutations, all red.** Host as a suffix; path as a bare prefix; first
+  match instead of most specific; a company domain without its dot boundary; ids judged against the
+  whole catalogue; a missing grade let through; a named-only product graded; an unscoped document
+  called invalid; a local run keeping every id; keeping duplicate grades; `linkedin.com` claimed by
+  Microsoft (fails the bundle test and the lookalike test); the prompt offering every company's
+  products; the prompt grading named-only products; `products` with no default; `productScopes` left
+  out of the response schema; the run skipping `scopeToCatalogue`; the run never telling the prompt
+  the company. Each file was restored from a copy and hash-checked, then `tsc -b --force`, and the
+  restored lines were confirmed in `dist`.
+- **The validator on the real corpus:** 74 valid, 0 invalid, 9 unscoped (exit 1). Tried on Google's
+  privacy analysis:
+  - with a full scoping (every graded product, the health finding tagged Fitbit, Pixel, Nest,
+    Google Fit): valid, 75;
+  - with `xbox` on that finding: `exposures[4].products: "xbox" is not a Google product`.
+  The file (gitignored) was restored and hash-checked.
+- **Checks:** `pnpm lint` 12/12, `format:check` clean, `pnpm test -- --silent=false` 16/16 (core 176,
+  shared 14), no console warnings. `tools/corpus` type-checks. `type-check` and `build` are the
+  director's.
+- **Bench `s4-final`: 40/74 unasked, +13 by opening; the reference scored 41 on the same loads.** S4
+  does not touch discovery or reading: `discover.ts`, `read.ts`, `likeness.ts`, shared's
+  `policy-capture.ts` and the bench are unchanged from `3e121c6`. The four verdicts that differ from
+  `s4-start` are site variance:
+  - **Tinder ×2** were not collected on this load, by either collector. Run alone they give
+    `s4-start`'s verdicts exactly.
+  - **Dyno ×2:** run alone it gave 1/2, then 2/2, and the reference scored identically on each load.
+    It fails the same way now and then (one run closed the page mid-read).
+- **Not walked in the harness:** the panel does not read products until B3, so nothing visible
+  changed.
+
+**S5's re-analysis: the list and the cost.** The nine documents whose `domain` is a catalogue
+company's, exactly the set the bundle test pins:
+
+| Document | Text (chars) | Findings to tag | Grades to write |
+|---|---|---|---|
+| `b7688f54` google.com privacy | 55,133 | 19 | 14 |
+| `c60d3001` google.com terms | 29,510 | 17 | 14 |
+| `afedc4d1` microsoft.com privacy | 213,097 | 35 | 9 |
+| `3fe6bc5d` facebook.com privacy | 50,092 | 12 | 3 |
+| `ab642cdd` instagram.com privacy | 48,851 | 12 | 3 |
+| `47c4b597` facebook.com cookie | 3,863 | 7 | 3 |
+| `993ed512` amazon.com privacy | 24,639 | 12 | 5 |
+| `2d74ae32` amazon.com terms | 28,337 | 12 | 5 |
+| `f44a02e5` amazon.com cookie | 5,363 | 7 | 5 |
+| **Total** | **458,885** | **133** | **61** |
+
+**Recommended: scope the existing analyses; do not redo them.** Each analyst reads the document and
+its current analysis, tags each finding, and writes the grades. The findings, disclosures and
+top-level grade stay as validated in Part 4, and the section references each finding already carries
+(e.g. *XBOX — …*, *Bing — …*) do most of the tagging. Input, reading each document once: about **115k
+tokens** of text, 33k of existing analyses and 16k of briefs, so **~165k**. Output: about **15–25k**
+(61 grades of two to four sentences, 133 tag lists). Run in-session like Part 4, with three or four
+parallel analysts, allow **~250–350k tokens** of session use in all.
+
+A fresh analysis would read the same text, but it would rewrite 133 validated findings and their
+disclosure names, the vocabulary C1 has not reconciled yet, to add a field that needs none of that.
+
+**For S5.**
+- **The badge cannot show a product grade from the current index.** `policy-index.bin` holds one
+  2-bit grade per domain, and `google.com/search` and `google.com/maps` are one domain. B3's "the
+  toolbar badge follows the product grade" needs one of two things:
+  - a small product-grade table the background reads (host + path → grade, a few hundred bytes);
+  - or the badge keeps the domain's worst grade while the panel leads with the product's.
+  This is a design decision to take first thing in S5, before the index or seed changes.
+- **`domains` for the nine.** The sibling sites come from the catalogue: youtube.com for Google;
+  bing.com, live.com, office.com, microsoft365.com, xbox.com and msn.com for Microsoft; meta.ai for
+  Meta; primevideo.com for Amazon.
+  - The Facebook and Instagram privacy analyses are two captures of **one** Meta policy (50,092 vs
+    48,851 characters, the same seven exposures). If both list every Meta site, instagram.com shows
+    it twice. Give each its own site, and meta.ai to one of them.
+- **`promptVersion` for the nine:** `adhesion-rubric-v2` = v1's reading plus product scoping. The
+  object now makes a claim v1 never made. `write-analysis.ts` has one constant, so S5 sets it per body.
+- **The brief** is `buildSitePolicyAnalysisSystemPrompt()`'s calibration plus
+  `buildProductScopeBrief(company)` for each document. `validate-analysis.ts` must end at 83 valid,
+  0 unscoped.
+
+**Found in passing:** nothing new.
+
+**Manual test** (in the loaded extension, after `pnpm build` or with `pnpm dev` running, and the
+extension reloaded at `chrome://extensions`). Nothing on screen changes in S4, since the panel reads
+products only from S5. Step 1 checks nothing regressed. Steps 2 and 3 run a real model against the
+new output contract, which no test can do; **they spend your own key**, so run them only if you are
+happy to.
+
+1. Open `https://www.amazon.com/` (covered). The meta line settles on **Current — verified against
+   the live page**, and the grade and findings are as before. *Broken:* an error, or an empty list
+   of documents.
+2. *(Optional, one small document on your key.)* Open `https://dyno.gg/`. Press **Analyse…**,
+   untick everything but the privacy policy, and confirm. The run completes, and the analysis renders
+   as runs always have. *Broken:* "Analysis failed", above all with a schema or `response_format`
+   message. That would mean your provider rejected the new `products` / `productScopes` contract.
+3. *(Optional, one long document, Google's privacy policy at about 55,000 characters.)* Open
+   `https://www.youtube.com/t/terms` (YouTube's homepage puts no policy links in the page;
+   measured). youtube.com is not covered yet; S5 adds it. Press **Analyse…** and keep only the
+   **Privacy Policy** row. `youtube.com/t/privacy` redirects to Google's policy at
+   `policies.google.com`. Untick the terms: YouTube's own terms are the single-product case the log
+   records as a limit. Confirm. When it completes, right-click in the panel, choose **Inspect**, and
+   run this in the Console:
+   ```js
+   Object.entries(await chrome.storage.local.get()).filter(([k]) => k.startsWith('unshafted-local-policy-analysis:')).map(([, v]) => ({ url: v.analysis.sourceUrl, prompt: v.provenance.promptVersion, grades: v.analysis.productScopes.map(s => `${s.product}: ${s.riskLevel}`), tagged: v.analysis.exposures.filter(e => e.products.length).map(e => `${e.title} → ${e.products.join(', ')}`) }))
+   ```
+   Google's entry should show `prompt: 'site-policy-prompt-v2'`, **14 grades**, one each for
+   `google-search`, `youtube`, `google-maps` and the rest, and at least one finding tagged with a
+   product. The Fitbit / Pixel health-data finding is the likeliest. *Broken:* the run fails, there
+   are no grades, or an id outside Google's list appears. The model's judgement of *which* findings
+   to tag is not the test; send it to me either way, because it is the first real output of the
+   brief S5's analysts will use.
 
 ### S5
 
@@ -825,8 +1044,8 @@ Scope: B2 re-analysis, B3, then the release.
 | A2 cross-origin | Done (S2) | one fetch path (extension, cookies omitted); exact packaged check; D8 automatic reads; bench 28 → 38 |
 | A3 hub pages | Done (S2) | `judgePolicyPage` on measured pages; 83/83 analysed = document; one-hop following; bench 38 → 43 |
 | A5 JS-rendered | Done (S3) | one rule both sides (`readPolicyPage`); capture = panel hashes; stable 29/29 then 27/29 → rendered never claims *changed*; bench +15 by opening |
-| B1 catalogue | Not started (S4) | |
-| B2 schema + prompt | Not started (S4) | |
+| B1 catalogue | Done (S4) | 4 companies, 31 graded + 19 named-only products, measured from the corpus; resolver with must-not-match cases; the bundle's multi-product set pinned at 9 |
+| B2 schema + prompt | Done (S4) | `products` / `productScopes` (schemaVersion stays 1), `site-policy-prompt-v2`, validator: 74 valid + 9 unscoped; 17 mutations, all red |
 | B2 re-analysis | Not started (S5) | |
 | B3 panel + badge | Not started (S5) | |
 | Release | Not started (S5) | |
@@ -852,6 +1071,10 @@ verdicts; "early" is the same run's reading at the `load` event.
 | s3-start | S2 (`ccf5cfa`, working tree) | **43/74** | 0 | 0 | 8 | 23 | 0 | 38 | S2 verified: 0 verdicts differ from s2-a3 at settled |
 | s3-a5 | S2 (`ccf5cfa`, `--ref`) | 42/74 | 0 | 0 | 8 | 24 | 0 | 39 | blinkit terms refused on this load |
 | s3-a5 | A5 (working tree) | **41/74 +15 by opening** | 0 | 0 | 8 | 25 | 0 | 38 (+15) | blinkit ×2 refused on this load (2/2 alone, twice); by opening: chatpdf, futuretools, postman, expedia, zepto, practo, blinkit ×2 each, naukri terms |
+| s4-start | S2 (`ccf5cfa`, `--ref`) | 43/74 | 0 | 0 | 8 | 23 | 0 | 36 | |
+| s4-start | S3 (`3e121c6`, working tree) | **43/74 +13 by opening** | 0 | 0 | 8 | 23 | 0 | 36 (+11) | S3 verified: only blinkit ×2 differ from s3-a5, found unasked (its reads were refused on S3's load) |
+| s4-final | S2 (`ccf5cfa`, `--ref`) | 41/74 | 0 | 0 | 7 | 26 | 0 | — | |
+| s4-final | S4 (working tree; discovery unchanged) | 40/74 +13 by opening | 0 | 0 | 7 | 27 | 0 | — | tinder ×2 not collected by either collector (alone: s4-start's verdicts); dyno ×2 flaky (alone: 1/2, then 2/2, reference identical on each load) |
 
 Egress IN (Maharashtra), Chrome 153.0.8010.54, playwright-core 1.63.0, concurrency 4.
 

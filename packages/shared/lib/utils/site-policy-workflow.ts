@@ -5,36 +5,25 @@ import {
   buildSitePolicyAnalysisSystemPrompt,
   buildSitePolicyAnalysisUserPrompt,
   callOpenRouterStructured,
+  catalogueCompanyForDomain,
   POLICY_NORMALIZER_VERSION,
+  scopeToCatalogue,
   SITE_POLICY_ANALYSIS_CHAR_LIMIT,
   SITE_POLICY_PROMPT_VERSION,
   SITE_POLICY_SCHEMA_VERSION,
   SitePolicyAnalysisSchema,
+  SitePolicyModelResponseSchema,
 } from '@extension/unshafted-core';
 import type { AppSettings, LocalPolicyAnalysis, SitePolicyAnalysisTarget, Vertical } from '@extension/unshafted-core';
 
-/**
- * The six keys the model is asked for, and nothing else (Part 6, S1).
- *
- * `prompt.ts` deliberately withholds contentHash, domain, docType, verticals, surfaces,
- * sourceUrl, promptVersion, normalizerVersion, model, schemaVersion, analyzedAt and
- * peerDeviation — every one of those is an observed fact the capture already holds, and a model
- * asked to restate one would rewrite it as a plausible guess. Accepting them back here would
- * quietly reopen that door, so the response schema cannot express them at all.
- *
- * Picked off the published schema rather than restated, so the six key names and their element
- * shapes cannot drift from what the prompt's output contract promises and what storage, Drive and
- * the panel already read. (It is also the only way to build this schema without `zod` itself,
- * which is not a dependency of this package.)
+/*
+ * The model is asked for the analytic keys and nothing else (Part 6, S1): `SitePolicyModelResponseSchema`
+ * in core. `prompt.ts` deliberately withholds contentHash, domain, docType, verticals, surfaces,
+ * sourceUrl, promptVersion, normalizerVersion, model, schemaVersion, analyzedAt and peerDeviation —
+ * every one of those is an observed fact the capture already holds, and a model asked to restate
+ * one would rewrite it as a plausible guess. Accepting them back here would quietly reopen that
+ * door, so the response schema cannot express them at all.
  */
-const SitePolicyModelResponseSchema = SitePolicyAnalysisSchema.pick({
-  summary: true,
-  riskLevel: true,
-  confidence: true,
-  exposures: true,
-  availableActions: true,
-  requiredDisclosures: true,
-});
 
 /**
  * Nothing at runtime knows a site's vertical.
@@ -67,6 +56,8 @@ export const runSitePolicyAnalysis = async (
   // one continuous instrument, so it gets more room than a contract the user is a party to.
   const prepared = buildBalancedExcerpt(target.text, SITE_POLICY_ANALYSIS_CHAR_LIMIT);
   const excerpted = prepared.truncated;
+  // A catalogue company's document is its policy across products, scoped to them (B2).
+  const company = catalogueCompanyForDomain(target.domain);
 
   try {
     const response = await callOpenRouterStructured({
@@ -91,12 +82,15 @@ export const runSitePolicyAnalysis = async (
             docType: target.docType,
             preparedText: prepared.text,
             excerpted,
+            company,
           }),
         },
       ],
     });
 
-    const result = SitePolicyModelResponseSchema.parse(response.data);
+    // The prompt offers a closed product list; this keeps the result to it, dropping any id that is
+    // not the company's own rather than failing a run the user paid for.
+    const result = scopeToCatalogue(SitePolicyModelResponseSchema.parse(response.data), company);
 
     // S6, enforced here even though the prompt already asks for both: the prompt ASKS, the code
     // GUARANTEES. A model that ignores either instruction would otherwise publish, under the
@@ -138,6 +132,7 @@ export const runSitePolicyAnalysis = async (
       summary: result.summary,
       riskLevel: result.riskLevel,
       confidence,
+      productScopes: result.productScopes,
       exposures: result.exposures,
       availableActions: result.availableActions,
       requiredDisclosures,

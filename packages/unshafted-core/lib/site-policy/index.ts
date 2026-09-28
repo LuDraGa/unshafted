@@ -9,4 +9,5 @@ export * from './read.js';
 export * from './likeness.js';
 export * from './local-analysis.js';
 export * from './prompt.js';
+export * from './products.js';
 export type * from './types.js';
