@@ -789,7 +789,8 @@ List the documents that need re-analysis and estimate the cost; don't run them.
 
 **Log.** *Done 2026-09-29.*
 
-**Commits:** not yet; the director approves the commit (below).
+**Commit** on `dev/v0.8.3`, pushed 2026-09-29: `326e0e0` (B1 + B2, their tests, this log and S3's
+recorded result).
 
 **Close-out and verify.** S3's manual test is recorded in S3's log above (all four as expected).
 Every S1–S3 check held:
