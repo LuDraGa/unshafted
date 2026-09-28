@@ -1,0 +1,1676 @@
+/*
+ * The full report: a reading page, not a panel. Tokens come from `@extension/ui/global.css`; the
+ * ladders (surface, button, space, type) are the side panel's, scaled up for a page — see
+ * execution-docs/deep-report-page-plan.md §6 and §11.5.
+ *
+ * Body text is 16px at 1.6. The popup's 12px is a concession to 440px, and a page that exists
+ * because the popup was unreadable should not inherit it.
+ *
+ * TYPE, FIVE LEVELS AND NO MORE: the document name (34 serif), a section (26 serif), the verdict's
+ * bottom line (27 serif, the one display line), a deal-breaker's title (19 serif), then body
+ * (16 sans) with its small companions — group headings, labels and meta at 13–15. Serif is for what
+ * is read as prose or as the contract's own words; sans is for everything that is navigated.
+ */
+
+:root {
+  /* Lets `block-size: auto` animate, which is how a row opens (§11.4). */
+  interpolate-size: allow-keywords;
+}
+
+.report-shell {
+  --report-serif: 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', Georgia, serif;
+  /* R3 sets this to the sticky bar's height; every jump target clears it. */
+  --report-sticky-h: 0px;
+  --report-landing: calc(var(--report-sticky-h) + 24px);
+  --report-hairline: 1px solid var(--unshafted-border);
+  --report-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --report-open-ms: 200ms;
+  /*
+   * The left rule's colour. The pill tokens are fills (`-200`), far too pale to read as a 3px
+   * line, so the rule steps down to the same hues at line strength. The pill still says the
+   * severity in words; the rule is there for the eye, never on its own.
+   */
+  --report-rule-high: var(--color-rose-500);
+  --report-rule-medium: var(--color-amber-500);
+  --report-rule-low: var(--color-stone-400);
+
+  min-height: 100vh;
+  padding: 48px 16px 96px;
+  background:
+    radial-gradient(circle at top left, rgba(208, 135, 0, 0.08), transparent 28%),
+    linear-gradient(180deg, var(--unshafted-bg) 0%, #f0e7da 100%);
+  color: var(--unshafted-text);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.report-shell p,
+.report-shell ul,
+.report-shell ol,
+.report-shell dl,
+.report-shell dd,
+.report-shell h2,
+.report-shell h3,
+.report-shell fieldset {
+  margin: 0;
+}
+
+.report-column {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+/* ── Frame: the rail beside the column from 1024px, the strip in the bar below it (plan §5) ── */
+
+.report-rail {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .report-shell {
+    /* What the bar lines its contents up with: the rail, the gap and the column. */
+    --report-frame-w: 988px;
+  }
+
+  .report-layout-rail {
+    display: grid;
+    grid-template-columns: 220px minmax(0, 720px);
+    column-gap: 48px;
+    justify-content: center;
+    align-items: start;
+  }
+
+  .report-layout-rail .report-column {
+    margin: 0;
+  }
+
+  .report-rail {
+    display: block;
+    position: sticky;
+    top: calc(var(--report-sticky-h) + 24px);
+    max-height: calc(100vh - var(--report-sticky-h) - 48px);
+    overflow-y: auto;
+    /*
+     * Level with the h1, so the rail reads as the document's contents, not as page chrome. A
+     * margin, not padding: sticking measures from the border box, so this gap goes when it sticks.
+     */
+    margin-top: 26px;
+  }
+
+  .report-strip {
+    display: none;
+  }
+}
+
+.report-rail-label {
+  margin-bottom: 8px;
+  padding-left: 14px;
+  color: var(--unshafted-text-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.report-rail-list,
+.report-strip-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.report-rail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.report-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--unshafted-text-soft);
+  font-size: 14.5px;
+  line-height: 1.35;
+  text-decoration: none;
+  transition:
+    background 140ms ease,
+    color 140ms ease;
+}
+
+.report-nav-name {
+  flex: 1;
+}
+
+.report-nav-count {
+  color: var(--unshafted-text-muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.report-nav-link:focus-visible {
+  outline: 2px solid var(--unshafted-brand);
+  outline-offset: 2px;
+}
+
+/* Rail: the current entry carries a bar on its left and the heavier weight, not just a colour. */
+.report-rail .report-nav-link {
+  position: relative;
+  border-radius: 10px;
+  padding: 7px 12px 7px 14px;
+}
+
+.report-rail .report-nav-link:hover {
+  background: rgba(121, 113, 107, 0.08);
+  color: var(--unshafted-text);
+}
+
+.report-rail .report-nav-link::before {
+  content: '';
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  left: 3px;
+  width: 3px;
+  border-radius: 3px;
+  background: transparent;
+  transition: background 140ms ease;
+}
+
+.report-rail .report-nav-link[aria-current] {
+  background: var(--unshafted-surface-strong);
+  box-shadow: 0 1px 2px rgba(28, 25, 23, 0.06);
+  color: var(--unshafted-text-strong);
+  font-weight: 600;
+}
+
+.report-rail .report-nav-link[aria-current]::before {
+  background: var(--unshafted-text-strong);
+}
+
+.report-rail .report-nav-link[aria-current] .report-nav-count {
+  color: var(--unshafted-text-soft);
+}
+
+/* Blockers' count split by severity, the same three rules the rows carry. */
+.report-split {
+  display: flex;
+  gap: 2px;
+  width: 30px;
+  height: 5px;
+  flex-shrink: 0;
+}
+
+.report-split > span {
+  border-radius: 999px;
+}
+
+.report-split > [data-severity='high'] {
+  background: var(--report-rule-high);
+}
+
+.report-split > [data-severity='medium'] {
+  background: var(--report-rule-medium);
+}
+
+.report-split > [data-severity='low'] {
+  background: var(--report-rule-low);
+}
+
+/* ── The chrome: one fixed element, the bar and (below 1024px) the strip ── */
+
+.report-chrome {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 30;
+  border-bottom: var(--report-hairline);
+  background: var(--unshafted-bg);
+  box-shadow: 0 12px 24px -22px rgba(28, 25, 23, 0.45);
+  opacity: 0;
+  transform: translateY(-8px);
+  visibility: hidden;
+  transition:
+    opacity 160ms ease,
+    transform 200ms var(--report-ease),
+    visibility 0s linear 200ms;
+}
+
+.report-chrome[data-shown] {
+  opacity: 1;
+  transform: none;
+  visibility: visible;
+  transition:
+    opacity 160ms ease,
+    transform 200ms var(--report-ease),
+    visibility 0s;
+}
+
+.report-bar,
+.report-strip {
+  max-width: calc(var(--report-frame-w, 720px) + 32px);
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+.report-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 52px;
+}
+
+.report-bar-brand {
+  flex-shrink: 0;
+  font-size: 11px;
+}
+
+/* The h1, carried up into the bar as the page scrolls past it. */
+.report-bar-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--unshafted-text-strong);
+  font-family: var(--report-serif);
+  font-size: 17px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.report-bar-risk {
+  flex-shrink: 0;
+  padding: 3px 10px;
+  font-size: 10.5px;
+}
+
+.report-bar-actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Strip: tabs, the current one underlined just above the chrome's hairline. */
+.report-strip {
+  position: relative;
+  overflow-x: auto;
+  scrollbar-width: none;
+  /* Inside the 16px gutter, so nothing fades at rest; only what has scrolled under an edge does. */
+  mask-image: linear-gradient(to right, transparent, #000 16px, #000 calc(100% - 16px), transparent);
+}
+
+.report-strip-list {
+  display: flex;
+  gap: 22px;
+  width: max-content;
+}
+
+.report-strip .report-nav-link {
+  gap: 6px;
+  border-bottom: 2px solid transparent;
+  padding: 8px 0 9px;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.report-strip .report-nav-link:hover {
+  color: var(--unshafted-text);
+}
+
+.report-strip .report-nav-link[aria-current] {
+  border-bottom-color: var(--unshafted-text-strong);
+  color: var(--unshafted-text-strong);
+  font-weight: 600;
+}
+
+.report-strip .report-split {
+  width: 18px;
+  height: 4px;
+}
+
+.report-strip .report-nav-count {
+  font-size: 12.5px;
+}
+
+/* The one amber caps eyebrow on the page. Everything else is sentence case. */
+.report-brand {
+  color: var(--unshafted-brand);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+}
+
+.report-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.report-title {
+  color: var(--unshafted-text-strong);
+  font-size: 34px;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+
+.report-meta {
+  color: var(--unshafted-text-muted);
+  font-size: 14px;
+}
+
+/* Fades on its own: "just now" stops being true, and a stale claim is worse than none. */
+.report-updated {
+  color: var(--unshafted-ok-text);
+  font-weight: 600;
+  animation: report-updated 9s ease forwards;
+}
+
+.report-updated::before {
+  content: ' · ';
+  color: var(--unshafted-text-muted);
+  font-weight: 400;
+}
+
+@keyframes report-updated {
+  0%,
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+/* ── Verdict: the one focal point, and the only tinted block ───────────── */
+
+.report-verdict {
+  margin-top: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-radius: var(--unshafted-radius-card);
+  background: var(--unshafted-text);
+  color: var(--unshafted-action-text);
+  padding: 28px 32px 24px;
+  box-shadow: 0 28px 56px -32px rgba(28, 25, 23, 0.55);
+  scroll-margin-top: var(--report-landing);
+}
+
+.report-verdict-headline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+}
+
+.report-risk {
+  border-width: 1px;
+  border-style: solid;
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.report-verdict-action {
+  font-family: inherit;
+  font-size: 17px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--unshafted-action-text);
+}
+
+.report-verdict-action:focus {
+  outline: none;
+}
+
+.report-verdict-bottomline {
+  margin-top: 4px;
+  font-family: var(--report-serif);
+  font-size: 27px;
+  line-height: 1.3;
+  letter-spacing: -0.012em;
+  color: #fff;
+  text-wrap: pretty;
+}
+
+.report-verdict-summary {
+  color: rgba(250, 250, 249, 0.8);
+  text-wrap: pretty;
+}
+
+.report-verdict-perspective {
+  color: rgba(250, 250, 249, 0.58);
+  font-size: 14px;
+}
+
+/* The verdict's bottom edge: how much there is, and a way to each of it. */
+.report-glance {
+  margin-top: 8px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(250, 250, 249, 0.14);
+}
+
+.report-glance ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0;
+  list-style: none;
+}
+
+.report-glance-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(250, 250, 249, 0.2);
+  border-radius: 999px;
+  padding: 5px 13px;
+  color: rgba(250, 250, 249, 0.92);
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-decoration: none;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease;
+}
+
+.report-glance-link:hover {
+  border-color: rgba(250, 250, 249, 0.42);
+  background: rgba(250, 250, 249, 0.08);
+  color: #fff;
+}
+
+/* The brand amber is too dark to see on the verdict's ground; the focus amber is not. */
+.report-glance-link:focus-visible {
+  outline: 2px solid var(--color-amber-400);
+  outline-offset: 2px;
+}
+
+.report-glance-mark {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: 999px;
+}
+
+.report-glance-mark[data-severity='high'] {
+  background: var(--color-rose-400);
+}
+
+.report-glance-mark[data-severity='medium'] {
+  background: var(--color-amber-400);
+}
+
+.report-glance-mark[data-severity='low'] {
+  background: var(--color-stone-400);
+}
+
+/* ── Sections and groups ────────────────────────────────────────────── */
+
+.report-section {
+  margin-top: 56px;
+  scroll-margin-top: var(--report-landing);
+}
+
+.report-section-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 24px;
+}
+
+.report-section-title {
+  color: var(--unshafted-text-strong);
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+}
+
+.report-section-title:focus,
+.report-group-title:focus {
+  outline: none;
+}
+
+.report-section-intro {
+  color: var(--unshafted-text-muted);
+  font-size: 15px;
+}
+
+.report-group {
+  scroll-margin-top: var(--report-landing);
+}
+
+.report-group + .report-group {
+  margin-top: 36px;
+}
+
+/* Topic groups are often one item each; at the tier spacing they read as a list of headings. */
+.report-evidence .report-group + .report-group {
+  margin-top: 20px;
+}
+
+.report-group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 36px;
+  padding-bottom: 8px;
+  border-bottom: var(--report-hairline);
+  border-radius: 8px 8px 0 0;
+}
+
+.report-group-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--unshafted-text);
+}
+
+.report-group-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--unshafted-selection-soft);
+  color: var(--unshafted-text-soft);
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.report-group-tools {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+/* ── Rows ───────────────────────────────────────────────────────────── */
+
+.report-rows {
+  display: flex;
+  flex-direction: column;
+}
+
+.report-rows:not(.report-rows-cards) > * + * {
+  border-top: var(--report-hairline);
+}
+
+.report-rows-cards {
+  gap: 16px;
+  padding-top: 16px;
+}
+
+.report-disclosure {
+  position: relative;
+  scroll-margin-top: var(--report-landing);
+}
+
+/* The severity rule, full height, so a run of closed rows reads as one graded edge. */
+.report-disclosure[data-severity]::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  z-index: 1;
+}
+
+.report-disclosure[data-severity='high']::before {
+  background: var(--report-rule-high);
+}
+
+.report-disclosure[data-severity='medium']::before {
+  background: var(--report-rule-medium);
+}
+
+.report-disclosure[data-severity='low']::before {
+  background: var(--report-rule-low);
+}
+
+.report-summary {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  column-gap: 10px;
+  padding: 14px 16px 14px 17px;
+  border-radius: inherit;
+  cursor: pointer;
+  list-style: none;
+  transition: background 140ms ease;
+}
+
+.report-summary::-webkit-details-marker {
+  display: none;
+}
+
+.report-summary:hover {
+  background: rgba(255, 252, 247, 0.78);
+}
+
+.report-summary:focus-visible {
+  outline: 2px solid var(--unshafted-brand);
+  outline-offset: -2px;
+}
+
+.report-chevron {
+  width: 16px;
+  height: 16px;
+  margin-top: 3px;
+  fill: none;
+  stroke: var(--unshafted-text-faint);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition:
+    transform var(--report-open-ms) var(--report-ease),
+    stroke 140ms ease;
+}
+
+.report-summary:hover .report-chevron {
+  stroke: var(--unshafted-text);
+}
+
+.report-disclosure[open] > .report-summary .report-chevron {
+  transform: rotate(90deg);
+}
+
+.report-summary-main {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.report-row-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.report-row-title {
+  color: var(--unshafted-text-strong);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-wrap: pretty;
+}
+
+.report-row-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  color: var(--unshafted-text-muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.report-row-detail {
+  color: var(--unshafted-text-soft);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.report-inline-label {
+  color: var(--unshafted-text);
+  font-weight: 650;
+}
+
+/* The origin: a tag, not a grouping (§11.2). */
+.report-tag {
+  border-radius: 6px;
+  background: rgba(231, 229, 228, 0.7);
+  color: var(--unshafted-text-soft);
+  padding: 1px 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.report-pill {
+  flex-shrink: 0;
+  margin-top: 2px;
+  border-radius: 999px;
+  padding: 3px 9px;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.report-pill[data-severity='high'] {
+  background: var(--unshafted-severity-high-bg);
+  color: var(--unshafted-severity-high-text);
+}
+
+.report-pill[data-severity='medium'] {
+  background: var(--unshafted-severity-medium-bg);
+  color: var(--unshafted-severity-medium-text);
+}
+
+.report-pill[data-severity='low'] {
+  background: var(--unshafted-severity-low-bg);
+  color: var(--unshafted-severity-low-text);
+}
+
+/*
+ * Layer 2, the contract's own words. One line while the row is closed, so a closed row still
+ * shows what it rests on; in full once open. It is the same element either way — never a preview
+ * plus a copy — so find-in-page, a screen reader and print all meet it exactly once.
+ */
+.report-quote {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+  overflow: hidden;
+  border-left: 2px solid var(--unshafted-border-strong);
+  padding-left: 12px;
+  color: var(--unshafted-text-soft);
+  font-family: var(--report-serif);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.report-disclosure[open] .report-quote {
+  display: block;
+}
+
+/* The body: layer 3. Opening animates its height; nothing else on the page moves but what follows. */
+.report-disclosure::details-content {
+  block-size: 0;
+  overflow-y: clip;
+  transition:
+    block-size var(--report-open-ms) var(--report-ease),
+    content-visibility var(--report-open-ms) allow-discrete;
+}
+
+.report-disclosure[open]::details-content {
+  block-size: auto;
+}
+
+.report-disclosure-body {
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 2px 16px 18px 43px;
+  color: var(--unshafted-text-soft);
+}
+
+.report-label {
+  color: var(--unshafted-text);
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.4;
+}
+
+.report-disclosure-body p + .report-label {
+  margin-top: 8px;
+}
+
+.report-understand {
+  display: grid;
+  gap: 14px;
+}
+
+.report-understand > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+@container (min-width: 520px) {
+  .report-understand {
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+  }
+}
+
+/* Just-in-time pairing: the fix, next to the problem it fixes (§11.3). */
+.report-pair {
+  align-self: flex-start;
+  margin-top: 10px;
+  border-radius: 6px;
+  color: var(--unshafted-brand);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.45;
+  text-decoration: none;
+}
+
+.report-pair:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.report-pair:focus-visible {
+  outline: 2px solid var(--unshafted-brand);
+  outline-offset: 3px;
+}
+
+.report-pair-label {
+  color: var(--unshafted-text);
+}
+
+/* ── Deal-breakers: the only cards, square on the ruled edge ─────────── */
+
+.report-finding-card {
+  border: 1px solid var(--unshafted-border);
+  border-left: 0;
+  border-radius: 0 14px 14px 0;
+  background: var(--unshafted-surface-strong);
+  box-shadow:
+    0 1px 2px rgba(28, 25, 23, 0.04),
+    0 12px 28px -16px rgba(28, 25, 23, 0.16);
+}
+
+.report-finding-card > .report-summary {
+  padding: 18px 20px 12px;
+}
+
+.report-finding-card > .report-summary:hover {
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.report-finding-card .report-row-title {
+  font-family: var(--report-serif);
+  font-size: 19px;
+  line-height: 1.3;
+  letter-spacing: -0.005em;
+}
+
+.report-finding-card .report-disclosure-body {
+  padding: 4px 20px 20px 46px;
+}
+
+/* A clause reference: marked as one, so "Fees" reads as the clause and not as a topic. */
+.report-clause-ref::before {
+  content: '§\00a0';
+  color: var(--unshafted-text-faint);
+  font-weight: 400;
+}
+
+/* ── Asks ────────────────────────────────────────────────────────────── */
+
+.report-chip {
+  border: 1px solid var(--unshafted-border-strong);
+  border-radius: 999px;
+  background: rgba(255, 252, 247, 0.7);
+  color: var(--unshafted-text-soft);
+  padding: 1px 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+/* A proposed clause, set as the contract would set it, ready to paste. */
+.report-clause {
+  display: block;
+  border: 1px solid var(--unshafted-border);
+  border-left: 3px solid var(--unshafted-text-soft);
+  border-radius: 0 10px 10px 0;
+  background: var(--unshafted-surface-strong);
+  color: var(--unshafted-text);
+  padding: 10px 14px;
+  font-family: var(--report-serif);
+  font-size: 16.5px;
+  line-height: 1.55;
+}
+
+.report-row-with-tool {
+  position: relative;
+}
+
+/*
+ * Only the title line makes room for the tool, so the clause below keeps the row's full width.
+ * The tool is pinned to the title line, never to the row's bottom: the row grows when it opens.
+ */
+.report-row-with-tool .report-row-title {
+  padding-right: 56px;
+}
+
+.report-row-tool {
+  position: absolute;
+  top: 15px;
+  right: 16px;
+  z-index: 2;
+}
+
+.report-questions {
+  padding: 0;
+  list-style: none;
+  counter-reset: question;
+}
+
+.report-questions > li {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 6px;
+  padding: 12px 0 12px 4px;
+  color: var(--unshafted-text);
+  counter-increment: question;
+  text-wrap: pretty;
+}
+
+.report-questions > li + li {
+  border-top: var(--report-hairline);
+}
+
+.report-questions > li::before {
+  content: counter(question);
+  color: var(--unshafted-text-faint);
+  font-family: var(--report-serif);
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.5;
+}
+
+.report-progress {
+  color: var(--unshafted-text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.report-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding-top: 16px;
+}
+
+.report-checklist-group {
+  min-width: 0;
+  border: 0;
+  padding: 0;
+}
+
+.report-checklist-label {
+  margin-bottom: 6px;
+  padding: 0;
+  color: var(--unshafted-text);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.report-checklist-group ul {
+  padding: 0;
+  list-style: none;
+}
+
+.report-check {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  border-radius: 8px;
+  padding: 7px 8px;
+  margin: 0 -8px;
+  cursor: pointer;
+  transition: background 140ms ease;
+}
+
+.report-check:hover {
+  background: rgba(255, 252, 247, 0.78);
+}
+
+.report-check input {
+  width: 18px;
+  height: 18px;
+  margin: 3px 0 0;
+  accent-color: var(--unshafted-action);
+  cursor: pointer;
+}
+
+.report-check input:focus-visible {
+  outline: 2px solid var(--unshafted-brand);
+  outline-offset: 2px;
+}
+
+.report-check input:checked + span {
+  color: var(--unshafted-text-muted);
+  text-decoration: line-through;
+  text-decoration-color: var(--unshafted-border-strong);
+}
+
+/* ── Supporting sections ─────────────────────────────────────────────── */
+
+.report-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-left: 22px;
+}
+
+.report-list > li::marker {
+  color: var(--unshafted-text-faint);
+}
+
+.report-wins {
+  padding: 0;
+  list-style: none;
+}
+
+.report-wins > li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 0;
+  color: var(--unshafted-text-soft);
+}
+
+.report-wins > li + li {
+  border-top: var(--report-hairline);
+}
+
+.report-wins > li:first-child {
+  padding-top: 0;
+}
+
+.report-facts {
+  display: grid;
+  gap: 14px;
+}
+
+.report-facts > div {
+  display: grid;
+  gap: 2px;
+}
+
+/* A fact sheet at width: labels in a column of their own, values aligned beside them. */
+@media (min-width: 561px) {
+  .report-facts > div {
+    grid-template-columns: 132px minmax(0, 1fr);
+    align-items: baseline;
+    gap: 16px;
+  }
+
+  .report-facts > div + div {
+    border-top: var(--report-hairline);
+    padding-top: 14px;
+  }
+}
+
+.report-facts dt {
+  color: var(--unshafted-text-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.report-parties,
+.report-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  padding: 0;
+  list-style: none;
+}
+
+.report-chips {
+  gap: 6px;
+  padding-top: 4px;
+}
+
+.report-notices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 0;
+  list-style: none;
+}
+
+.report-notice-line {
+  border: 1px solid var(--unshafted-guidance-border);
+  border-radius: 12px;
+  background: var(--unshafted-guidance-bg);
+  color: var(--unshafted-guidance-text);
+  padding: 10px 14px;
+  font-size: 15px;
+}
+
+.report-caveat .report-disclosure-body {
+  padding-top: 0;
+}
+
+.report-footer {
+  margin-top: 64px;
+  border-top: var(--report-hairline);
+  padding-top: 20px;
+  color: var(--unshafted-text-muted);
+  font-size: 13.5px;
+}
+
+/* ── Arrival: where a jump landed ───────────────────────────────────── */
+
+.report-disclosure[data-arrived] {
+  animation: report-arrive 1.5s var(--report-ease);
+}
+
+.report-group[data-arrived] > .report-group-head {
+  animation: report-arrive-head 1.5s var(--report-ease);
+}
+
+@keyframes report-arrive {
+  0%,
+  35% {
+    outline: 3px solid rgba(245, 158, 11, 0.55);
+    outline-offset: 3px;
+  }
+  100% {
+    outline: 3px solid rgba(245, 158, 11, 0);
+    outline-offset: 3px;
+  }
+}
+
+@keyframes report-arrive-head {
+  0%,
+  35% {
+    background: rgba(254, 243, 199, 0.9);
+  }
+  100% {
+    background: rgba(254, 243, 199, 0);
+  }
+}
+
+/* No fade under reduced motion: the mark is simply there, and then it is not. */
+@media (prefers-reduced-motion: reduce) {
+  .report-disclosure[data-arrived],
+  .report-group[data-arrived] > .report-group-head {
+    animation-timing-function: steps(1, end);
+  }
+}
+
+/* ── Loading / missing / notices ─────────────────────────────────────── */
+
+.report-state {
+  max-width: 520px;
+  margin: 12vh auto 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.report-state-title {
+  color: var(--unshafted-text-strong);
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.report-state-body {
+  color: var(--unshafted-text-soft);
+}
+
+.report-notice {
+  margin-top: 24px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--unshafted-guidance-border);
+  border-radius: 14px;
+  background: var(--unshafted-guidance-bg);
+  color: var(--unshafted-guidance-text);
+  padding: 12px 16px;
+  font-size: 15px;
+}
+
+.report-notice-quiet {
+  border-color: var(--unshafted-border);
+  background: var(--unshafted-surface-strong);
+  color: var(--unshafted-text-soft);
+}
+
+/* ── Actions: Copy, Export, Print, Delete ────────────────────────────── */
+
+.report-actions {
+  margin-top: 10px;
+}
+
+.report-actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Apart from the three that keep the report, and in the danger tone, so it is not hit by rhythm. */
+.report-delete {
+  margin-left: 10px;
+  color: var(--unshafted-danger-action);
+  text-decoration-color: var(--color-rose-300);
+}
+
+.report-delete:hover {
+  color: var(--unshafted-danger-text);
+}
+
+.report-confirm {
+  margin-top: 12px;
+  max-width: 520px;
+  border: 1px solid var(--unshafted-danger-border);
+  border-radius: 14px;
+  background: var(--unshafted-danger-bg);
+  color: var(--unshafted-danger-text);
+  padding: 12px 16px 14px;
+  font-size: 14.5px;
+}
+
+.report-confirm-title {
+  font-weight: 650;
+}
+
+.report-confirm-body {
+  margin: 2px 0 12px;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+/* Cancel sits beside a filled button, so it gets a button's footprint and a comfortable focus ring. */
+.report-confirm .report-actions-row {
+  gap: 12px;
+}
+
+.report-confirm .report-text-button {
+  border-radius: 10px;
+  padding: 7px 10px;
+}
+
+/* Filled rank: the one commit on the page. */
+.report-button-danger {
+  border: 1px solid var(--unshafted-danger-action);
+  border-radius: 12px;
+  background: var(--unshafted-danger-action);
+  color: #fff;
+  padding: 7px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  transition: background 140ms ease;
+}
+
+.report-button-danger:hover {
+  background: var(--unshafted-danger-text);
+}
+
+.report-button-danger:focus-visible {
+  outline: 2px solid var(--unshafted-danger-action);
+  outline-offset: 2px;
+}
+
+/* The bar's copy is smaller and drops out where the bar has no room for it. */
+.report-actions-compact {
+  margin-top: 0;
+}
+
+.report-actions-compact .report-button-outline {
+  border-radius: 10px;
+  padding: 4px 11px;
+  font-size: 13px;
+}
+
+@media (max-width: 719px) {
+  .report-bar-actions {
+    display: none;
+  }
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────── */
+
+/* Outlined rank: Print, Export, Open it. */
+.report-button-outline {
+  border: 1px solid var(--unshafted-border-strong);
+  border-radius: 12px;
+  background: var(--unshafted-surface-strong);
+  color: var(--unshafted-text);
+  padding: 7px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  transition: border-color 140ms ease;
+}
+
+.report-button-outline:hover {
+  border-color: var(--unshafted-text-muted);
+}
+
+/* Text rank: per-block Copy, Expand all. No border, no fill, so a row can carry one and stay a row. */
+.report-text-button {
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  padding: 2px 0;
+  color: var(--unshafted-text-soft);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: var(--unshafted-border-strong);
+  text-underline-offset: 3px;
+  white-space: nowrap;
+  transition: color 140ms ease;
+}
+
+.report-text-button:hover {
+  color: var(--unshafted-text);
+  text-decoration-color: currentcolor;
+}
+
+.report-button-outline:focus-visible,
+.report-text-button:focus-visible {
+  outline: 2px solid var(--unshafted-brand);
+  outline-offset: 2px;
+}
+
+/* ── Narrow ─────────────────────────────────────────────────────────── */
+
+@media (max-width: 560px) {
+  .report-shell {
+    padding-top: 32px;
+  }
+
+  .report-title {
+    font-size: 28px;
+  }
+
+  .report-verdict {
+    padding: 22px 20px 20px;
+  }
+
+  .report-verdict-bottomline {
+    font-size: 23px;
+  }
+
+  .report-section {
+    margin-top: 48px;
+  }
+
+  .report-section-title {
+    font-size: 23px;
+  }
+
+  .report-summary {
+    padding-right: 12px;
+  }
+
+  .report-finding-card > .report-summary {
+    padding: 16px 14px 10px 17px;
+  }
+
+  .report-disclosure-body,
+  .report-finding-card .report-disclosure-body {
+    padding-right: 14px;
+    padding-left: 43px;
+  }
+
+  .report-row-tool {
+    right: 12px;
+  }
+
+  /* The document name is in the bar already, and the brand is on the page it scrolled past. */
+  .report-bar-brand {
+    display: none;
+  }
+}
+
+/* ── Print (plan §6): the likeliest way this goes into a negotiation ─── */
+
+/*
+ * The running header and page numbers. The document name and date are set on :root by the page
+ * (`--report-print-name`, `--report-print-date`), because a margin box can only show what CSS
+ * can reach and those are data.
+ */
+@page {
+  size: A4;
+  margin: 18mm 16mm 18mm;
+
+  @top-left {
+    content: var(--report-print-name, '');
+    color: #555;
+    font:
+      8.5pt/1.2 'Avenir Next',
+      'Helvetica Neue',
+      sans-serif;
+  }
+
+  @top-right {
+    content: 'Unshafted report · ' var(--report-print-date, '');
+    color: #555;
+    font:
+      8.5pt/1.2 'Avenir Next',
+      'Helvetica Neue',
+      sans-serif;
+  }
+
+  @bottom-right {
+    content: counter(page) ' of ' counter(pages);
+    color: #555;
+    font:
+      8.5pt/1.2 'Avenir Next',
+      'Helvetica Neue',
+      sans-serif;
+  }
+}
+
+@media print {
+  html,
+  body {
+    background: #fff !important;
+  }
+
+  .report-shell {
+    min-height: 0;
+    padding: 0;
+    background: none;
+    color: #000;
+    font-size: 10.5pt;
+    line-height: 1.5;
+  }
+
+  /* Everything that is for using the screen, not for reading the page. */
+  .report-chrome,
+  .report-rail,
+  .report-actions,
+  .report-brand,
+  .report-updated,
+  .report-group-tools button,
+  .report-row-tool,
+  .report-notice:not(.report-notice-quiet) {
+    display: none !important;
+  }
+
+  /* Hidden, not removed: the summary is a grid and the chevron holds its first track. */
+  .report-chevron {
+    visibility: hidden;
+  }
+
+  /* Every row prints open (`beforeprint`, and this for a print that skips it). */
+  .report-disclosure::details-content {
+    block-size: auto;
+    content-visibility: visible;
+    transition: none;
+  }
+
+  .report-title {
+    font-size: 22pt;
+  }
+
+  .report-meta {
+    color: #333;
+  }
+
+  /* The verdict keeps its place as the one enclosed block, as a border rather than a dark ground. */
+  .report-verdict {
+    margin-top: 16pt;
+    border: 1.5pt solid #000;
+    border-radius: 10px;
+    background: none;
+    box-shadow: none;
+    color: #000;
+    padding: 14pt 16pt;
+  }
+
+  .report-verdict-action,
+  .report-verdict-bottomline {
+    color: #000;
+  }
+
+  .report-verdict-bottomline {
+    font-size: 16pt;
+  }
+
+  .report-verdict-summary {
+    color: #222;
+  }
+
+  .report-verdict-perspective {
+    color: #555;
+  }
+
+  .report-glance {
+    border-top-color: #ccc;
+  }
+
+  .report-glance-link {
+    border-color: #bbb;
+    color: #000;
+    font-size: 9.5pt;
+  }
+
+  .report-section {
+    margin-top: 24pt;
+  }
+
+  .report-section-title {
+    font-size: 17pt;
+  }
+
+  /* No shadows: Chrome rasterises a blurred shadow into a grey block behind the card. */
+  .report-finding-card {
+    border-color: #bbb;
+    background: none;
+    box-shadow: none;
+  }
+
+  .report-rows-cards {
+    gap: 10pt;
+    padding-top: 10pt;
+  }
+
+  .report-summary {
+    padding-top: 9pt;
+    padding-bottom: 9pt;
+  }
+
+  .report-quote {
+    color: #222;
+  }
+
+  /*
+   * The marks that carry meaning keep their colour whatever the print dialog says about
+   * background graphics, which is off by default: the severity rule and pill, the glance and rail
+   * marks, the risk pill and the checkboxes. The rest of the page prints black on white.
+   */
+  .report-disclosure[data-severity]::before,
+  .report-pill,
+  .report-risk,
+  .report-glance-mark,
+  .report-check input {
+    print-color-adjust: exact;
+  }
+
+  .report-pill {
+    border: 0.75pt solid currentcolor;
+  }
+
+  /*
+   * Chrome fragments a flex or grid container between its children and does not carry
+   * `break-after: avoid` into or out of one, so a heading at the foot of a page stayed there
+   * while its first item went over. Measured: "Minor", "Proposed wording", "Asks" and "Wins" were
+   * each orphaned. In print, everything between a heading and its first item is a plain block,
+   * with margins where the gaps were.
+   */
+  .report-section-head,
+  .report-rows,
+  .report-checklist,
+  .report-list,
+  .report-facts,
+  .report-notices {
+    display: block;
+  }
+
+  .report-group-head {
+    display: flow-root;
+  }
+
+  /* Inline, so the floated progress count can sit on the heading's line. */
+  .report-group-title {
+    display: inline-flex;
+  }
+
+  .report-group-tools {
+    float: right;
+  }
+
+  /* Prefixed with the shell to outrank its own `p, ul, fieldset { margin: 0 }` reset. */
+  .report-shell .report-section-head > * + * {
+    margin-top: 4px;
+  }
+
+  .report-shell .report-rows-cards > * + * {
+    margin-top: 10pt;
+  }
+
+  .report-shell .report-checklist > * + * {
+    margin-top: 14pt;
+  }
+
+  .report-shell .report-list > * + * {
+    margin-top: 6px;
+  }
+
+  .report-shell .report-facts > * + * {
+    margin-top: 14px;
+  }
+
+  .report-shell .report-notices > * + * {
+    margin-top: 8px;
+  }
+
+  /* Keep things whole and keep headings with what follows them. */
+  .report-disclosure,
+  .report-checklist-group,
+  .report-questions > li,
+  .report-wins > li,
+  .report-facts > div,
+  .report-list > li,
+  .report-notice-line,
+  .report-glance {
+    break-inside: avoid;
+  }
+
+  .report-section-head,
+  .report-group-head,
+  .report-checklist-label {
+    break-inside: avoid;
+    break-after: avoid;
+  }
+
+  .report-footer {
+    margin-top: 24pt;
+    border-top-color: #999;
+    color: #333;
+  }
+}

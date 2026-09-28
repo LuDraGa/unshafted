@@ -1,6 +1,6 @@
 /**
- * Run `site-policy-prompt-v1` against documents the corpus already has a hand-written analysis
- * for, and print what differs.
+ * Run the shipped site-policy prompt (`SITE_POLICY_PROMPT_VERSION`) against documents the corpus
+ * already has a hand-written analysis for, and print what differs.
  *
  * WHY THIS EXISTS. Part 6 §W1 shipped a prompt calibrated by reading — comparing what it asks for
  * against what an Opus analyst actually wrote. That is a design review, and W1's own weakness list
@@ -30,11 +30,16 @@ import { createInterface } from 'node:readline/promises';
 import { fileURLToPath } from 'node:url';
 
 import { callOpenRouterStructured } from '../../packages/unshafted-core/lib/openrouter.js';
+import { SITE_POLICY_PROMPT_VERSION } from '../../packages/unshafted-core/lib/site-policy/local-analysis.js';
+import { catalogueCompanyForDomain } from '../../packages/unshafted-core/lib/site-policy/products.js';
 import {
   buildSitePolicyAnalysisSystemPrompt,
   buildSitePolicyAnalysisUserPrompt,
 } from '../../packages/unshafted-core/lib/site-policy/prompt.js';
-import { SitePolicyAnalysisSchema } from '../../packages/unshafted-core/lib/site-policy/schemas.js';
+import {
+  SitePolicyAnalysisSchema,
+  SitePolicyModelResponseSchema,
+} from '../../packages/unshafted-core/lib/site-policy/schemas.js';
 import type { SitePolicyAnalysis } from '../../packages/unshafted-core/lib/site-policy/types.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
@@ -45,16 +50,6 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
  * showing on its home ground is the strongest signal the script can give.
  */
 const DEFAULT_HASH_PREFIXES = ['887b98bf', 'f44a02e5', '83d53ffe', '7db58935'];
-
-/** The six keys the model supplies. Everything else on the object is provenance the caller fills. */
-const ModelResponseSchema = SitePolicyAnalysisSchema.pick({
-  summary: true,
-  riskLevel: true,
-  confidence: true,
-  exposures: true,
-  availableActions: true,
-  requiredDisclosures: true,
-});
 
 const RISK_ORDER = ['Low', 'Medium', 'High', 'Very High'] as const;
 
@@ -99,7 +94,7 @@ const runPrompt = async (
     apiKey: config.apiKey,
     model: config.model,
     reasoningEffort: 'high',
-    schema: ModelResponseSchema,
+    schema: SitePolicyModelResponseSchema,
     schemaName: 'site_policy_analysis',
     title: 'Unshafted Site Policy Calibration',
     messages: [
@@ -113,12 +108,13 @@ const runPrompt = async (
           verticals: pair.corpus.verticals,
           preparedText: pair.text,
           excerpted: false,
+          company: catalogueCompanyForDomain(pair.corpus.domain),
         }),
       },
     ],
   });
 
-  return ModelResponseSchema.parse(response.data);
+  return SitePolicyModelResponseSchema.parse(response.data);
 };
 
 const severitySpread = (analysis: { exposures: SitePolicyAnalysis['exposures'] }) => {
@@ -212,7 +208,7 @@ const main = async () => {
     return;
   }
 
-  console.log(`\nsite-policy-prompt-v1 · ${provider} · ${model}`);
+  console.log(`\n${SITE_POLICY_PROMPT_VERSION} · ${provider} · ${model}`);
 
   for (const pair of pairs) {
     // Sequential, so a failure halfway leaves the earlier reports on screen rather than losing

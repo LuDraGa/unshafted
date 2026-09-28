@@ -28,20 +28,27 @@ const readStoredState = async () => {
   return { entries: listed, stats: { bytes: measured.bytes, budgetBytes: measured.budgetBytes } };
 };
 
+/**
+ * A run in progress, as the analyse bar's content. It takes the place the offer to run was in, so
+ * the reader watches it where they started it — the bar is the run's place, before, during and
+ * after, and the reading flow above it is never interrupted by a progress card.
+ */
 const RunProgress = ({ runState }: { runState: SitePolicyRunState }) => {
   const position = runState.currentUrl ? runState.completed + 1 : runState.completed;
 
   return (
-    <section className="panel-one-thing">
-      <p className="panel-eyebrow">Analysing</p>
-      <p className="m-0 text-xs leading-relaxed text-[var(--unshafted-text-muted)]">
-        {runState.currentUrl ? `Reading ${shortenUrl(runState.currentUrl)}.` : 'Waiting on the next document.'}{' '}
-        {position} of {runState.total}.
+    <div className="panel-run-progress" role="status">
+      <p className="panel-run-line">
+        <span className="panel-busy-dot" aria-hidden="true" />
+        <span>
+          Analysing {position} of {runState.total}
+          {runState.currentUrl ? ` — ${shortenUrl(runState.currentUrl)}` : ''}
+        </span>
       </p>
-      <p className="m-0 mt-1 text-[11px] leading-relaxed text-[var(--unshafted-text-faint)]">
+      <p className="panel-quiet">
         This runs outside the panel, so closing the panel will not stop it or lose what it has finished.
       </p>
-    </section>
+    </div>
   );
 };
 
@@ -86,13 +93,12 @@ const StorageRelief = ({ onChanged }: { onChanged: () => void }) => {
     onChanged();
   };
 
-  if (!entries)
-    return <p className="m-0 mt-2 text-[11px] text-[var(--unshafted-text-faint)]">Reading what is saved…</p>;
+  if (!entries) return <p className="panel-quiet">Reading what is saved…</p>;
 
   return (
-    <div className="panel-group mt-2">
+    <div className="panel-storage">
       {stats ? (
-        <p className="m-0 text-[11px] text-[var(--unshafted-text-faint)]">
+        <p className="panel-quiet">
           {formatBytes(stats.bytes)} of {formatBytes(stats.budgetBytes)} used across {entries.length}{' '}
           {entries.length === 1 ? 'analysis' : 'analyses'}.
         </p>
@@ -101,14 +107,17 @@ const StorageRelief = ({ onChanged }: { onChanged: () => void }) => {
       {entries.map(entry => (
         <div key={entry.hash} className="panel-row flex items-center gap-2">
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-[13px] font-semibold text-[var(--unshafted-text)]">
-              {entry.domain}
-            </span>
-            <span className="mt-0.5 block text-[10px] text-[var(--unshafted-text-faint)]">
+            <span className="panel-item-title block truncate">{entry.domain}</span>
+            <span className="panel-url">
               {formatAnalysedDate(entry.ranAt)} · {formatBytes(entry.bytes)}
             </span>
           </span>
-          <button className="panel-button" type="button" onClick={() => void remove(entry.hash)}>
+          {/* The only delete in the product: a row action, in the danger tone, never a filled button. */}
+          <button
+            className="panel-text-button unshafted-danger-action"
+            type="button"
+            aria-label={`Delete the saved analysis of ${entry.domain}`}
+            onClick={() => void remove(entry.hash)}>
             Delete
           </button>
         </div>
@@ -122,20 +131,21 @@ const RunOutcome = ({ runState, onStorageChanged }: { runState: SitePolicyRunSta
 
   if (runState.failures.length === 0 && !runState.overBudget) return null;
 
+  /*
+   * An app failure, not a finding: the app surface with its own edge rule (P1's exception), never a
+   * risk tint. A run that did not happen says nothing about the document, and rose here would read
+   * as a verdict on it.
+   */
   return (
-    <section className="panel-one-thing">
+    <section className="panel-zone panel-app-notice unshafted-danger-tone" role="status">
       {runState.failures.length > 0 ? (
         <>
-          <p className="panel-eyebrow">Did not run</p>
-          <div className="panel-group mt-1">
+          <p className="panel-note-title">Did not run</p>
+          <div>
             {runState.failures.map(failure => (
               <div key={failure.sourceUrl} className="panel-row">
-                <p className="m-0 truncate text-[13px] font-semibold text-[var(--unshafted-text)]">
-                  {shortenUrl(failure.sourceUrl)}
-                </p>
-                <p className="m-0 mt-0.5 text-[11px] leading-relaxed text-[var(--unshafted-text-muted)]">
-                  {failure.message}
-                </p>
+                <p className="panel-item-title truncate">{shortenUrl(failure.sourceUrl)}</p>
+                <p className="panel-quiet">{failure.message}</p>
               </div>
             ))}
           </div>
@@ -144,8 +154,8 @@ const RunOutcome = ({ runState, onStorageChanged }: { runState: SitePolicyRunSta
 
       {runState.overBudget ? (
         <div className={runState.failures.length > 0 ? 'mt-3' : ''}>
-          <p className="panel-eyebrow">Analysed, not saved</p>
-          <p className="m-0 mt-1 text-xs leading-relaxed text-[var(--unshafted-text-muted)]">
+          <p className="panel-note-title">Analysed, not saved</p>
+          <p className="panel-quiet">
             {shortenUrl(runState.overBudget.sourceUrl)} was analysed and there was no room to keep it. Saved analyses
             take {formatBytes(runState.overBudget.bytes)} and the limit is{' '}
             {formatBytes(runState.overBudget.budgetBytes)}. Nothing was deleted to make room, so nothing you already
@@ -155,7 +165,7 @@ const RunOutcome = ({ runState, onStorageChanged }: { runState: SitePolicyRunSta
           {managing ? (
             <StorageRelief onChanged={onStorageChanged} />
           ) : (
-            <div className="mt-2">
+            <div className="panel-actions">
               <button className="panel-button" type="button" onClick={() => setManaging(true)}>
                 Free space
               </button>

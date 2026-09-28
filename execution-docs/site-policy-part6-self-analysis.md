@@ -215,6 +215,10 @@ their legal text elsewhere. Those rows already list an *Open page* link and no *
 no *Analyse* either, with the same one-line reason. Guessing at a document we cannot read would be
 the exact failure the confidence rules exist to prevent.
 
+*Superseded 2026-09-28 by site coverage S2: AD-4 is retired, every document is read by the
+extension wherever it is hosted, and a site we do not cover is offered only the documents that were
+read and came back as policies (D8 in `site-coverage-plan.md`).*
+
 ### S11 — A document we cannot name is one we must not grade *(added 2026-09-07, found in review)*
 
 `discover.ts` leaves `RankedPolicyCandidate.docType` **null** for a link that is plainly legal but

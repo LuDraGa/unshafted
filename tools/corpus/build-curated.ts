@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url';
 import { CURATED } from './curated.js';
 import { SITES } from './sites.js';
 import type { CorpusManifest, CapturedDocument } from './types.js';
-import type { PolicyDocType } from '../../packages/unshafted-core/lib/site-policy/types.js';
+import type { PolicyDocType, PolicyReadMode } from '../../packages/unshafted-core/lib/site-policy/types.js';
 import type { SiteTag } from './sites.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
@@ -23,6 +23,8 @@ export type CuratedEntry = {
   docType: PolicyDocType;
   contentHash: string;
   sourceUrl: string;
+  /** Which reading the hash is over (A5); a capture made before S3 was raw. */
+  readMode: PolicyReadMode;
   normalizedLength: number;
   textPath: string;
   note?: string;
@@ -64,6 +66,7 @@ const main = async () => {
         docType: pick.docType,
         contentHash: doc.contentHash!,
         sourceUrl: doc.finalUrl ?? doc.chosenUrl,
+        readMode: doc.readMode ?? 'raw',
         normalizedLength: doc.normalizedLength ?? 0,
         textPath: `corpus/text/${doc.contentHash}.txt`,
         note: pick.note,

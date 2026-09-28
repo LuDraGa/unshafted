@@ -345,12 +345,12 @@ const stripChrome = (region: string, usedMainContainer: boolean): string => {
   return out;
 };
 
-/** HTML → stable, hashable policy text. */
-const normalizePolicyHtml = (html: string): NormalizedPolicy => {
-  if (!html || !html.trim()) {
-    return { text: '', length: 0, usedMainContainer: false };
-  }
-
+/**
+ * The part of a page the normalizer reads — its main region, with scripts, styles and site chrome
+ * removed — still as HTML. Exposed so the policy-likeness check (`likeness.ts`) judges exactly the
+ * region the hash is taken over, links included, rather than a second idea of where the body is.
+ */
+const extractPolicyRegion = (html: string): { region: string; usedMainContainer: boolean } => {
   let working = html
     // A page cannot be allowed to forge structural breaks.
     .replace(new RegExp(`[${PARA_BREAK}${LINE_BREAK}]`, 'g'), '')
@@ -359,7 +359,20 @@ const normalizePolicyHtml = (html: string): NormalizedPolicy => {
   for (const tag of RAW_TEXT_ELEMENTS) working = stripByTag(working, tag);
 
   const { region, usedMainContainer } = selectMainRegion(working);
-  const text = collapseWhitespace(decodeEntities(tagsToText(stripChrome(region, usedMainContainer))));
+  return { region: stripChrome(region, usedMainContainer), usedMainContainer };
+};
+
+/** An extracted region's HTML → its canonical text: the second half of `normalizePolicyHtml`. */
+const regionToText = (region: string): string => collapseWhitespace(decodeEntities(tagsToText(region)));
+
+/** HTML → stable, hashable policy text. */
+const normalizePolicyHtml = (html: string): NormalizedPolicy => {
+  if (!html || !html.trim()) {
+    return { text: '', length: 0, usedMainContainer: false };
+  }
+
+  const { region, usedMainContainer } = extractPolicyRegion(html);
+  const text = regionToText(region);
 
   return { text, length: text.length, usedMainContainer };
 };
@@ -395,5 +408,12 @@ const computePolicyHash = async (html: string): Promise<{ hash: string; normaliz
   return { hash: await sha256Hex(normalized.text), normalized };
 };
 
-export { normalizePolicyHtml, POLICY_NORMALIZER_VERSION, sha256Hex, computePolicyHash };
+export {
+  normalizePolicyHtml,
+  extractPolicyRegion,
+  regionToText,
+  POLICY_NORMALIZER_VERSION,
+  sha256Hex,
+  computePolicyHash,
+};
 export type { NormalizedPolicy };

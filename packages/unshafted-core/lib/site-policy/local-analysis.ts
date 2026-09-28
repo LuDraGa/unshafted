@@ -1,6 +1,6 @@
 import { SitePolicyAnalysisSchema } from './schemas.js';
 import { z } from 'zod';
-import type { PolicyDocType } from './types.js';
+import type { PolicyDocType, PolicyReadMode } from './types.js';
 
 /**
  * An analysis the USER ran, on their own key — not one we published (Part 6, S2).
@@ -28,7 +28,7 @@ export const LocalAnalysisProvenanceSchema = z.object({
   /** Whatever the user has configured. Rendered verbatim in the attribution line (S3). */
   model: z.string().min(1),
   /**
-   * `site-policy-prompt-v1`, never `adhesion-rubric-v1` (S4). That string is a claim about an
+   * `site-policy-prompt-v2`, never `adhesion-rubric-v1` (S4). That string is a claim about an
    * Opus pass over the complete normalized text, hand-validated against the schema. A possibly
    * excerpted run through an arbitrary model is a different process, and sharing the version
    * would make the corpus's own provenance field meaningless the first time the two met.
@@ -52,8 +52,13 @@ export const LocalPolicyAnalysisSchema = z.object({
 export type LocalAnalysisProvenance = z.infer<typeof LocalAnalysisProvenanceSchema>;
 export type LocalPolicyAnalysis = z.infer<typeof LocalPolicyAnalysisSchema>;
 
-/** The prompt this milestone ships. See S4 for why it may never borrow the corpus's version. */
-export const SITE_POLICY_PROMPT_VERSION = 'site-policy-prompt-v1';
+/**
+ * The prompt this milestone ships. See S4 for why it may never borrow the corpus's version.
+ *
+ * v2 (site coverage S4) added `productScopes` and a `products` list on every finding to the output
+ * contract, so a v1 analysis is one made before a document could be scoped to products.
+ */
+export const SITE_POLICY_PROMPT_VERSION = 'site-policy-prompt-v2';
 
 /**
  * Per-document character budget for a local run.
@@ -83,10 +88,15 @@ export type SitePolicyAnalysisTarget = {
   /** The document's absolute URL, as discovered on the page. */
   sourceUrl: string;
   docType: PolicyDocType;
-  /** Normalized text, captured in the panel from the user's own session (AD-4). */
+  /**
+   * Normalized text, read by the extension with cookies omitted (D5) — or, for a page that builds
+   * its text with JavaScript, read from the page once opened (A5).
+   */
   text: string;
   /** `sha256` of `text` — computed at capture, so the local analysis is keyed like a corpus one. */
   contentHash: string;
+  /** Which of those two readings `text` is, recorded on the analysis as it is on a corpus one. */
+  readMode: PolicyReadMode;
 };
 
 export type RunSitePolicyAnalysisRequest = {

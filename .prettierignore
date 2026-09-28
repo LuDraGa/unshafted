@@ -7,12 +7,19 @@ dist
 # emits it minified on purpose because it ships inside the extension, so pretty-printing it would
 # inflate the CWS upload for no reader's benefit.
 #
+# `policy-browse.json` is the same artefact one file over and has to be named here too, or the two
+# tools fight: the generator minifies, `pnpm format` pretty-prints, and `format:check` then passes
+# until the next regeneration flips it red — a required context going red for a reason nobody's
+# change caused. It is the smaller file, so the size argument is weaker and the churn argument is
+# identical.
+#
 # They surfaced when the prettier check was switched from `pull_request_target` to `pull_request`
 # and began reading the repository for the first time (#25).
 corpus/manifest.json
 corpus/curated.json
 corpus/analysis-index.json
 chrome-extension/public/policy-corpus.json
+chrome-extension/public/policy-browse.json
 
 # `tsc` output, emitted from `manifest.ts` by the `ready` script (`pre-build.tsconfig.json` sets
 # `outDir: "./"`), and gitignored. Prettier does not read `.gitignore`, so it has to be named here

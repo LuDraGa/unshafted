@@ -43,6 +43,81 @@ const PolicyCorpusBundleSchema = z.object({
 type PolicyCorpusBundle = z.infer<typeof PolicyCorpusBundleSchema>;
 
 /**
+ * The browse manifest — the third bundled artifact, and the only one that ENUMERATES.
+ *
+ * `policy-index.bin` answers "is this site covered?" from 8-byte `sha256(domain)` prefixes, which
+ * are one-way by construction and can never be listed back. `policy-corpus.json` answers "what
+ * does it say?" and costs ~1 MB to parse. Neither can render a list of 37 site names, which is the
+ * entire job of the browse view.
+ *
+ * So: 401 bytes gzipped, three fields, derived by `build-bundle.ts` from the same grouping pass
+ * that produces the seed — so the two cannot disagree about which domains exist.
+ *
+ * THREE FIELDS, BECAUSE THREE RENDER. `worstRiskLevel` is not here: 36 of 37 domains land on High
+ * or Very High, so colouring a list along that ramp is noise with a legend. Neither is a count of
+ * absent disclosures: `requiredDisclosures` records what each analysis found worth recording, not
+ * a systematic checklist, so a tally is a lower bound on findings and rendering one beside another
+ * domain's invites a comparison the data cannot support. #79 is the standing precedent for not
+ * shipping a field with no consumer.
+ *
+ * `hasTimeSensitiveAction` keeps the spelling it has in `policy-seed.json` and above. #82.
+ */
+const POLICY_BROWSE_FORMAT_VERSION = 1 as const;
+
+/** The browse manifest's filename, shared by the build step and the runtime loader. */
+const POLICY_BROWSE_ASSET = 'policy-browse.json';
+
+const PolicyBrowseRowSchema = z.object({
+  domain: z.string().min(1),
+  documentCount: z.number().int().positive(),
+  hasTimeSensitiveAction: z.boolean(),
+});
+
+/**
+ * `documentTotal` is the fourth field, and it is here because it CANNOT be derived from the rows.
+ *
+ * Summing `documentCount` gives 85 against a corpus of 82. Three documents govern two domains each
+ * — one Disney terms across `disneyplus.com` and `hotstar.com`, one Meta policy across
+ * `facebook.com` and `instagram.com` — and a per-domain count has to include them under both or
+ * the domain is missing a document it is actually governed by.
+ *
+ * So the sum is right for what it is and wrong for what the header says. The field exists to make
+ * the wrong answer unavailable: without it the next person to write "N documents across 37 sites"
+ * reaches for `reduce`, gets 85, and ships a number that overstates the corpus by three. That is
+ * not a rounding error — it is a false claim about how much we have read, on the one surface whose
+ * job is to say how much we have read.
+ *
+ * This is not the speculative kind of field #79 deleted six tokens for. It has exactly one
+ * consumer, the header sentence, and that consumer has no other correct source.
+ */
+const PolicyBrowseManifestSchema = z.object({
+  formatVersion: z.literal(POLICY_BROWSE_FORMAT_VERSION),
+  documentTotal: z.number().int().nonnegative(),
+  domains: z.array(PolicyBrowseRowSchema),
+});
+
+type PolicyBrowseRow = z.infer<typeof PolicyBrowseRowSchema>;
+type PolicyBrowseManifest = z.infer<typeof PolicyBrowseManifestSchema>;
+
+/**
+ * Collapse analyses to one browse row per site, alphabetical.
+ *
+ * Alphabetical here rather than at render time because it is the file's permanent order and the
+ * view never re-sorts: not by document count (a fact about how much a company publishes, not about
+ * how it treats you), not by absent count, not by risk. Alphabetical claims nothing.
+ */
+const buildBrowseRows = (byDomain: ReadonlyMap<string, readonly SitePolicyAnalysis[]>): PolicyBrowseRow[] =>
+  [...byDomain.entries()]
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([domain, documents]) => ({
+      domain,
+      documentCount: documents.length,
+      hasTimeSensitiveAction: documents.some(hasTimeSensitiveAction),
+    }));
+
+const parsePolicyBrowseManifest = (raw: unknown): PolicyBrowseManifest => PolicyBrowseManifestSchema.parse(raw);
+
+/**
  * Ascending severity. Coincides with the 2-bit payload encoding in `index-format.ts` by
  * construction — that one is a wire format pinned to bit values and must never be reordered,
  * this one is a comparison order. A test asserts they still agree.
@@ -173,7 +248,13 @@ export {
   POLICY_CORPUS_FORMAT_VERSION,
   POLICY_CORPUS_MAX_GZIP_BYTES,
   POLICY_CORPUS_ASSET,
+  POLICY_BROWSE_FORMAT_VERSION,
+  POLICY_BROWSE_ASSET,
   PolicyCorpusBundleSchema,
+  PolicyBrowseRowSchema,
+  PolicyBrowseManifestSchema,
+  buildBrowseRows,
+  parsePolicyBrowseManifest,
   RISK_LEVEL_ORDER,
   compareRiskLevelDescending,
   worstRiskLevel,
@@ -186,4 +267,4 @@ export {
   analysisForHash,
   domainRiskSummary,
 };
-export type { PolicyCorpusBundle, PolicyCorpus };
+export type { PolicyCorpusBundle, PolicyCorpus, PolicyBrowseRow, PolicyBrowseManifest };

@@ -2,6 +2,10 @@
  * Corpus capture — the map builder.
  *
  * Run:  node --import tsx tools/corpus/capture.ts [--limit=N] [--only=domain] [--concurrency=N]
+ *         [--corpus=<dir>]
+ *
+ * `--corpus` captures into another directory than `corpus/` — a scratch corpus, to compare a
+ * capture with what is committed without touching `corpus/manifest.json`.
  *
  * THREE RULES THIS SCRIPT EXISTS TO OBEY.
  *
@@ -16,17 +20,22 @@
  *    does something surprising, that is RECORDED rather than corrected — the override list is
  *    one of the most valuable outputs here, because it is a bug report written from real data.
  *
- * 3. CANONICAL CONTENT IS RAW HTML, NOT RENDERED DOM. The client does `fetch(url).text()` inside
- *    the page and runs a DOM-free normalizer over the bytes; JS never executes against the
- *    policy. So we navigate with a real browser — which is what gets us past bot walls — and
- *    then take the RAW RESPONSE BODY, never `page.content()`. Rendered DOM is captured only for
- *    documents whose raw text came back thin, purely to tell an SPA shell from a bad URL.
+ * 3. THE CLIENT'S OWN READ DECIDES WHAT THE TEXT IS. Each document is read by the panel's rule,
+ *    `readPolicyPage` in core (AD-1 amended in S3 of the site coverage work): the raw HTML if it
+ *    is a document, else the page as JavaScript builds it. Both halves run inside a real Chrome
+ *    extension (`extension-fetch.ts`) — the raw HTML fetched by core's own `fetchPolicyPage`,
+ *    cookies omitted, and the rendered page opened in a background tab by shared's
+ *    `readInBackgroundTab` and read by core's `readRenderedPageInPage` — so a capture hashes
+ *    exactly what the panel hashes, and records which of the two readings it is (`readMode`).
+ *    Until S3 this took the raw body of a page NAVIGATION, which carries the cookies the homepage
+ *    set: Facebook, Instagram and Reddit serve that a full policy and serve the panel's cookieless
+ *    fetch an empty shell.
  *
  * No analysis is produced or implied. Severity, risk and disclosure status belong to the next
  * session; this pass records only where documents are, what they hash to, and what failed.
  */
 import { chromium } from 'playwright-core';
-import type { Browser, BrowserContext, Page, Response } from 'playwright-core';
+import type { Browser, BrowserContext, Response } from 'playwright-core';
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
@@ -42,8 +51,20 @@ import {
   computePolicyHash,
   POLICY_NORMALIZER_VERSION,
 } from '../../packages/unshafted-core/lib/site-policy/normalize.js';
+import {
+  fetchPolicyPage,
+  readPolicyPage,
+  readRenderedPageInPage,
+} from '../../packages/unshafted-core/lib/site-policy/read.js';
+import { readInBackgroundTab } from '../../packages/shared/lib/utils/policy-capture.js';
+import { extensionLaunchOptions, openExtensionFetcher } from './extension-fetch.js';
 import type { PolicyCandidate } from '../../packages/unshafted-core/lib/site-policy/discover.js';
-import type { PolicyDocType } from '../../packages/unshafted-core/lib/site-policy/types.js';
+import type {
+  FetchedPolicyPage,
+  PolicyPageFetch,
+  PolicyPageRender,
+} from '../../packages/unshafted-core/lib/site-policy/read.js';
+import type { PolicyDocType, PolicyReadMode } from '../../packages/unshafted-core/lib/site-policy/types.js';
 
 import { SITES } from './sites.js';
 import type { SiteSpec } from './sites.js';
@@ -59,7 +80,7 @@ import type {
 // ── Configuration ──
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const CORPUS_DIR = path.join(ROOT, 'corpus');
+const CORPUS_DIR = path.resolve(ROOT, process.argv.find(value => value.startsWith('--corpus='))?.slice(9) ?? 'corpus');
 const RAW_DIR = path.join(CORPUS_DIR, 'raw');
 const TEXT_DIR = path.join(CORPUS_DIR, 'text');
 const SITES_DIR = path.join(CORPUS_DIR, 'sites');
@@ -218,12 +239,16 @@ const nodeFetchHash = async (url: string): Promise<ComparisonFetch> => {
   }
 };
 
+/** The panel's two ways of reading a document, run inside the probe extension — see rule 3. */
+type DocumentReader = { fetchPage: PolicyPageFetch; render: PolicyPageRender };
+
 /**
- * Canonical capture. Real browser navigation for the network stack; RAW response body for the
- * content. `page.content()` is deliberately not used here — see rule 3 in the module comment.
+ * Canonical capture: the panel's own rule (`readPolicyPage`), always allowed to open the page,
+ * because a corpus capture wants the text wherever the panel could reach it. The raw response is
+ * recorded on the way through, for the status, type and address the manifest keeps.
  */
 const captureCanonical = async (
-  page: Page,
+  reader: DocumentReader,
   url: string,
 ): Promise<{
   status: CaptureStatus;
@@ -233,125 +258,66 @@ const captureCanonical = async (
   hash: string | null;
   length: number | null;
   usedMainContainer: boolean | null;
+  /** The HTML the hash was taken over: the raw body, or the rendered page (`readMode`). */
   raw: string | null;
   text: string | null;
+  readMode: PolicyReadMode | null;
   error?: string;
 }> => {
-  let response: Response | null = null;
-  try {
-    response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: NAV_TIMEOUT_MS });
-  } catch (error) {
-    return {
-      status: 'fetch_error',
-      httpStatus: null,
-      finalUrl: null,
-      contentType: null,
-      hash: null,
-      length: null,
-      usedMainContainer: null,
-      raw: null,
-      text: null,
-      error: error instanceof Error ? error.message.split('\n')[0] : 'Navigation failed.',
-    };
-  }
+  const responses: FetchedPolicyPage[] = [];
+  const read = await readPolicyPage(
+    url,
+    async target => {
+      const response = await reader.fetchPage(target);
+      responses.push(response);
+      return response;
+    },
+    reader.render,
+  );
+  const response = responses[0];
+  const httpStatus = response?.status ? response.status : null;
+  const contentType = response?.contentType || null;
 
-  if (!response) {
+  if (read.status === 'document') {
+    const { hash, normalized } = await computePolicyHash(read.html);
     return {
-      status: 'fetch_error',
-      httpStatus: null,
-      finalUrl: page.url(),
-      contentType: null,
-      hash: null,
-      length: null,
-      usedMainContainer: null,
-      raw: null,
-      text: null,
-      error: 'No navigation response.',
-    };
-  }
-
-  const httpStatus = response.status();
-  const finalUrl = response.url();
-  const contentType = response.headers()['content-type'] ?? null;
-  const kind = classifyContentType(contentType);
-
-  if (kind === 'pdf') {
-    return {
-      status: 'pdf_not_captured',
+      status: 'captured',
       httpStatus,
-      finalUrl,
+      finalUrl: read.finalUrl,
       contentType,
-      hash: null,
-      length: null,
-      usedMainContainer: null,
-      raw: null,
-      text: null,
-    };
-  }
-  if (kind === 'other') {
-    return {
-      status: 'unsupported_type',
-      httpStatus,
-      finalUrl,
-      contentType,
-      hash: null,
-      length: null,
-      usedMainContainer: null,
-      raw: null,
-      text: null,
+      hash,
+      length: normalized.length,
+      usedMainContainer: normalized.usedMainContainer,
+      raw: read.html,
+      text: normalized.text,
+      readMode: read.readMode,
     };
   }
 
-  let raw: string;
-  try {
-    raw = await response.text();
-  } catch {
-    // Some navigations do not retain a retrievable body; re-request through the SAME browser
-    // context so cookies and headers still apply. Still raw bytes, still no JS.
-    try {
-      const retry = await page.context().request.get(finalUrl, { timeout: NAV_TIMEOUT_MS });
-      raw = await retry.text();
-    } catch (error) {
-      return {
-        status: 'fetch_error',
-        httpStatus,
-        finalUrl,
-        contentType,
-        hash: null,
-        length: null,
-        usedMainContainer: null,
-        raw: null,
-        text: null,
-        error: error instanceof Error ? error.message.split('\n')[0] : 'Body unavailable.',
-      };
-    }
-  }
-
-  if (httpStatus >= 400) {
-    return {
-      status: 'http_error',
-      httpStatus,
-      finalUrl,
-      contentType,
-      hash: null,
-      length: null,
-      usedMainContainer: null,
-      raw: null,
-      text: null,
-    };
-  }
-
-  const { hash, normalized } = await computePolicyHash(raw);
+  const status: CaptureStatus =
+    read.status === 'hub'
+      ? 'hub'
+      : read.reason === 'not-html'
+        ? classifyContentType(contentType) === 'pdf'
+          ? 'pdf_not_captured'
+          : 'unsupported_type'
+        : read.reason === 'too-short'
+          ? 'thin'
+          : httpStatus !== null && httpStatus >= 400
+            ? 'http_error'
+            : 'fetch_error';
   return {
-    status: normalized.length < THIN_TEXT_CHARS ? 'thin' : 'captured',
+    status,
     httpStatus,
-    finalUrl,
+    finalUrl: read.status === 'hub' ? read.finalUrl : (response?.finalUrl ?? null),
     contentType,
-    hash,
-    length: normalized.length,
-    usedMainContainer: normalized.usedMainContainer,
-    raw,
-    text: normalized.text,
+    hash: null,
+    length: null,
+    usedMainContainer: null,
+    raw: null,
+    text: null,
+    readMode: read.readMode,
+    ...(response?.error ? { error: response.error } : {}),
   };
 };
 
@@ -423,7 +389,7 @@ const absolutise = (href: string, base: string): string | null => {
   }
 };
 
-const captureSite = async (context: BrowserContext, site: SiteSpec): Promise<SiteCapture> => {
+const captureSite = async (context: BrowserContext, site: SiteSpec, reader: DocumentReader): Promise<SiteCapture> => {
   const page = await context.newPage();
   const requestedUrl = `https://${site.domain}/`;
 
@@ -483,7 +449,7 @@ const captureSite = async (context: BrowserContext, site: SiteSpec): Promise<Sit
         await page.waitForTimeout(1_500);
       }
       // THE SHIPPED COLLECTOR — same function the extension injects.
-      return page.evaluate(collectPolicyCandidatesInPage);
+      return page.evaluate(collectPolicyCandidatesInPage, POLICY_LINK_PATTERN.source);
     };
 
     let candidates: PolicyCandidate[] = await settleAndCollect();
@@ -541,7 +507,6 @@ const captureSite = async (context: BrowserContext, site: SiteSpec): Promise<Sit
       });
     }
 
-    const siteOrigin = new URL(pageUrl).origin;
     // Real links first, fabricated path guesses last. Guesses are the ones that 404 and draw
     // rate limiting, and a 429 cascade must not corrupt the capture of documents that exist.
     const rank = { footer_link: 0, client_pick: 1, path_guess: 2 } as const;
@@ -553,47 +518,23 @@ const captureSite = async (context: BrowserContext, site: SiteSpec): Promise<Sit
     }
 
     for (const target of ordered) {
-      const canonical = await captureCanonical(page, target.url);
+      const canonical = await captureCanonical(reader, target.url);
       const node = await nodeFetchHash(target.url);
       if (canonical.hash && node.contentHash) node.agreesWithCanonical = canonical.hash === node.contentHash;
-
-      let rendered: ComparisonFetch | undefined;
-      if (canonical.status === 'thin') {
-        try {
-          const html = await page.content();
-          const { hash, normalized } = await computePolicyHash(html);
-          rendered = {
-            status: normalized.length < THIN_TEXT_CHARS ? 'thin' : 'captured',
-            httpStatus: canonical.httpStatus,
-            contentHash: hash,
-            normalizedLength: normalized.length,
-            agreesWithCanonical: canonical.hash ? hash === canonical.hash : null,
-          };
-        } catch (error) {
-          rendered = {
-            status: 'fetch_error',
-            httpStatus: null,
-            contentHash: null,
-            normalizedLength: null,
-            agreesWithCanonical: null,
-            error: error instanceof Error ? error.message.split('\n')[0] : 'Render failed.',
-          };
-        }
-      }
 
       if (canonical.hash && canonical.raw && canonical.text !== null) {
         await storeDocument(canonical.hash, canonical.raw, canonical.text);
       }
 
       const finalHost = canonical.finalUrl ? new URL(canonical.finalUrl).hostname : null;
-      const targetOrigin = new URL(target.url).origin;
 
       result.documents.push({
         chosenUrl: target.url,
         finalUrl: canonical.finalUrl,
         host: finalHost,
-        // AD-4: the extension fetches from inside the page, so only same-origin is reachable.
-        reachableByClient: targetOrigin === siteOrigin,
+        // Since S2 the extension reads every linked document itself, wherever it is hosted (AD-4,
+        // which limited it to the page's own origin, is retired). How it reads is `readMode`.
+        reachableByClient: true,
         docType: guessDocType(target.url, target.anchorText),
         anchorText: target.anchorText,
         inFooterRegion: target.inFooterRegion,
@@ -609,8 +550,8 @@ const captureSite = async (context: BrowserContext, site: SiteSpec): Promise<Sit
         contentHash: canonical.hash,
         normalizedLength: canonical.length,
         usedMainContainer: canonical.usedMainContainer,
+        readMode: canonical.readMode,
         nodeFetch: node,
-        rendered,
         capturedAt: nowIso(),
       });
 
@@ -624,10 +565,8 @@ const captureSite = async (context: BrowserContext, site: SiteSpec): Promise<Sit
       if (pick.source === 'path-guess') {
         result.discoveryNotes.push(`No ${pick.docType} link found; chooser fell back to path guess ${pick.url}`);
       }
-      if (doc && !doc.reachableByClient) {
-        result.discoveryNotes.push(
-          `Chooser picked cross-origin ${pick.docType} at ${doc.host} — AD-4 makes this unfetchable in-page.`,
-        );
+      if (doc?.readMode === 'rendered') {
+        result.discoveryNotes.push(`Chooser's ${pick.docType} pick ${pick.url} reads only by opening the page (A5).`);
       }
       if (doc && doc.status !== 'captured') {
         result.discoveryNotes.push(`Chooser's ${pick.docType} pick ${pick.url} came back ${doc.status}.`);
@@ -689,13 +628,22 @@ const main = async () => {
 
   let browser: Browser | null = null;
   if (queue.length > 0) {
+    // Extensions enabled and an ordinary user agent, for the probe extension that reads documents
+    // exactly as the panel does — see rule 3 and `extension-fetch.ts`.
+    const launchForReads = extensionLaunchOptions(REAL_USER_AGENT);
     browser = await chromium.launch({
       // `channel` rather than `executablePath`: it selects installed Chrome AND applies the
       // new-headless flags. An explicit path silently lands on legacy headless.
       channel: 'chrome',
       headless: true,
-      args: ['--disable-blink-features=AutomationControlled'],
+      ignoreDefaultArgs: launchForReads.ignoreDefaultArgs,
+      args: ['--disable-blink-features=AutomationControlled', ...(launchForReads.args ?? [])],
     });
+    const fetcher = await openExtensionFetcher(browser, path.join(CORPUS_DIR, '.probe-extension'));
+    const reader: DocumentReader = {
+      fetchPage: fetcher.fetchWith(String(fetchPolicyPage)),
+      render: fetcher.renderWith(String(readInBackgroundTab), String(readRenderedPageInPage)),
+    };
     const cursor = { index: 0 };
 
     const worker = async (id: number) => {
@@ -714,7 +662,7 @@ const main = async () => {
           if (!site) break;
           const started = Date.now();
           try {
-            const capture = await captureSite(context, site);
+            const capture = await captureSite(context, site, reader);
             await writeFile(siteFile(site.domain), JSON.stringify(capture, null, 2), 'utf8');
             const ok = capture.documents.filter(doc => doc.status === 'captured').length;
             console.log(
@@ -770,7 +718,7 @@ const main = async () => {
   console.log(`[corpus] sites            ${sites.length}`);
   console.log(`[corpus] documents        ${docs.length} (${captured.length} captured)`);
   console.log(
-    `[corpus] cross-origin     ${docs.filter(doc => !doc.reachableByClient).length} unreachable by the client (AD-4)`,
+    `[corpus] rendered       ${docs.filter(doc => doc.readMode === 'rendered').length} captured only by opening the page (A5)`,
   );
   console.log(
     `[corpus] untyped          ${docs.filter(doc => doc.docType === null).length} guessDocType returned null`,
@@ -780,7 +728,7 @@ const main = async () => {
     `[corpus] node-fetch agree ${agreed.length}/${compared.length}` +
       (compared.length ? ` (${Math.round((agreed.length / compared.length) * 100)}%)` : ''),
   );
-  console.log(`[corpus] manifest         corpus/manifest.json`);
+  console.log(`[corpus] manifest         ${path.relative(ROOT, path.join(CORPUS_DIR, 'manifest.json'))}`);
 };
 
 void main();

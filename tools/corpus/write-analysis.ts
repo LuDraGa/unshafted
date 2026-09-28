@@ -5,9 +5,11 @@
  *
  * The body carries only the analytic content — `hash8`, `summary`, `riskLevel`, `confidence`,
  * `exposures`, `availableActions`, `requiredDisclosures`, and optionally extra `domains` when
- * one document governs several sites. Everything else (contentHash, docType, verticals,
- * sourceUrl, normalizerVersion, schemaVersion) is copied from `curated.json`, which is copied
- * from the manifest, which is what the capture actually observed.
+ * one document governs several sites. A catalogue company's document also carries `productScopes`
+ * and `products` on its findings (`buildProductScopeBrief` in core is the brief); run
+ * `validate-analysis.ts` after, which holds them to the catalogue. Everything else (contentHash,
+ * docType, verticals, readMode, sourceUrl, normalizerVersion, schemaVersion) is copied from
+ * `curated.json`, which is copied from the manifest, which is what the capture actually observed.
  *
  * That chain matters: hand-transcribing a 64-character hash or a vertical list into 85 files is
  * a silent-corruption machine, and a wrong hash produces an analysis that validates perfectly
@@ -70,6 +72,8 @@ const main = async () => {
     sourceUrl: entry.sourceUrl,
     promptVersion: PROMPT_VERSION,
     normalizerVersion: POLICY_NORMALIZER_VERSION,
+    // A curated.json written before S3 has no readMode; every capture before it was raw.
+    readMode: entry.readMode ?? 'raw',
     model: ANALYST_MODEL,
     analyzedAt: new Date().toISOString(),
     peerDeviation: [],

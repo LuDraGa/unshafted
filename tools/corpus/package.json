@@ -1,12 +1,14 @@
 {
   "name": "@extension/corpus-tools",
-  "version": "0.8.1",
+  "version": "0.8.3",
   "description": "Site-policy corpus capture \u2014 maintainer tooling, never shipped to users",
   "type": "module",
   "private": true,
   "scripts": {
     "type-check": "tsc --noEmit",
     "capture": "node --import tsx capture.ts",
+    "bench": "node --import tsx bench-discovery.ts",
+    "bench:rendered": "node --import tsx bench-rendered.ts",
     "report": "node --import tsx report.ts",
     "build-bundle": "node --import tsx build-bundle.ts",
     "calibrate": "node --import tsx calibrate-site-policy-prompt.ts",

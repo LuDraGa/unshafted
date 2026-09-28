@@ -1,12 +1,5 @@
-import {
-  CompactVerdict,
-  DocStrip,
-  ResultsView,
-  RiskBadge,
-  VerdictSkeleton,
-  buildVerdictPreview,
-  getDecisionAction,
-} from './ResultCards';
+import { CompactVerdict, DocStrip, ResultsView, RiskBadge, VerdictSkeleton, buildVerdictPreview } from './ResultCards';
+import { openReportTab } from '../open-report';
 import { useStorage } from '@extension/shared';
 import { currentAnalysisStorage, unshaftedSettingsStorage } from '@extension/storage';
 import {
@@ -16,6 +9,7 @@ import {
   buildSuggestedPriorities,
   RUN_QUICK_SCAN_MESSAGE,
   RUN_DEEP_ANALYSIS_MESSAGE,
+  getDecisionAction,
 } from '@extension/unshafted-core';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Session } from '@extension/supabase';
@@ -120,8 +114,11 @@ export const AnalysisWorkspace = ({
   /*
    * Derived, not corrected in an effect. The sheet is open only while the analysis it was opened
    * for is still the current one, so a new analysis closes it in the same render rather than
-   * rendering it open and closing it on the next pass. `showCtaBar` already unmounts the bar once
-   * a deep analysis exists, so that case needs no condition of its own.
+   * rendering it open and closing it on the next pass.
+   *
+   * This used to lean on `showCtaBar` unmounting the bar the moment a deep analysis existed. The
+   * bar now survives deep — see below — so the keying by analysis id is the whole mechanism rather
+   * than a belt beside a brace, and `startDeepAnalysis` closes the sheet explicitly on its way out.
    */
   const scopeOpen = scopeOpenFor !== null && scopeOpenFor === currentAnalysis?.id;
   const autoQuickScanRef = useRef<string | null>(null);
@@ -245,7 +242,20 @@ export const AnalysisWorkspace = ({
   const deepAnalysis = currentAnalysis.deepAnalysis;
   const isQuickRunning = currentAnalysis.status === 'quick-running';
   const isDeepRunning = currentAnalysis.status === 'deep-running';
-  const showCtaBar = !!quickScan && !deepAnalysis && !isDeepRunning && !isQuickRunning;
+  /**
+   * The bar outlives the deep run, and the locked v0.10 spec said it should not.
+   *
+   * That spec called deep "the terminal state" and had the bar vanish with it. Right about the
+   * analysis, wrong about the controls: the cog on this bar is the only route to `ScopeSheet`, so
+   * once it unmounted there was no way to re-read the document as a different party or against
+   * different priorities. The only path left was uploading the same file again.
+   *
+   * Scope is not a property of the run. It is a property of how the reader wants the document read,
+   * and changing their mind about that is ordinary. `handleDeepAnalysis` guards on `deep-running`
+   * and on a missing quick scan, never on a deep result already existing, so a second run simply
+   * overwrites the first.
+   */
+  const showCtaBar = !!quickScan && !isDeepRunning && !isQuickRunning;
 
   const verdictLevel: RiskLevel = deepAnalysis
     ? deepAnalysis.overallRiskLevel
@@ -297,6 +307,18 @@ export const AnalysisWorkspace = ({
         <CompactVerdict level={verdictLevel} action={verdictAction} preview={verdictPreview} />
       ) : null}
 
+      {/*
+       * The report page, for a detailed analysis. Outlined: the filled rank stays with the CTA bar's
+       * run, which spends money. The history record shares this analysis's id (`createHistoryRecord`),
+       * and the page waits a moment for it if this is clicked the instant the result lands.
+       */}
+      {deepAnalysis ? (
+        <button type="button" className="popup-outline-button" onClick={() => void openReportTab(currentAnalysis.id)}>
+          Open full report
+          <span aria-hidden="true"> ↗</span>
+        </button>
+      ) : null}
+
       {/* Quick scan running indicator (small status line below skeleton) */}
       {isQuickRunning && !quickScan ? (
         <div className="flex items-center gap-2 px-1 text-xs text-[var(--unshafted-text-muted)]">
@@ -306,7 +328,12 @@ export const AnalysisWorkspace = ({
       ) : null}
 
       {/* Lens strip + lens panel */}
-      {quickScan ? <ResultsView record={currentAnalysis} /> : null}
+      {quickScan ? (
+        <ResultsView
+          record={currentAnalysis}
+          onOpenFullReport={deepAnalysis ? () => void openReportTab(currentAnalysis.id) : undefined}
+        />
+      ) : null}
 
       {/* Deep analysis running indicator (replaces CTA while running) */}
       {isDeepRunning ? (
@@ -373,7 +400,7 @@ export const AnalysisWorkspace = ({
           </button>
           {session ? (
             <button type="button" className="popup-cta-action" onClick={() => void startDeepAnalysis()}>
-              Run analysis
+              {deepAnalysis ? 'Re-run analysis' : 'Run analysis'}
             </button>
           ) : (
             <button type="button" className="popup-cta-action" onClick={onSignIn}>

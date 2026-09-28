@@ -7,15 +7,23 @@
  * `SitePolicyAnalysisSchema` — the exact schema `policy-cdn.ts` parses on the way in — means a
  * malformed object is caught here rather than becoming a silent "not analyzed" in the panel.
  *
- * It also enforces two things the schema cannot: that `contentHash` matches the filename, and
- * that the hash actually exists in the curated set. Both are ways an analysis can be perfectly
- * well-formed and still describe a document nobody will ever look up.
+ * It also enforces what the schema cannot: that `contentHash` matches the filename, and that the
+ * hash actually exists in the curated set — both ways an analysis can be perfectly well-formed and
+ * still describe a document nobody will ever look up — and that its products hold to the catalogue
+ * (B2 of the site coverage work). The schema takes any string as a product id, so an older client
+ * never rejects an object over a product added since; the closed list is enforced here, against
+ * the document's own company, so `xbox` on a Google document fails as surely as a made-up id.
+ *
+ * A catalogue company's document with no products at all is not invalid, it is unscoped: written
+ * before products existed. It is counted apart, listed by `--todo`, and still fails the run, since
+ * the panel cannot scope it to the product in use until it is re-analysed.
  */
 import { readdir, readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { productScoping } from '../../packages/unshafted-core/lib/site-policy/products.js';
 import { SitePolicyAnalysisSchema } from '../../packages/unshafted-core/lib/site-policy/schemas.js';
 import type { CuratedEntry } from './build-curated.js';
 
@@ -32,6 +40,7 @@ const main = async () => {
 
   const problems: string[] = [];
   const done = new Set<string>();
+  const unscoped = new Set<string>();
 
   for (const file of files) {
     const hash = file.replace(/\.json$/, '');
@@ -63,6 +72,15 @@ const main = async () => {
       problems.push(`${file}: docType ${parsed.data.docType} disagrees with curation (${entry.docType})`);
       continue;
     }
+    const scoping = productScoping(parsed.data);
+    if (scoping.status === 'invalid') {
+      problems.push(...scoping.problems.slice(0, 4).map(problem => `${file}: ${problem}`));
+      continue;
+    }
+    if (scoping.status === 'missing') {
+      unscoped.add(hash);
+      continue;
+    }
     done.add(hash);
   }
 
@@ -71,17 +89,26 @@ const main = async () => {
   if (process.argv.includes('--todo')) {
     for (const entry of todo) {
       console.log(
-        `${entry.contentHash.slice(0, 8)} ${entry.domain} ${entry.docType} ${entry.normalizedLength} ${entry.textPath}`,
+        `${entry.contentHash.slice(0, 8)} ${entry.domain} ${entry.docType} ${entry.normalizedLength} ${entry.textPath}${
+          unscoped.has(entry.contentHash) ? ' (needs product scoping)' : ''
+        }`,
       );
     }
     return;
   }
 
   for (const problem of problems) console.error(`[invalid] ${problem}`);
+  for (const hash of unscoped) {
+    const entry = byHash.get(hash)!;
+    console.error(
+      `[unscoped] ${hash.slice(0, 8)} ${entry.domain} ${entry.docType}: a multi-product document with no products`,
+    );
+  }
   console.log(
-    `\n[analysis] valid ${done.size} / ${curated.entries.length}, invalid ${problems.length}, remaining ${todo.length}`,
+    `\n[analysis] valid ${done.size} / ${curated.entries.length}, invalid ${problems.length}, ` +
+      `unscoped ${unscoped.size}, remaining ${todo.length}`,
   );
-  if (problems.length > 0) process.exitCode = 1;
+  if (problems.length > 0 || unscoped.size > 0) process.exitCode = 1;
 };
 
 void main();

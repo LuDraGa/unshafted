@@ -1,7 +1,7 @@
 {
   "extends": "@extension/tsconfig/base.json",
   "compilerOptions": {
-    "types": ["node"],
+    "types": ["node", "chrome"],
     "allowImportingTsExtensions": true
   },
   "include": ["*.ts"]

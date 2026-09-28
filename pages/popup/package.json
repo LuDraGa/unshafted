@@ -1,6 +1,6 @@
 {
   "name": "@extension/popup",
-  "version": "0.8.1",
+  "version": "0.8.3",
   "description": "chrome extension - popup",
   "type": "module",
   "private": true,
@@ -18,7 +18,8 @@
     "lint:fix": "pnpm lint --fix",
     "format": "prettier . --write --ignore-path ../../.prettierignore",
     "format:check": "prettier . --check --ignore-path ../../.prettierignore",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@extension/shared": "workspace:*",

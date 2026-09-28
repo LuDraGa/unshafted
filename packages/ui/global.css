@@ -412,3 +412,60 @@
 .unshafted-danger-action.unshafted-danger-action {
   color: var(--unshafted-danger-action);
 }
+
+/*
+ * Reduced motion — one block, all three surfaces.
+ *
+ * This lives here rather than in a page stylesheet because the preference is not a popup concern:
+ * the popup spins a scan indicator and shimmers a skeleton, Options and the panel fade and lift on
+ * hover, and the onboarding arrow bounces on every surface that runs the tour.
+ *
+ * WHY `!important`, and it is not laziness. `global.css` is imported FIRST by all three pages, so
+ * `Popup.css`, `Options.css` and `SidePanel.css` all load after it. Their rules are unlayered and
+ * sit at (0,1,0), same as anything written here, so at equal specificity they win on source order —
+ * the exact mechanic documented on `.unshafted-danger-tone` above, which had to double its selector
+ * to (0,2,0) to escape it. Doubling would work here too, but `!important` is the property this case
+ * is actually about: a reader's stated preference outranking an author's stylesheet, whatever order
+ * the files happen to load in.
+ *
+ * WHAT IS REMOVED. Every transition, globally — all of them here ease a hover lift, a background
+ * fade or a chevron flip. Zeroing the DURATION rather than the property means state still changes;
+ * it just stops being animated. An open chevron still points down, instantly.
+ *
+ * WHAT REPLACES EACH ANIMATION. Not `animation: none` on its own — a frozen spinner reads as hung,
+ * not as calm. `.panel-busy-dot` in `SidePanel.css` already set the precedent, stopping its pulse
+ * and resting at a deliberate opacity, and each of these does the same: the element keeps saying
+ * what it was saying, without moving to say it.
+ *
+ * THE ARROW IS THE TRAP. `spotlight-bounce-arrow` composes its bounce with the caller's rotation —
+ * `translateY(…) var(--spotlight-arrow-rotate)` — so the rotation exists ONLY inside the keyframe.
+ * Stopping the animation without restoring it leaves the arrow pointing at nothing, which is worse
+ * than a bounce. It is re-applied explicitly below.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 1ms !important;
+    animation-delay: 0ms !important;
+  }
+
+  /* Still "working", still the brand colour — a whole ring instead of a turning arc. */
+  .popup-spinner {
+    animation: none !important;
+    border-color: var(--unshafted-brand) !important;
+    opacity: 0.7;
+  }
+
+  /* The skeleton's presence is the message; the sweep across it was decoration. */
+  .popup-verdict-skeleton {
+    animation: none !important;
+    background-position: 0 50% !important;
+  }
+
+  /* Stop the bounce, keep the direction it was bouncing in. */
+  .spotlight-tour-arrow {
+    animation: none !important;
+    transform: var(--spotlight-arrow-rotate);
+  }
+}

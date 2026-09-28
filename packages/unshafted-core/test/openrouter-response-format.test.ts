@@ -4,7 +4,7 @@ import {
   DeepAnalysisResultSchema,
   sampleDeepAnalysis,
   sampleDeepAnalysisResponse,
-  SitePolicyAnalysisSchema,
+  SitePolicyModelResponseSchema,
   toOpenAiJsonSchema,
 } from '../index.mts';
 import { z } from 'zod';
@@ -80,19 +80,11 @@ test('an exclusive numeric bound reaches OpenAI as a number, not a draft-4 boole
 });
 
 test('the site policy response schema carries no draft-4 exclusive bounds', async () => {
-  const schema = SitePolicyAnalysisSchema.pick({
-    summary: true,
-    riskLevel: true,
-    confidence: true,
-    exposures: true,
-    availableActions: true,
-    requiredDisclosures: true,
-  });
-
-  const body = await captureRequestBody(schema, {
+  const body = await captureRequestBody(SitePolicyModelResponseSchema, {
     summary: 'ok',
     riskLevel: 'Medium',
     confidence: 'medium',
+    productScopes: [],
     exposures: [],
     availableActions: [],
     requiredDisclosures: [],
@@ -141,24 +133,15 @@ const collectObjectDefects = (node: unknown, path = '$'): string[] => {
 };
 
 test('the response schema is a closed object contract, not a permissive fallback', async () => {
-  const body = await captureRequestBody(
-    SitePolicyAnalysisSchema.pick({
-      summary: true,
-      riskLevel: true,
-      confidence: true,
-      exposures: true,
-      availableActions: true,
-      requiredDisclosures: true,
-    }),
-    {
-      summary: 'ok',
-      riskLevel: 'Medium',
-      confidence: 'medium',
-      exposures: [],
-      availableActions: [],
-      requiredDisclosures: [],
-    },
-  );
+  const body = await captureRequestBody(SitePolicyModelResponseSchema, {
+    summary: 'ok',
+    riskLevel: 'Medium',
+    confidence: 'medium',
+    productScopes: [],
+    exposures: [],
+    availableActions: [],
+    requiredDisclosures: [],
+  });
 
   const schema = (body.response_format as { json_schema: { schema: Record<string, unknown> } }).json_schema.schema;
 
@@ -167,11 +150,21 @@ test('the response schema is a closed object contract, not a permissive fallback
     'availableActions',
     'confidence',
     'exposures',
+    'productScopes',
     'requiredDisclosures',
     'riskLevel',
     'summary',
   ]);
   assert.deepEqual(collectObjectDefects(schema), []);
+
+  // Product tags ride on each finding, not beside them, so a finding cannot lose its scope. A
+  // defaulted array is emitted as a union with null (the model may say "none" that way).
+  type ArrayNode = { type?: string; items?: { properties: Record<string, unknown> }; anyOf?: ArrayNode[] };
+  const findingProperties = (node: ArrayNode) =>
+    (node.type === 'array' ? node : node.anyOf?.find(branch => branch.type === 'array'))?.items?.properties ?? {};
+  const properties = schema.properties as Record<string, ArrayNode>;
+  assert.ok('products' in findingProperties(properties.exposures!));
+  assert.ok('products' in findingProperties(properties.availableActions!));
 });
 
 /**

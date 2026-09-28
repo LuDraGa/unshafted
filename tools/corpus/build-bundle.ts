@@ -1,16 +1,23 @@
 /**
- * Emit the two committed artifacts derived from `corpus/analysis/`:
+ * Emit the three committed artifacts derived from `corpus/analysis/`:
  *
  *   chrome-extension/public/policy-corpus.json  — every analysis, verbatim (D12)
+ *   chrome-extension/public/policy-browse.json  — one row per domain, the browse view's list
  *   chrome-extension/policy-seed.json           — worst-of risk per domain, input to the index
  *
  * Run: node --import tsx tools/corpus/build-bundle.ts
  *
- * Both come from one script on purpose. They are derived from the same 83 objects under the same
- * exclusion list, and a seed that disagrees with the bundle means the badge tints a site the panel
- * then contradicts. One command, one read, no drift.
+ * All three come from one script on purpose. They are derived from the same 83 objects under the
+ * same exclusion list, and a seed that disagrees with the bundle means the badge tints a site the
+ * panel then contradicts. One command, one read, no drift.
  *
- * `corpus/analysis/` is gitignored (Part 3, D8) and these two outputs are not — that is the point.
+ * The seed and the browse manifest go further than "same script": they are built from ONE grouping
+ * pass, below, so they cannot disagree about which domains exist even if someone edits one of them
+ * later. The browse manifest is also the only artifact that enumerates — `policy-index.bin` stores
+ * `sha256(domain)` prefixes and cannot be listed back, and nothing in `corpus-bundle.ts` enumerates
+ * because every query there is keyed to one site.
+ *
+ * `corpus/analysis/` is gitignored (Part 3, D8) and these outputs are not — that is the point.
  * A clean checkout builds the extension from the committed artifacts without the corpus present;
  * this script only runs when the corpus changes.
  */
@@ -21,10 +28,13 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
+  POLICY_BROWSE_ASSET,
+  POLICY_BROWSE_FORMAT_VERSION,
   POLICY_CORPUS_ASSET,
   POLICY_CORPUS_FORMAT_VERSION,
   POLICY_CORPUS_MAX_GZIP_BYTES,
   analysisDomains,
+  buildBrowseRows,
   hasTimeSensitiveAction,
   worstRiskLevel,
 } from '../../packages/unshafted-core/lib/site-policy/corpus-bundle.js';
@@ -36,6 +46,7 @@ import type { RiskLevel } from '../../packages/unshafted-core/lib/types.js';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const ANALYSIS_DIR = path.join(ROOT, 'corpus/analysis');
 const BUNDLE_FILE = path.join(ROOT, 'chrome-extension/public', POLICY_CORPUS_ASSET);
+const BROWSE_FILE = path.join(ROOT, 'chrome-extension/public', POLICY_BROWSE_ASSET);
 const SEED_FILE = path.join(ROOT, 'chrome-extension/policy-seed.json');
 
 /**
@@ -102,8 +113,18 @@ const readAnalyses = async (): Promise<{ kept: SitePolicyAnalysis[]; skipped: st
 
 type SeedRow = { domain: string; riskLevel: RiskLevel; hasTimeSensitiveAction: boolean };
 
-/** Collapse documents to one row per site: worst risk (D1), any deadline anywhere. */
-const buildSeedRows = (analyses: readonly SitePolicyAnalysis[]): SeedRow[] => {
+/**
+ * One bucket per site, keyed the way the runtime keys it.
+ *
+ * Lifted out of `buildSeedRows` when the browse manifest arrived and needed the same grouping plus
+ * a count. Two artifacts deriving from one map is the difference between "these agree today" and
+ * "these cannot disagree" — a domain cannot appear in the seed and be missing from the browse list,
+ * which would be a covered site the panel can grade and the browse view swears it has never read.
+ *
+ * `analysisDomains` rather than `analysis.domain`: one Disney terms document governs both
+ * `disneyplus.com` and `hotstar.com`, and taking the primary alone leaves the other out of both.
+ */
+const groupByDomain = (analyses: readonly SitePolicyAnalysis[]): Map<string, SitePolicyAnalysis[]> => {
   const byDomain = new Map<string, SitePolicyAnalysis[]>();
   for (const analysis of analyses) {
     for (const domain of analysisDomains(analysis)) {
@@ -111,15 +132,18 @@ const buildSeedRows = (analyses: readonly SitePolicyAnalysis[]): SeedRow[] => {
       byDomain.set(key, [...(byDomain.get(key) ?? []), analysis]);
     }
   }
+  return byDomain;
+};
 
-  return [...byDomain.entries()]
+/** Collapse documents to one row per site: worst risk (D1), any deadline anywhere. */
+const buildSeedRows = (byDomain: ReadonlyMap<string, readonly SitePolicyAnalysis[]>): SeedRow[] =>
+  [...byDomain.entries()]
     .sort(([left], [right]) => left.localeCompare(right))
     .map(([domain, documents]) => ({
       domain,
       riskLevel: worstRiskLevel(documents.map(document => document.riskLevel))!,
       hasTimeSensitiveAction: documents.some(hasTimeSensitiveAction),
     }));
-};
 
 const SEED_COMMENT = [
   'Build input for the bundled domain-coverage index (policy-index.bin).',
@@ -163,7 +187,8 @@ const main = async () => {
 
   await writeFile(BUNDLE_FILE, json, 'utf8');
 
-  const rows = buildSeedRows(kept);
+  const byDomain = groupByDomain(kept);
+  const rows = buildSeedRows(byDomain);
 
   // Round-trip through the shipped validator before writing. The multi-tenant guard (AD-7) is the
   // one that matters: it is what stops a public suffix in the index attributing one host's policy
@@ -178,6 +203,20 @@ const main = async () => {
     'utf8',
   );
 
+  /*
+   * The browse manifest. Minified for the same reason the corpus is — it ships in the CRX and
+   * nobody reads it by hand — and with no `generatedAt`, deliberately: it would be the only
+   * changing byte on a rebuild that found nothing new, and a diff that moves every time you run
+   * the script is a diff nobody reads.
+   */
+  const browse = JSON.stringify({
+    formatVersion: POLICY_BROWSE_FORMAT_VERSION,
+    // `kept.length`, never the sum of the rows — see the schema for why those differ by three.
+    documentTotal: kept.length,
+    domains: buildBrowseRows(byDomain),
+  });
+  await writeFile(BROWSE_FILE, browse, 'utf8');
+
   const distribution = rows.reduce<Record<string, number>>(
     (acc, row) => ({ ...acc, [row.riskLevel]: (acc[row.riskLevel] ?? 0) + 1 }),
     {},
@@ -190,6 +229,10 @@ const main = async () => {
       .join(', ')}`,
   );
   console.log(`[seed] ${rows.filter(row => row.hasTimeSensitiveAction).length} domains carry a deadline`);
+  console.log(
+    `[browse] ${rows.length} domains, ${browse.length} bytes raw, ` +
+      `${gzipSync(Buffer.from(browse, 'utf8')).byteLength} bytes gzipped`,
+  );
 };
 
 void main();

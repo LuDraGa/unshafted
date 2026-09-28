@@ -1,36 +1,54 @@
-import { capturePolicyDocument, discoverActiveTabPolicies } from '@extension/shared';
+import {
+  capturePolicyDocument,
+  discoverActiveTabPolicies,
+  renderFromTab,
+  renderInBackgroundTab,
+} from '@extension/shared';
+import { chooseOfferedDocuments, isSamePage } from '@extension/unshafted-core';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { PolicyDiscoveryResult, PolicyDocumentCapture } from '@extension/shared';
-import type { PolicyDocType, RankedPolicyCandidate, SitePolicyAnalysis } from '@extension/unshafted-core';
+import type { RankedPolicyCandidate, SitePolicyAnalysis } from '@extension/unshafted-core';
 
 /**
- * The live page check (D6) and the document reader's fetch cache (D9), in one hook because they
- * are one page read.
+ * The live page check (D6), the automatic reads on a site we do not cover (D8), and the document
+ * reader's fetch cache (D9), in one hook because they are one look at one page.
  *
- * D6 inverts what the popup did. The analysis is already on screen from the bundle before this
- * runs; the only question here is whether the live document still hashes to what we read. So:
+ * On a COVERED site the analysis is already on screen from the bundle before this runs; the only
+ * question here is whether each document we analysed still hashes to what we read. Since S2 that
+ * is asked of the document itself — each analysis's own `sourceUrl`, read by the extension (D6
+ * amended, "the exact right thing"). It used to re-discover the page's links and take the first
+ * same-origin one of each type, which could be a different document, and could never reach the 7
+ * domains whose policies sit on another host.
+ *
+ * On a site we DO NOT cover, the top document of each type is read as soon as discovery lands, and
+ * only what came back as a readable policy is offered for analysis (D8, `chooseOfferedDocuments`).
  *
  *  - This NEVER blocks a render. Every state it produces is additive.
- *  - Failure is not an error state. Chrome refuses injection on its own pages, and 7 of 36
- *    domains host their policies cross-origin where an in-page fetch cannot reach them. Both
- *    land on `unconfirmed`, whose label is "as we read it on <date>" — the honest default, not
- *    a warning.
+ *  - Failure is not an error state. A document that cannot be read — a bot wall, a page that only
+ *    exists after JavaScript runs — lands on `unconfirmed`, whose label is "last read on <date>",
+ *    the honest default rather than a warning.
  *  - It runs once per tab and origin. The reason used to be permission: under `activeTab` the
  *    second attempt was the one without the gesture, so re-running downgraded a good `current`
  *    to `unconfirmed`. Standing host access removed that failure mode, and the rule survives it
  *    on cost alone — an in-site navigation is the same site's same documents, and re-reading
  *    them on every route change turns the panel into a crawler for no new information.
  *
- * The reader shares this hook's cache so that a document the check already fetched opens
- * instantly, and so that reading it costs no second request.
+ * The reader shares this hook's cache so that a document the check already read opens instantly,
+ * and so that reading it costs no second request.
+ *
+ * A5: a document whose raw HTML is not a document — built by JavaScript, or behind a bot check —
+ * is read by opening the page, in two places only. When the page the reader is on IS that document,
+ * it is read from their own tab, as it stands: nothing is opened. Anywhere else it waits for their
+ * click (`openDocument`), because opening a page means a tab in their window, carrying their
+ * session.
  */
 
 /**
- * At most one fetch per document type we have an analysis for. A domain with three analyses
- * costs three same-origin requests from the page's own session; the cap stops a page with a
- * hundred footer links from turning the panel into a crawler.
+ * At most this many analysed documents are confirmed per site: enough for the corpus's largest
+ * domain (linkedin.com, five), and a ceiling so a domain can never turn opening the panel into a
+ * crawl.
  */
-const MAX_CONFIRMATION_FETCHES = 4;
+const MAX_CONFIRMATION_FETCHES = 6;
 
 /**
  * How long the "looking at this page" state stays up, at minimum.
@@ -57,7 +75,11 @@ type DocumentFreshness =
   /** We could not read the live page. Says nothing about the document either way. */
   | 'unconfirmed';
 
-type ReaderEntry = { state: 'loading' } | { state: 'done'; capture: PolicyDocumentCapture };
+type ReaderEntry =
+  | { state: 'loading' }
+  /** Being read by opening the page in a background tab, on the reader's click (A5). */
+  | { state: 'opening' }
+  | { state: 'done'; capture: PolicyDocumentCapture };
 
 /** What a run answers for. Two runs are the same run when all four match. */
 type RunIdentity = {
@@ -71,6 +93,8 @@ type RunIdentity = {
 type Run = RunIdentity & {
   discovery: PolicyDiscoveryResult | null;
   discovering: boolean;
+  /** Null until the automatic reads (D8) have settled on what to offer. */
+  offers: readonly RankedPolicyCandidate[] | null;
   freshness: Record<string, DocumentFreshness>;
   reads: Record<string, ReaderEntry>;
 };
@@ -92,12 +116,24 @@ type LivePolicyCheck = {
   discovery: PolicyDiscoveryResult | null;
   /** True while the page is being looked at. The reader owes the user this; see the floor above. */
   discovering: boolean;
+  /**
+   * On a site we do not cover: the documents that were read and came back as policies — the only
+   * ones offered for analysis (D8). Null while they are still being read, and on a covered site,
+   * where nothing is offered.
+   */
+  offers: readonly RankedPolicyCandidate[] | null;
   /** True once the user has asked us to look again and it still did not work. */
   retried: boolean;
   freshness: Record<string, DocumentFreshness>;
   /** Keyed by absolute URL. Populated by the check itself and by the reader. */
   reads: Record<string, ReaderEntry>;
   readDocument: (url: string) => void;
+  /**
+   * Read a document by opening it in a background tab, read and closed (A5) — only ever on the
+   * reader's click. A document it reads is offered for analysis if nothing of its type was, and a
+   * covered site's analysis at that address learns whether it is still current.
+   */
+  openDocument: (document: RankedPolicyCandidate) => void;
   /**
    * Look at the page again, on a user's click.
    *
@@ -132,23 +168,43 @@ const originOf = (url: string | null): string | null => {
   }
 };
 
-/** The best same-origin candidate for each document type we hold an analysis for. */
-const confirmationTargets = (
-  documents: readonly RankedPolicyCandidate[],
-  wanted: ReadonlySet<PolicyDocType>,
-): RankedPolicyCandidate[] => {
-  const picked = new Map<PolicyDocType, RankedPolicyCandidate>();
+/**
+ * A document the reader opened, offered in place of whatever of its type was offered (A5). They
+ * asked for this one by name — the page's own link for that type — which is a stronger claim than
+ * the next-best document the automatic reads settled on. Null stays null: a covered site offers
+ * nothing, and a site still being read has not decided yet.
+ */
+const offerOpened = (
+  offers: readonly RankedPolicyCandidate[] | null,
+  document: RankedPolicyCandidate,
+  capture: PolicyDocumentCapture,
+): readonly RankedPolicyCandidate[] | null => {
+  if (!offers || capture.status !== 'captured' || !document.docType) return offers;
+  if (offers.some(offer => offer.url === document.url)) return offers;
+  const index = offers.findIndex(offer => offer.docType === document.docType);
+  return index < 0 ? [...offers, document] : offers.map((offer, at) => (at === index ? document : offer));
+};
 
-  for (const document of documents) {
-    // AD-4: a cross-origin policy host is not reachable from the page context, so trying it
-    // would spend a request to learn nothing.
-    if (!document.sameOrigin || !document.docType) continue;
-    if (!wanted.has(document.docType) || picked.has(document.docType)) continue;
-    picked.set(document.docType, document);
-    if (picked.size >= MAX_CONFIRMATION_FETCHES) break;
-  }
-
-  return [...picked.values()];
+/**
+ * What a live read says about the one document it was asked about.
+ *
+ * A matching hash is current however it was read: noise can make two readings of one document
+ * differ, never make two different documents agree. A different hash says the document CHANGED
+ * only when both it and the analysis are raw reads (A5, decided on measurement in S3):
+ *
+ *  - across the two readings a difference is no evidence at all. The HTML a server sends and the
+ *    page JavaScript builds from it are different texts of one document (ChatGPT's differ);
+ *  - and a rendered page is not stable enough to accuse. Opened three times each, 2 of 29 rendered
+ *    documents did not hash alike: Expedia's privacy page grew a live-chat widget's heading on one
+ *    load, and Instagram's held its whole policy twice on a cold load still changing at the
+ *    reader's bound. A panel that called either "changed" would be wrong about a real company.
+ *
+ * Everything else that differs stays unconfirmed, the honest resting state.
+ */
+const freshnessOf = (analysis: SitePolicyAnalysis, capture: PolicyDocumentCapture): DocumentFreshness => {
+  if (capture.status !== 'captured') return 'unconfirmed';
+  if (capture.hash === analysis.contentHash) return 'current';
+  return capture.readMode === 'raw' && analysis.readMode === 'raw' ? 'changed' : 'unconfirmed';
 };
 
 const useLivePolicyCheck = (
@@ -177,10 +233,17 @@ const useLivePolicyCheck = (
    */
   const [attempt, setAttempt] = useState({ key: '', count: 0 });
 
-  // The reader fetches against the tab discovery ran on, never a re-query of "the active tab".
-  const readTabId = useRef<number | null>(null);
-  /** URLs already fetched or in flight. A ref, so a re-render cannot re-request one. */
+  /** URLs already read or in flight. A ref, so a re-render cannot re-request one. */
   const requested = useRef(new Set<string>());
+  /**
+   * Where the tab is NOW. A ref, not a dependency: an in-site navigation is not a new run, but
+   * whether a document is the page the reader is on is a question about the moment it is read.
+   * Kept current by an effect declared ahead of the run's, so it has always caught up by then.
+   */
+  const pageUrlNow = useRef(pageUrl);
+  useEffect(() => {
+    pageUrlNow.current = pageUrl;
+  }, [pageUrl]);
   const origin = originOf(pageUrl);
   const attemptKey = `${tabId}:${origin}`;
 
@@ -200,13 +263,12 @@ const useLivePolicyCheck = (
      * Coverage is NOT a precondition (D15). This used to bail on an empty analysis set, which is
      * every site outside the corpus — so discovery never ran there, `discovery` stayed null, and
      * the reader D15 added for exactly those sites sat on "Looking at the page…" forever. The
-     * reader needs page access, not an analysis. With no analyses the run still costs one
-     * discovery and no fetches: `confirmationTargets` is asked for no doc types.
+     * reader needs page access, not an analysis.
      */
     if (tabId === null || !origin) return;
 
     let disposed = false;
-    readTabId.current = tabId;
+    const covered = analyses.length > 0;
 
     /** What this run's record looks like before it has learned anything. */
     const started: Run = {
@@ -216,6 +278,7 @@ const useLivePolicyCheck = (
       analyses,
       discovery: null,
       discovering: true,
+      offers: null,
       freshness: pendingFreshness,
       reads: {},
     };
@@ -232,62 +295,38 @@ const useLivePolicyCheck = (
         return { ...current, ...change(current) };
       });
 
-    const execute = async () => {
-      const startedAt = Date.now();
-      const found = await discoverActiveTabPolicies();
+    /**
+     * Read one document into this run's cache, so the reader can show it without asking again. The
+     * page the reader is on is read from their own tab if its raw HTML is not the document (A5).
+     */
+    const read = async (url: string): Promise<PolicyDocumentCapture> => {
+      requested.current.add(url);
+      const capture = await capturePolicyDocument(
+        url,
+        isSamePage(url, pageUrlNow.current) ? renderFromTab(tabId) : undefined,
+      );
+      if (!disposed) update(current => ({ reads: { ...current.reads, [url]: { state: 'done', capture } } }));
+      return capture;
+    };
 
-      // Hold the "looking" state to the floor, so an instant refusal is still something a person
-      // can see happen. Only the DISPLAY waits; the confirmation fetches below are unaffected.
-      const remaining = MIN_VISIBLE_DISCOVERY_MS - (Date.now() - startedAt);
-      if (remaining > 0) await new Promise(resolve => setTimeout(resolve, remaining));
-
+    /*
+     * D6, exactly: each document we analysed, read at the address we analysed it from. It needs no
+     * page, so it starts at once and does not wait for discovery — nor fail when Chrome refuses to
+     * let us into the page, which is every covered site's Web Store and error pages.
+     */
+    const confirm = async () => {
+      const targets = analyses.slice(0, MAX_CONFIRMATION_FETCHES);
+      await Promise.all(
+        targets.map(async analysis => {
+          const capture = await read(analysis.sourceUrl);
+          if (disposed) return;
+          update(current => ({
+            freshness: { ...current.freshness, [analysis.contentHash]: freshnessOf(analysis, capture) },
+          }));
+        }),
+      );
       if (disposed) return;
-      update(() => ({ discovery: found, discovering: false }));
-
-      // Nothing readable here. Every document keeps its "as we read it" label and no error shows.
-      if (found.status !== 'discovered') {
-        update(() => ({
-          freshness: Object.fromEntries(analyses.map(analysis => [analysis.contentHash, 'unconfirmed' as const])),
-        }));
-        return;
-      }
-
-      readTabId.current = found.tabId;
-
-      const byHash = new Map(analyses.map(analysis => [analysis.contentHash, analysis]));
-      const byDocType = new Map<PolicyDocType, SitePolicyAnalysis[]>();
-      for (const analysis of analyses) {
-        byDocType.set(analysis.docType, [...(byDocType.get(analysis.docType) ?? []), analysis]);
-      }
-
-      for (const target of confirmationTargets(found.documents, new Set(byDocType.keys()))) {
-        requested.current.add(target.url);
-        const capture = await capturePolicyDocument(found.tabId, target.url);
-        if (disposed) return;
-
-        update(current => ({ reads: { ...current.reads, [target.url]: { state: 'done', capture } } }));
-        if (capture.status !== 'captured') continue;
-
-        const matched = byHash.get(capture.hash);
-        if (matched) {
-          update(current => ({ freshness: { ...current.freshness, [matched.contentHash]: 'current' } }));
-          continue;
-        }
-
-        /*
-         * The hash missed. We can only call a specific document "changed" when exactly one of
-         * our analyses is of this type — with two terms documents on one domain we do not know
-         * which one we just fetched, and guessing would attach a "this changed" claim to a
-         * document we never looked at. Ambiguity stays `unconfirmed`.
-         */
-        const sameType = target.docType ? (byDocType.get(target.docType) ?? []) : [];
-        if (sameType.length === 1) {
-          update(current => ({ freshness: { ...current.freshness, [sameType[0]!.contentHash]: 'changed' } }));
-        }
-      }
-
-      if (disposed) return;
-      // Anything the run never reached is unconfirmed, which is the resting state, not a failure.
+      // Anything past the ceiling is unconfirmed, which is the resting state, not a failure.
       update(current => ({
         freshness: Object.fromEntries(
           Object.entries(current.freshness).map(([hash, state]): [string, DocumentFreshness] => [
@@ -296,6 +335,33 @@ const useLivePolicyCheck = (
           ]),
         ),
       }));
+    };
+
+    const execute = async () => {
+      const confirmed = covered ? confirm() : Promise.resolve();
+
+      const startedAt = Date.now();
+      const found = await discoverActiveTabPolicies();
+
+      // Hold the "looking" state to the floor, so an instant refusal is still something a person
+      // can see happen. Only the DISPLAY waits; the reads are unaffected.
+      const remaining = MIN_VISIBLE_DISCOVERY_MS - (Date.now() - startedAt);
+      if (remaining > 0) await new Promise(resolve => setTimeout(resolve, remaining));
+
+      if (disposed) return;
+      update(() => ({ discovery: found, discovering: false }));
+
+      // D8: a site we do not cover is offered what reading its top documents produced.
+      if (!covered) {
+        if (found.status !== 'discovered') {
+          update(() => ({ offers: [] }));
+        } else {
+          const { offers } = await chooseOfferedDocuments(found.documents, read);
+          if (!disposed) update(() => ({ offers }));
+        }
+      }
+
+      await confirmed;
     };
 
     void execute();
@@ -310,25 +376,60 @@ const useLivePolicyCheck = (
     [attemptKey],
   );
 
-  const readDocument = useCallback((url: string) => {
-    const tab = readTabId.current;
-    if (tab === null || requested.current.has(url)) return;
+  const readDocument = useCallback(
+    (url: string) => {
+      if (requested.current.has(url)) return;
 
-    requested.current.add(url);
-    /*
-     * Merges into whichever run record is in state, and does nothing if there is none. The reader
-     * lists documents out of `discovery`, so a record always exists by the time this is reachable —
-     * and if one somehow is not there, there is no discovery to read against either.
-     */
-    const merge = (entry: ReaderEntry) =>
-      setRun(previous => (previous ? { ...previous, reads: { ...previous.reads, [url]: entry } } : previous));
+      requested.current.add(url);
+      /*
+       * Merges into whichever run record is in state, and does nothing if there is none. The reader
+       * lists documents out of `discovery`, so a record always exists by the time this is reachable —
+       * and if one somehow is not there, there is no discovery to read against either.
+       */
+      const merge = (entry: ReaderEntry) =>
+        setRun(previous => (previous ? { ...previous, reads: { ...previous.reads, [url]: entry } } : previous));
 
-    merge({ state: 'loading' });
+      merge({ state: 'loading' });
 
-    void capturePolicyDocument(tab, url).then(capture => {
-      merge({ state: 'done', capture });
-    });
-  }, []);
+      const fromTab = tabId !== null && isSamePage(url, pageUrlNow.current);
+      void capturePolicyDocument(url, fromTab ? renderFromTab(tabId) : undefined).then(capture => {
+        merge({ state: 'done', capture });
+      });
+    },
+    [tabId],
+  );
+
+  const openDocument = useCallback(
+    (document: RankedPolicyCandidate) => {
+      const { url } = document;
+      /** Onto the run it was asked from only: once the tab has moved on, that record is another page's. */
+      const merge = (change: (current: Run) => Partial<Run>) =>
+        setRun(previous =>
+          previous && previous.tabId === tabId && previous.origin === origin
+            ? { ...previous, ...change(previous) }
+            : previous,
+        );
+
+      requested.current.add(url);
+      merge(current => ({ reads: { ...current.reads, [url]: { state: 'opening' } } }));
+
+      void capturePolicyDocument(url, renderInBackgroundTab).then(capture => {
+        merge(current => ({
+          reads: { ...current.reads, [url]: { state: 'done', capture } },
+          offers: offerOpened(current.offers, document, capture),
+          freshness: {
+            ...current.freshness,
+            ...Object.fromEntries(
+              current.analyses
+                .filter(analysis => analysis.sourceUrl === url)
+                .map(analysis => [analysis.contentHash, freshnessOf(analysis, capture)]),
+            ),
+          },
+        }));
+      });
+    },
+    [tabId, origin],
+  );
 
   /*
    * Derived, not reset in the effect. A record that answers for a different tab, origin, attempt
@@ -341,10 +442,12 @@ const useLivePolicyCheck = (
     discovery: current?.discovery ?? null,
     // A run that cannot start is not looking, and that distinction is the whole of the retry copy.
     discovering: current?.discovering ?? (tabId !== null && origin !== null),
+    offers: current?.offers ?? null,
     retried: attempt.key === attemptKey && attempt.count > 0,
     freshness: current?.freshness ?? pendingFreshness,
     reads: current?.reads ?? NO_READS,
     readDocument,
+    openDocument,
     rediscover,
   };
 };

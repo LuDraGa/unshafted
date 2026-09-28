@@ -1,6 +1,7 @@
+import { RefreshIcon } from '@src/components/Icons';
 import { DOC_TYPE_LABELS, downloadFilename, shortenUrl } from '@src/lib/presentation';
 import { useState } from 'react';
-import type { RankedPolicyCandidate, SitePolicyAnalysis } from '@extension/unshafted-core';
+import type { PolicyDocumentCapture, RankedPolicyCandidate, SitePolicyAnalysis } from '@extension/unshafted-core';
 import type { LivePolicyCheck } from '@src/hooks/useLivePolicyCheck';
 import type { ReactNode } from 'react';
 
@@ -18,16 +19,20 @@ import type { ReactNode } from 'react';
  *    we never hold them and never serve them. That is the same line that keeps `corpus/text/`
  *    out of the bundle, and it is why this feature does not cross it.
  *
- * FOUR STATES, AND ONLY ONE OF THEM IS A DISCLOSURE. Looking / could-not-look / found-nothing /
- * found-some. The first three render flat, because a chevron promises something behind it and
- * there is nothing behind any of them; the count badge is likewise reserved for the state that
- * actually counted something. Rendering `0` beside "we could not read this page" claimed we had
- * looked and found none, about a page Chrome never let us open.
+ * FOUR STATES, AND ONLY ONE OF THEM IS A LIST. Looking / could-not-look / found-nothing /
+ * found-some. The first three render flat, as a sentence, because there is nothing to list; the
+ * count on the header tool is likewise reserved for the state that actually counted something.
+ * Rendering `0` beside "we could not read this page" claimed we had looked and found none, about a
+ * page Chrome never let us open.
+ *
+ * WHERE IT RENDERS IS A PLACEMENT DECISION, NOT A STYLING ONE. On an uncovered site the reader is
+ * the only thing on offer, so it is the screen's content. On a covered site it is a tool — the
+ * analysis is the headline (D10) — so it lives behind the header's page-documents tool, in an
+ * overlay of its own, the way the popup keeps History out of the analysis it sits beside.
  *
  * Discovery finding nothing is a normal outcome, not an error: some sites link their policies
- * only from a signed-in surface, and 7 of 36 corpus domains host them cross-origin where an
- * in-page fetch cannot reach. That state says so and points at the source URLs the document
- * cards already carry, which are where we read them from.
+ * only from a signed-in surface, or from a menu that has to be opened first. That state says so and
+ * points at the source URLs the document cards already carry, which are where we read them from.
  */
 
 const READ_TEXT_LIMIT = 400_000;
@@ -46,6 +51,74 @@ const downloadText = (filename: string, text: string) => {
 const documentLabel = (candidate: RankedPolicyCandidate): string =>
   candidate.label || (candidate.docType ? DOC_TYPE_LABELS[candidate.docType] : shortenUrl(candidate.url));
 
+/**
+ * Whether opening the page may still read it (A5): its raw HTML was not a document, it has not been
+ * opened yet, and it is a page at all — a tab showing a PDF has nothing to read.
+ */
+const canOpen = (capture: PolicyDocumentCapture | null): boolean =>
+  capture !== null &&
+  capture.readMode === 'raw' &&
+  (capture.status === 'hub' || (capture.status === 'unreadable' && capture.reason !== 'not-html'));
+
+const Note = ({ children }: { children: ReactNode }) => (
+  <p className="m-0 text-[11px] text-[var(--unshafted-text-faint)]">{children}</p>
+);
+
+/**
+ * The one way past a page whose text is built by JavaScript. A button, and only ever a button: the
+ * page opens in a tab of the reader's own, carrying their session, so it happens when they ask and
+ * never on its own — and the line under it says what the click will do before they make it.
+ */
+const OpenToRead = ({ onOpen }: { onOpen: () => void }) => (
+  <>
+    <div className="panel-actions">
+      <button className="panel-button" type="button" onClick={onOpen}>
+        Read it by opening the page
+      </button>
+    </div>
+    <Note>Opens it in a background tab, reads it once it has loaded, and closes it.</Note>
+  </>
+);
+
+/** What the row says when a read produced no text, and the way on where there is one. */
+const NoText = ({ capture, onOpen }: { capture: PolicyDocumentCapture; onOpen: () => void }) => {
+  const openable = canOpen(capture);
+
+  if (capture.status === 'hub') {
+    return (
+      <>
+        <Note>This page lists documents rather than being one. The ones it links to are in this list.</Note>
+        {/* A page whose script has not run can look like a hub: Practo's privacy policy does. */}
+        {openable ? (
+          <>
+            <Note>Some sites only show a policy’s text once the page runs.</Note>
+            <OpenToRead onOpen={onOpen} />
+          </>
+        ) : null}
+      </>
+    );
+  }
+  if (capture.status !== 'unreadable') return null;
+  if (capture.reason === 'not-html')
+    return <Note>This is a file, not a page — most likely a PDF. Open it to read it.</Note>;
+  if (!openable) {
+    return (
+      <Note>
+        Opening it showed no policy text either. It may need you to be signed in, or keep its text in an embedded frame.
+      </Note>
+    );
+  }
+  return (
+    <>
+      <Note>
+        Its text did not come with the page. The site builds it with JavaScript as the page opens, or turns away plain
+        requests.
+      </Note>
+      <OpenToRead onOpen={onOpen} />
+    </>
+  );
+};
+
 const DocumentRow = ({
   candidate,
   domain,
@@ -57,56 +130,55 @@ const DocumentRow = ({
   check: LivePolicyCheck;
   onAnalyse?: (candidate: RankedPolicyCandidate) => void;
 }) => {
-  const [open, setOpen] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const entry = check.reads[candidate.url];
 
   const toggle = () => {
-    if (!open) check.readDocument(candidate.url);
-    setOpen(!open);
+    if (!expanded) check.readDocument(candidate.url);
+    setExpanded(!expanded);
   };
 
   const capture = entry?.state === 'done' ? entry.capture : null;
+  const open = () => check.openDocument(candidate);
 
   return (
-    <div className="panel-row">
-      <p className="m-0 text-[13px] leading-snug font-semibold text-[var(--unshafted-text)]">
-        {documentLabel(candidate)}
-      </p>
-      <p className="m-0 mt-0.5 truncate text-[10px] text-[var(--unshafted-text-faint)]">{shortenUrl(candidate.url)}</p>
+    <div className="panel-row panel-reader-row">
+      <p className="panel-item-title">{documentLabel(candidate)}</p>
+      <p className="panel-url">{shortenUrl(candidate.url)}</p>
 
-      <div className="mt-2 flex flex-wrap items-center gap-2">
+      {/*
+        Text buttons, not pills: these are row actions, and a list of three documents carrying
+        twelve bordered buttons is a list whose rows cannot be told from its controls.
+      */}
+      <div className="panel-actions">
         {/*
-          Only same-origin documents can be fetched from the page's context (AD-4). A
-          cross-origin one is still listed, because opening it in a tab is a real answer.
+          Every document can be read here, wherever it is hosted: the extension reads it itself
+          (D5; AD-4, which limited this to same-origin documents, is retired).
         */}
-        {candidate.sameOrigin ? (
-          <button className="panel-button" onClick={toggle} type="button">
-            {open ? 'Hide' : 'Read here'}
-          </button>
-        ) : null}
+        <button className="panel-text-button" onClick={toggle} type="button" aria-expanded={expanded}>
+          {expanded ? 'Hide text' : 'Read here'}
+        </button>
 
-        <a className="panel-button" href={candidate.url} target="_blank" rel="noreferrer">
-          Open page
+        <a className="panel-text-button" href={candidate.url} target="_blank" rel="noreferrer">
+          Open page ↗
         </a>
 
         {/*
-          S10: a cross-origin document gets no "Analyse" for the same reason it gets no "Read
-          here" — we cannot fetch its text from the page (AD-4), and analysing a document we
-          could not read would be a finding about a company drawn from nothing.
+          No `docType`, no analyse button — see `analysable` in `SidePanel.tsx`. The row keeps
+          "Read here": reading a document we cannot name is fine, grading one is not. A typed
+          document that turns out unreadable is caught by the confirm, which reads before it asks
+          (S10). One already read as a hub gets no button: it is a list of documents, never analysed,
+          and its documents are rows of their own.
         */}
-        {/*
-          No `docType`, no analyse button — see the `analysable` filter in `SidePanel.tsx`. The row
-          keeps "Read here": reading a document we cannot name is fine, grading one is not.
-        */}
-        {candidate.sameOrigin && candidate.docType && onAnalyse ? (
-          <button className="panel-button" onClick={() => onAnalyse(candidate)} type="button">
-            Analyse
+        {candidate.docType && onAnalyse && capture?.status !== 'hub' ? (
+          <button className="panel-text-button" onClick={() => onAnalyse(candidate)} type="button">
+            Analyse…
           </button>
         ) : null}
 
         {capture?.status === 'captured' ? (
           <button
-            className="panel-button"
+            className="panel-text-button"
             onClick={() =>
               downloadText(downloadFilename(domain, candidate.docType ?? 'terms', capture.hash), capture.text)
             }
@@ -116,24 +188,26 @@ const DocumentRow = ({
         ) : null}
       </div>
 
-      {open ? (
+      {expanded ? (
         <div className="mt-2">
           {!entry || entry.state === 'loading' ? (
-            <p className="m-0 text-[11px] text-[var(--unshafted-text-faint)]">Reading…</p>
+            <Note>Reading…</Note>
+          ) : entry.state === 'opening' ? (
+            <p className="m-0 flex items-center text-[11px] text-[var(--unshafted-text-faint)]">
+              <span className="panel-busy-dot" aria-hidden="true" />
+              Opening it in a background tab…
+            </p>
           ) : capture?.status === 'captured' ? (
             <>
               <pre className="panel-reader-text">{capture.text.slice(0, READ_TEXT_LIMIT)}</pre>
               <p className="m-0 mt-1 text-[10px] text-[var(--unshafted-text-faint)]">
                 Normalized text · {capture.text.length.toLocaleString()} characters · {capture.hash.slice(0, 12)}
+                {capture.readMode === 'rendered' ? ' · read from the opened page' : ''}
               </p>
             </>
-          ) : (
-            <p className="m-0 text-[11px] text-[var(--unshafted-text-faint)]">
-              {capture?.status === 'unreadable'
-                ? 'This link did not return a readable document. Opening it in a tab will still work.'
-                : 'This page cannot be read from here right now. Opening it in a tab will still work.'}
-            </p>
-          )}
+          ) : capture ? (
+            <NoText capture={capture} onOpen={open} />
+          ) : null}
         </div>
       ) : null}
     </div>
@@ -142,41 +216,72 @@ const DocumentRow = ({
 
 /** The addresses the bundled analyses were read from — the only thing left to point at. */
 const SourceLinks = ({ analyses }: { analyses: readonly SitePolicyAnalysis[] }) => (
-  <>
-    <p className="m-0 mt-2 text-xs leading-relaxed text-[var(--unshafted-text-muted)]">
-      These are the addresses we read:
-    </p>
+  <div className="panel-reader-sources">
+    <p className="panel-quiet">These are the addresses we read:</p>
     {analyses.map(analysis => (
       <a
         key={analysis.contentHash}
-        className="panel-row mt-1.5 block no-underline"
+        className="panel-row panel-reader-source"
         href={analysis.sourceUrl}
         target="_blank"
         rel="noreferrer">
-        <span className="text-[13px] font-semibold text-[var(--unshafted-text)]">
-          {DOC_TYPE_LABELS[analysis.docType]}
-        </span>
-        <span className="mt-0.5 block truncate text-[10px] text-[var(--unshafted-text-faint)]">
-          {shortenUrl(analysis.sourceUrl)}
-        </span>
+        <span className="panel-item-title">{DOC_TYPE_LABELS[analysis.docType]}</span>
+        <span className="panel-url">{shortenUrl(analysis.sourceUrl)}</span>
       </a>
     ))}
-  </>
+  </div>
 );
 
 /**
- * A flat card for the three states with nothing to expand.
+ * The three states with nothing to list. Flat, on the ground, and never a disclosure: a collapsed
+ * control whose whole payload is "there is nothing here" charges a click to deliver a non-answer,
+ * and a count beside it made that worse — an unreadable page rendered as `0` read as "we looked and
+ * found none" about a page Chrome never let us open.
  *
- * Deliberately NOT a `<details>`. A collapsed disclosure whose whole payload is "there is nothing
- * here" charges a click to deliver a non-answer, and the count badge beside it made that worse:
- * an unreadable page rendered as `0`, which reads as "we looked and found none" about a page we
- * were never allowed to open. Only the state that actually has documents gets a chevron.
+ * Where a retry can help, it is an outlined button here even though the same retry is also the
+ * refresh tool in the reader's own header. In these states the retry is the only thing left to do,
+ * so it is the content, not a tool.
  */
 const ReaderNote = ({ title, children }: { title: string; children: ReactNode }) => (
-  <section className="panel-one-thing">
-    <p className="m-0 mb-1.5 text-[13px] leading-snug font-bold text-[var(--unshafted-text)]">{title}</p>
+  <div className="panel-reader-note">
+    <p className="panel-note-title">{title}</p>
     {children}
-  </section>
+  </div>
+);
+
+const LookAgainButton = ({ check }: { check: LivePolicyCheck }) => (
+  <div className="panel-actions">
+    <button className="panel-button" type="button" onClick={check.rediscover}>
+      Look again
+    </button>
+  </div>
+);
+
+/**
+ * How many documents the page links, for the header tool's badge — or nothing, rather than zero,
+ * whenever the answer is not "we looked and found some". Same rule as the old count badge: a
+ * number beside a page we could not read claims we read it.
+ */
+export const discoveredCount = (check: LivePolicyCheck): number | undefined =>
+  !check.discovering && check.discovery?.status === 'discovered' && check.discovery.documents.length > 0
+    ? check.discovery.documents.length
+    : undefined;
+
+/**
+ * The reader's own refresh — "fetch the documents again" — as a tool in whichever header the
+ * reader sits under: the overlay's on a covered site, the zone's on an uncovered one. It is the
+ * same tool as the popup's Drive refresh, placed the same way.
+ */
+export const LookAgainTool = ({ check }: { check: LivePolicyCheck }) => (
+  <button
+    type="button"
+    className="panel-icon-button"
+    aria-label="Look at this page again"
+    title="Look at this page again"
+    disabled={check.discovering}
+    onClick={check.rediscover}>
+    <RefreshIcon />
+  </button>
 );
 
 export const DocumentReader = ({
@@ -196,12 +301,10 @@ export const DocumentReader = ({
   // 1. LOOKING. Held to a floor in the hook, so this is visible even when the answer is instant.
   if (discovering) {
     return (
-      <ReaderNote title="Looking at this page…">
-        <p className="m-0 flex items-center text-xs leading-relaxed text-[var(--unshafted-text-muted)]">
-          <span className="panel-busy-dot" aria-hidden="true" />
-          Reading the links on this page. They all arrive at once — this is one look, not a crawl.
-        </p>
-      </ReaderNote>
+      <p className="panel-quiet flex items-center">
+        <span className="panel-busy-dot" aria-hidden="true" />
+        Reading the links on this page. They all arrive at once — this is one look, not a crawl.
+      </p>
     );
   }
 
@@ -217,7 +320,7 @@ export const DocumentReader = ({
     if (unsupported) {
       return (
         <ReaderNote title="Not a page we can read">
-          <p className="m-0 text-xs leading-relaxed text-[var(--unshafted-text-muted)]">
+          <p className="panel-quiet">
             Browser pages and the Web Store are off limits to every extension, including this one.
           </p>
         </ReaderNote>
@@ -237,73 +340,54 @@ export const DocumentReader = ({
      */
     return (
       <ReaderNote title="We could not read this page">
-        <p className="m-0 text-xs leading-relaxed text-[var(--unshafted-text-muted)]">
+        <p className="panel-quiet">
           {retried
             ? 'Still nothing. Some pages build their footer well after they finish loading — give it a moment and look again.'
             : 'The page may not have finished loading yet.'}
         </p>
-        <div className="mt-2">
-          <button className="panel-button" type="button" onClick={check.rediscover}>
-            Look again
-          </button>
-        </div>
-        {analyses.length > 0 ? <SourceLinks analyses={analyses} /> : null}
-      </ReaderNote>
-    );
-  }
-
-  const documents = discovery.documents;
-
-  // 3. LOOKED, FOUND NOTHING. A real answer, so it says so in one line and offers the one retry
-  //    that can help: a site whose footer renders late will list its documents on a second look.
-  if (documents.length === 0) {
-    return (
-      <ReaderNote title="No policy documents on this page">
-        <p className="m-0 text-xs leading-relaxed text-[var(--unshafted-text-muted)]">
-          Nothing here links to one. That is common on signed-in pages and on sites that keep their legal text on
-          another domain
-          {analyses.length > 0
-            ? ' — it says nothing about the analysis above, which came from the bundle and needed no page access.'
-            : '. We have not analysed this site either, so there is nothing else to show you yet.'}
-        </p>
-        <div className="mt-2">
-          <button className="panel-button" type="button" onClick={check.rediscover}>
-            Look again
-          </button>
-        </div>
+        <LookAgainButton check={check} />
         {analyses.length > 0 ? <SourceLinks analyses={analyses} /> : null}
       </ReaderNote>
     );
   }
 
   /*
-   * 4. FOUND SOME. The only state that earns a disclosure — there is something behind it.
-   *
-   * Open by default on an uncovered site, where these documents are the entire contents of the
-   * panel and collapsing them hides the one thing we came to offer. On a covered site the graded
-   * analysis is the headline and this stays folded beneath it (D10).
+   * A3: a document the panel reached through a hub is not on the page, but it is what the page led
+   * to, and it may be what is offered for analysis — so it is listed, after the page's own links.
+   */
+  const documents = [
+    ...discovery.documents,
+    ...(check.offers ?? []).filter(offer => !discovery.documents.some(document => document.url === offer.url)),
+  ];
+
+  // 3. LOOKED, FOUND NOTHING. A real answer, so it says so in one line and offers the one retry
+  //    that can help: a site whose footer renders late will list its documents on a second look.
+  if (documents.length === 0) {
+    return (
+      <ReaderNote title="No policy documents on this page">
+        <p className="panel-quiet">
+          Nothing here links to one. That is common on signed-in pages and on sites that keep their legal text on
+          another domain
+          {analyses.length > 0
+            ? ' — it says nothing about the analysis, which came from the bundle and needed no page access.'
+            : '. We have not analysed this site either, so there is nothing else to show you yet.'}
+        </p>
+        <LookAgainButton check={check} />
+        {analyses.length > 0 ? <SourceLinks analyses={analyses} /> : null}
+      </ReaderNote>
+    );
+  }
+
+  /*
+   * 4. FOUND SOME. One bordered list — on the uncovered view this is the screen's Primary surface,
+   * the only thing on offer; on a covered site it is the body of the page-documents overlay, out
+   * of the reading flow entirely (D10: the graded analysis is the headline there).
    */
   return (
-    <details className="panel-doc" open={analyses.length === 0}>
-      <summary>
-        <span className="panel-doc-title">Documents on this page</span>
-        <span className="panel-count">{documents.length}</span>
-        <span className="panel-doc-chevron" aria-hidden="true" />
-      </summary>
-
-      <div className="panel-doc-body">
-        <div className="panel-group">
-          {documents.map(candidate => (
-            <DocumentRow
-              key={candidate.url}
-              candidate={candidate}
-              domain={domain}
-              check={check}
-              onAnalyse={onAnalyse}
-            />
-          ))}
-        </div>
-      </div>
-    </details>
+    <div className="panel-primary panel-reader-list">
+      {documents.map(candidate => (
+        <DocumentRow key={candidate.url} candidate={candidate} domain={domain} check={check} onAnalyse={onAnalyse} />
+      ))}
+    </div>
   );
 };

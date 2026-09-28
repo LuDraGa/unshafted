@@ -1,4 +1,3 @@
-import { DISCLAIMER_LINE } from './constants.js';
 import {
   buildSuggestedPriorities,
   computeContentHash,
@@ -87,114 +86,23 @@ const createHistoryRecord = (
     storageState: options.storageState ?? 'local-only',
   });
 
-const reportList = (items: string[], emptyText: string): string =>
-  items.length > 0 ? items.map(item => `- ${item}`).join('\n') : `- ${emptyText}`;
-
-const reportDecision = (riskLevel: 'Low' | 'Medium' | 'High' | 'Very High'): string => {
+/**
+ * The verdict's call to action: a short imperative that sits beside the risk badge. The popup and
+ * the report page both lead with it, so it lives here rather than in either of them.
+ */
+const getDecisionAction = (riskLevel: 'Low' | 'Medium' | 'High' | 'Very High'): string => {
   switch (riskLevel) {
     case 'Low':
-      return 'Likely okay to proceed after confirming the facts.';
+      return 'Likely okay to proceed';
     case 'Medium':
-      return 'Review and clarify before signing.';
+      return 'Review before signing';
     case 'High':
-      return 'Negotiate the highlighted terms before signing.';
+      return 'Negotiate first';
     case 'Very High':
-      return 'Pause and get qualified help before signing.';
+      return 'Pause and get help';
     default:
-      return 'Review the highlighted risks before signing.';
+      return 'Review before signing';
   }
-};
-
-const createReportMarkdown = (record: HistoryRecord): string => {
-  const risk = record.deepAnalysis?.overallRiskLevel ?? record.quickScan.roughRiskLevel;
-  const bottomLine = record.deepAnalysis?.bottomLine ?? record.quickScan.cautionLine;
-  const summary = record.deepAnalysis?.plainEnglishSummary ?? record.quickScan.summary;
-  const createdAt = new Date(record.createdAt).toLocaleString();
-  const topRisks = record.deepAnalysis
-    ? [
-        ...record.deepAnalysis.immediateWorries,
-        ...record.deepAnalysis.oneSidedClauses,
-        ...record.deepAnalysis.timingAndLockIn,
-        ...record.deepAnalysis.couldShaftYouLater,
-      ]
-        .slice(0, 6)
-        .map(item => `${item.title} (${item.severity}): ${item.whyItMatters}`)
-    : record.quickScan.redFlags.slice(0, 5).map(flag => `${flag.title} (${flag.severity}): ${flag.reason}`);
-  const quickFlags = record.quickScan.redFlags
-    .slice(0, 5)
-    .map(flag => `${flag.title} (${flag.severity}): ${flag.reason}`);
-  const asks = record.deepAnalysis
-    ? [
-        ...record.deepAnalysis.negotiationIdeas.map(item => `${item.ask}: ${item.why}`),
-        ...record.deepAnalysis.suggestedEdits.map(item => `${item.title}: ${item.plainEnglishEdit}`),
-        ...record.deepAnalysis.missingProtections.map(item => `${item.title}: ${item.commonFix}`),
-        ...record.deepAnalysis.questionsToAsk.map(item => `Ask: ${item}`),
-      ].slice(0, 8)
-    : record.quickScan.redFlags
-        .slice(0, 3)
-        .map(flag => `Clarify ${flag.title}: ask whether this can be narrowed or explained in writing.`);
-  const edits =
-    record.deepAnalysis?.suggestedEdits.slice(0, 5).map(item => `${item.title}: ${item.plainEnglishEdit}`) ?? [];
-  const evidence = [
-    ...record.quickScan.redFlags
-      .filter(flag => flag.reference?.label)
-      .map(flag => `${flag.title}: ${flag.reference?.label}`),
-    ...(record.deepAnalysis?.clauseReferenceNotes ?? []),
-  ];
-  const caveats = [
-    ...(record.quickScan.extractionConcerns ?? []),
-    ...(record.deepAnalysis?.assumptionsAndUnknowns ?? []),
-  ];
-
-  return [
-    `# Unshafted Report: ${record.source.name}`,
-    '',
-    `Created: ${createdAt}`,
-    `Document type: ${record.quickScan.documentType}`,
-    `Reviewed as: ${record.selectedRole}`,
-    `Risk posture: ${risk}`,
-    '',
-    '## Decision',
-    '',
-    reportDecision(risk),
-    '',
-    '## Bottom Line',
-    '',
-    bottomLine,
-    '',
-    '## Top Risks',
-    '',
-    reportList(topRisks, 'No major blockers were found.'),
-    '',
-    '## What To Ask For',
-    '',
-    reportList(asks, 'No specific negotiation asks were generated.'),
-    '',
-    '## Evidence',
-    '',
-    reportList(evidence, 'No clause references were recorded.'),
-    '',
-    '## Summary',
-    '',
-    summary,
-    '',
-    '## Quick-Scan Flags',
-    '',
-    reportList(quickFlags, 'No major quick-scan flags found.'),
-    '',
-    '## Suggested Edits',
-    '',
-    reportList(edits, 'No specific edits were generated.'),
-    '',
-    '## Caveats',
-    '',
-    reportList(caveats, 'No additional caveats were recorded.'),
-    '',
-    '## Disclaimer',
-    '',
-    record.deepAnalysis?.disclaimer ?? DISCLAIMER_LINE,
-    '',
-  ].join('\n');
 };
 
 const toVerdictTone = (riskLevel: 'Low' | 'Medium' | 'High' | 'Very High'): 'LOW' | 'CAUTION' | 'HIGH' | 'DANGER' => {
@@ -215,8 +123,8 @@ export {
   RUN_QUICK_SCAN_MESSAGE,
   createCurrentAnalysis,
   createHistoryRecord,
-  createReportMarkdown,
   createSampleAnalysis,
+  getDecisionAction,
   toVerdictTone,
   touchCurrentAnalysis,
 };

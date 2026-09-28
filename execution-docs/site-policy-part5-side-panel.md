@@ -251,8 +251,8 @@ AD-2's split is preserved and sharpened:
 |---|---|---|---|
 | source | bundled index (45 KB) | bundled corpus (305 KB gz) | the active tab |
 | when | every page load | side panel open | side panel open |
-| network | none | none | none — in-page fetch, same origin |
-| page access | none | none | `activeTab` on gesture |
+| network | none | none | each analysed document, at its own `sourceUrl`, read by the extension, cookies omitted *(since site coverage S2; was: in-page fetch, same origin)* |
+| page access | none | none | `<all_urls>`, for the link read only *(was: `activeTab` on gesture)* |
 
 The `net-export` zero-egress gate (open since M1b) covers this milestone unchanged and stays open.
 

@@ -60,6 +60,23 @@ consensus in Part 2) falls out of this one property.
 
 Hash over **normalized** text, never raw HTML, so an unrelated site redesign does not churn it.
 
+> **Amended 2026-09-28 (site coverage S3, A5): raw if it is a document, else rendered.** Which HTML
+> the normalizer reads is now one rule, `readPolicyPage` in
+> `packages/unshafted-core/lib/site-policy/read.ts`, applied identically by the panel and the corpus
+> capture: the raw HTML the server sends, if it is a document (A3's `judgePolicyPage`); otherwise the
+> page as JavaScript builds it, opened and read once it settles (`readRenderedPageInPage`), through the
+> same normalizer. Some sites send no policy text at all — Notion, Termly, Practo, Myntra, Swiggy —
+> and five packaged documents (Facebook ×2, Instagram, Reddit, eBay) are a shell to a cookieless fetch.
+> Every result records which reading it is (`readMode`, also on the analysis). A rendered read that
+> matches an analysis's hash confirms it — noise can make two readings of one document differ, never
+> two documents agree — but **only a raw read may ever claim *changed***. Raw and rendered text of one
+> document need not agree (2 of 12 server-rendered pages measured did not), and rendered pages are not
+> stable enough to accuse: opened three times each (`bench-rendered.ts`), 29 of 29 hashed alike in one
+> run and 27 of 29 in the next — Expedia's privacy page grew a live-chat widget's heading on one load,
+> and Instagram's held its whole policy twice on a cold load still changing at the reader's bound.
+> The hash is still the version; what changed is which text of a JS-built document it is the version
+> of, and that such a version can confirm but never accuse.
+
 ### AD-2 — Two lookups that must never be conflated
 
 |  | Domain check | Hash check |
@@ -91,6 +108,15 @@ The build step mirrors `chrome-extension/utils/plugins/make-manifest-plugin.ts` 
 `writeBundle` hook shape, same `colorfulLog` reporting, emits into the same `outDir`.
 
 ### AD-4 — Fetch the policy from inside the page, not the extension
+
+> **Retired 2026-09-28 (site coverage S2, D5).** Its premise was `activeTab`, under which an
+> extension-context fetch was not reliably covered. The extension has held `<all_urls>` since
+> 2026-09-07, and from an extension page with host access a fetch needs no CORS headers. So the page
+> is now read for its links only, and every document is read by the extension itself, cookies
+> omitted (`packages/unshafted-core/lib/site-policy/read.ts`). The gap this section accepted —
+> cross-origin policy hosts — was measured closed the same day: 76 of 83 packaged documents and 54
+> of the bench's 74 read directly, whatever host they sit on. What still fails is content (pages
+> rendered by JavaScript, bot walls, PDFs), never origin. Kept below as the record of why it was.
 
 `activeTab` grants access to the active tab on user gesture. Whether an extension-context
 `fetch()` to that origin is reliably covered is murky across Chrome versions.
@@ -261,7 +287,9 @@ Fires only on an explicit user gesture — the popup opening, or a click within 
 4. `sitemap.xml` is a distant third resort and is **out of scope for Part 1**.
 5. **`robots.txt` is a dead end** — it is disallow rules, it does not point at policies. Do not
    build on it.
-6. Fetch the chosen URL *in the page context* (AD-4), return HTML.
+6. Fetch the chosen URL *in the page context* (AD-4), return HTML. *(Since S2 of the site coverage
+   work: fetched by the extension itself — AD-4 is retired. Since S3, a page whose raw HTML is not a
+   document is read rendered — see AD-1's amendment.)*
 7. Normalize → hash.
 
 - [x] Injected discovery function — shipped as `collectPolicyCandidatesInPage`, not the
@@ -544,6 +572,7 @@ until a fixture pair forced it into the open.
 - [x] Policy discovery + path-guess fallback —
       `packages/unshafted-core/lib/site-policy/discover.ts`
 - [x] In-page fetch (AD-4) — `fetchDocumentInPage`, injected, same-origin by construction
+  *(removed in site coverage S2: replaced by `fetchPolicyPage`, run by the extension)*
 - [x] Capture orchestration — `packages/shared/lib/utils/policy-capture.ts`
 - [x] `chrome.storage.local` → CDN `/{hash}.json` —
       `packages/shared/lib/utils/policy-cdn.ts`, Zod-validated, hash-verified on arrival
