@@ -1,7 +1,7 @@
 # Site coverage — finding the right documents, covering the right sites, scoping big companies
 
-**Started:** 2026-09-27 · **Branch:** `dev/v0.8.3` · **Status:** decisions taken 2026-09-28;
-refined A5 and B awaiting go-ahead. Nothing built.
+**Started:** 2026-09-27 · **Branch:** `dev/v0.8.3` · **Status:** S1 done 2026-09-28 (bench
+built and baselined; A1, A4 in). S2 next.
 
 The release PR ([#92](https://github.com/LuDraGa/unshafted/pull/92)) is back in draft while this is
 decided: the director wants more in v0.8.3 before it goes to review.
@@ -106,7 +106,7 @@ problem filed as a GitHub issue, not fixed on the spot. Findings feed A/B/C or t
 
 ## Sessions
 
-**Next session: S1.** *(Each session moves this line on before it ends.)*
+**Next session: S2.** *(Each session moves this line on before it ends.)*
 
 The work is split into five sessions. The director pastes the same prompt every time, and this doc
 says where things stand:
@@ -181,7 +181,112 @@ Collect footer / contentinfo / lower-page anchors first. Test first.
 Re-run the bench after A1 and A4 and record the numbers beside the baseline.
 ```
 
-**Log.** *Not started.*
+**Log.** *Done 2026-09-28.*
+
+**Commits** on `dev/v0.8.3`: *pending the director's go-ahead (see the end of this log).*
+
+**A0 — the bench.**
+- `tools/corpus/bench-sites.ts`: **37 uncovered sites, 74 expected documents** (privacy + terms;
+  21 global, 7 US, 9 India; AI and developer tools included). Hard cases, by count: decoys 12,
+  other_domain 8, js_rendered 8, other_subdomain 7, legal_hub 6, third_party_host 4,
+  links_need_interaction 2, pdf 1. None overlaps `sites.ts`.
+- How the list was made: a homepage survey of ~75 candidates, a hand pick, and every expected URL
+  opened in headless Chrome. Then, at the director's request, five independent subagents:
+  three re-picked every site from scratch and audited the expectations, one searched ~1,100
+  homepages for vendor-hosted policies, one audited the bench script against the shipped panel.
+  What they changed is recorded in each entry's `note`; the notable ones:
+  - ola's footer links a FAQ page holding no policy text; the documents are iframes from
+    olawebcdn.com behind `/tnc?doc=…`. The first expectation had rewarded the wrong pick.
+  - notion's consumer terms do render headless and are now expected; mistral's EU terms are a
+    different document and were dropped; jetbrains' trap is a "Privacy and Security" landing page,
+    not a hub.
+  - indeed's privacy site is registered to Indeed (other_domain, not a vendor); postman's privacy
+    centre is Transcend on Postman's own subdomain (other_subdomain).
+  - vendor hosts were rare: of ~1,100 homepages only a handful link off to a vendor's domain.
+    Added chatpdf (Notion), futuretools (Termly), dyno (iubenda) and sensibull (a PDF on S3).
+    Termly and Notion documents are empty in raw HTML; iubenda's are server-rendered — which
+    matters for A2 and A5 together.
+- `tools/corpus/bench-discovery.ts` (`pnpm -F @extension/corpus-tools bench --label=<name>
+  [--ref=<commit>] [--compare=<label>]`). What the audit made it:
+  - **It scores what the panel offers**, mirrored from `SidePanel.tsx`: every same-origin, typed
+    document in the ranked top 20. Verdicts: found / found_unreadable (offered, but the link
+    redirects cross-origin, which the in-page fetch cannot follow) / found_lower (offered, not
+    first of its type) / wrong_page / missed (with where it was lost) / failed (homepage never
+    loaded — never charged to discovery).
+  - **`--ref` scores the discovery module at another commit on the same page loads**, so a unit's
+    effect is measured free of site drift. Use it for every unit from here on.
+  - Three readings: early (at `load`, the panel already open while navigating), **settled**
+    (the headline: the panel opened on a loaded page), scrolled.
+  - Every reading keeps its raw candidates and resolved redirects, so a run re-scores offline;
+    `env` records the collector's arity and hash, git SHA, browser, egress.
+  - Runs are written to `corpus/bench/discovery-<label>.json`, which is **gitignored**: the runs
+    live on this machine, and this log is the durable record.
+- Known limits, accepted: the collector runs in the page's main world, not the isolated world; a
+  1280px viewport; HTTP redirects are followed, JS redirects are listed by hand; "found" is about
+  the link, not the text — a found JS-rendered document (practo, naukri terms) will still read as
+  too short until A5.
+
+**A1 — one pattern.** `collectPolicyCandidatesInPage(patternSource)` compiles what it is given;
+every caller passes `POLICY_LINK_PATTERN.source` (`policy-capture.ts`, `capture.ts`, the bench).
+Guards, each broken once to prove it: the collector matches with the pattern it is given and no
+copy of its own (a reintroduced literal fails it); every word the exported pattern knows reaches
+the page; the shared caller test fails if the call site passes nothing or a literal; the exported
+pattern's flags must be exactly `i`, the flag the page compiles with.
+
+**A4 — footer first.** The footer landmark's anchors are read before the rest of the page, and
+footer-region matches (landmark or bottom 20%) are returned before the others, within the same
+100 cap. The scan bound rose from 2,000 to 5,000 anchors, since it now only ever cuts non-footer
+anchors. Guards: mega-menu starvation, lower-page-counts-as-footer, a footer past the scan bound,
+the bound itself.
+
+**Evidence.**
+- Bench, two runs, `--ref=HEAD` (f430cb7): see the bench record below. **Run-to-run spread: 0
+  of 74 documents at the headline**, 2 at the early reading (pinterest's links not yet rendered
+  at `load` in one run).
+- **A1 and A4 do not move the headline, and that is the true result.** A1 collects 37 more links
+  across the 37 sites (+20%), and every one is another kind of document — acceptable-use,
+  editorial, disclosure, "Responsible Scaling Policy" — none a privacy policy or terms, which is
+  all the bench scores. A4 only acts past 100 matches, and no bench page came near (max 34). Both
+  are correctness fixes whose effect sits outside what this bench measures; the tests are their
+  evidence.
+- Where the 46 not-found documents sit (settled, current): 23 listed but cross-origin (A2's), 6
+  wrong page and 12 more lost behind hubs (A3's: legal_hub sites found 1 of 12), 5 offered but not
+  first (jetbrains, postman, tinder, goindigo ×2 — landing pages and narrower same-company
+  documents outranking the document), 2 unreadable redirects (pinterest), 4 behind a click (twitch,
+  perplexity — no planned unit reaches them), steam's terms (no word for "agreement" in the
+  pattern).
+- `pnpm lint` 12/12, `pnpm format:check` clean, `pnpm test -- --silent=false` 16/16 tasks (core
+  112/112, shared 5/5), no console warnings. `type-check` and `build` are the director's.
+- Not walked in the panel harness: the harness feeds discovery canned candidates, so it cannot
+  show a collector change. Its stub needed one fix for A1 (it told discovery from a fetch by the
+  absence of arguments); fixed locally, it is gitignored.
+
+**Found in passing:** [#93](https://github.com/LuDraGa/unshafted/issues/93) — `tools/corpus` is
+never linted (no `lint` script, so `turbo lint` skips it) and carries 41 errors.
+
+**Decisions taken in the session, for the director to overrule:** perplexity.ai and twitch.tv
+stay in the bench although no link-based unit can reach their documents (4 of 74): they are the
+honest ceiling, and perplexity's `/privacy` does redirect to its notice, so a well-known-path
+fallback could reach it. Bench runs stay gitignored; commit them only if offline re-scoring
+across machines turns out to matter.
+
+**Manual test** (in the loaded extension, after `pnpm build` or with `pnpm dev` running, and the
+extension reloaded at `chrome://extensions`):
+
+1. Open `https://www.webmd.com/` and open the side panel. It says the site is not analysed; under
+   **On this page**, the list should include **Editorial Policy**, **Advertising Policy** and
+   **Correction Policy** as well as Privacy Policy and Terms of Use — about 14 rows, where the
+   pre-A1 collector gave 8. *Broken:* those three are missing (the old list: privacy, terms,
+   cookie, two health "Conditions" pages and Google's policies), or the section shows an error or
+   nothing.
+2. Open `https://www.zepto.com/` and wait for the page to settle (it passes a bot check and
+   reloads once). Under **On this page**, **Responsible Disclosure Policy** should appear beside
+   Privacy Policy and Terms of Use. *Broken:* it is missing.
+3. Open `https://www.amazon.com/` (a covered site). The panel should show Amazon's grade and
+   findings exactly as before, and **Documents on this page** should still open a list. *Broken:*
+   an error where the panel used to check the page, or an empty documents list.
+4. Nothing in the panel shows A4 (footer first); it only changes which links survive on pages with
+   more than 100 policy-looking links, and none of the sites above has that many.
 
 ### S2
 
@@ -192,8 +297,10 @@ Verify S1 before building anything:
 - the status table says A0, A1, A4 done, and the commits exist on origin/dev/v0.8.3;
 - there is ONE link pattern (grep discover.ts: no second literal regex in the injected
   function), and its test fails if a second copy is reintroduced (try it, then revert);
-- the footer-first test exists and passes;
-- the bench runs, and its numbers match what S1 recorded (small drift from live sites is
+- the footer-first test exists and passes, and so does the caller test in
+  packages/shared/test/policy-capture.test.ts (break the call site's argument once to see it fail);
+- the bench runs (pnpm -F @extension/corpus-tools bench --label=s2-start), and its headline
+  matches S1's record within the run-to-run spread S1 measured (drift from live sites is
   expected: note it, don't chase it);
 - eslint, test and prettier are green.
 ```
@@ -216,6 +323,19 @@ prose ratio, legal headings; design it against the bench's real pages, not in th
 page judged to be a hub is not analysed: its policy links become the candidates, one hop,
 bounded. Untyped "Legal"-style links are followed rather than dropped. Tests first, built from
 fixtures of real pages the bench saw.
+
+The bench MIRRORS the panel's rule for what it offers (`offersOfType` in
+tools/corpus/bench-discovery.ts: same-origin, typed, top 20). A2 changes that rule, so change the
+mirror in the same commit, or the bench goes on measuring the old panel. Measure each unit with
+--ref=<the commit before it>, so old and new are scored on the same page loads.
+
+What S1's bench and reviewers already put in front of A2/A3 (see the S1 log): cross-origin
+subdomains and domains (github, medium, mistral, heroku, wikipedia, chatgpt, claude.ai), vendor
+hosts (chatpdf/Notion, futuretools/Termly, dyno/iubenda), hubs (figma, jio, mistral, dyno's
+/terms stub, ola's FAQ page), landing pages that type as privacy and outrank the notice
+(jetbrains /privacy-security/, postman's "Legal Terms Hub"), same-word decoys (a reuters headline,
+tinder's state health-data supplement winning a URL-order tie), and a same-origin link that
+redirects cross-origin and cannot be read (pinterest).
 ```
 
 **Log.** *Not started.*
@@ -332,9 +452,9 @@ Scope: B2 re-analysis, B3, then the release.
 | Unit | Status | Evidence |
 |---|---|---|
 | Plan | Decisions taken 2026-09-28; split into S1–S5 | — |
-| A0 bench | Not started (S1) | |
-| A1 one pattern | Not started (S1) | |
-| A4 footer first | Not started (S1) | |
+| A0 bench | Done (S1) | 37 sites / 74 docs, audited; runs s1-run1, s1-run2 |
+| A1 one pattern | Done (S1) | core + shared guards, each broken once; +37 links collected, 0 privacy/terms |
+| A4 footer first | Done (S1) | 4 guards, each broken once; no bench page past the 100 cap |
 | A2 cross-origin | Not started (S2) | |
 | A3 hub pages | Not started (S2) | |
 | A5 JS-rendered | Not started (S3) | |
@@ -347,6 +467,14 @@ Scope: B2 re-analysis, B3, then the release.
 
 ### Bench record
 
-| After | Found | Wrong page | Missed | Notes |
-|---|---|---|---|---|
-| baseline | | | | |
+Headline = the **settled** reading (panel opened on a loaded page). Columns follow the bench's
+verdicts; "early" is the same run's reading at the `load` event.
+
+| Run | Collector | Found | Unreadable | Lower | Wrong page | Missed | Failed | Early found | Notes |
+|---|---|---|---|---|---|---|---|---|---|
+| s1-run1 | baseline (`f430cb7`, `--ref`) | 28/74 | 2 | 5 | 6 | 33 | 0 | 26 | |
+| s1-run1 | A1 + A4 (working tree) | 28/74 | 2 | 5 | 6 | 33 | 0 | 26 | identical verdicts on the same loads; +37 links, none privacy/terms |
+| s1-run2 | baseline (`f430cb7`, `--ref`) | 28/74 | 2 | 5 | 6 | 33 | 0 | 26 | |
+| s1-run2 | A1 + A4 (working tree) | 28/74 | 2 | 5 | 6 | 33 | 0 | 26 | 0 verdicts differ from run 1 at settled; pinterest ×2 at early |
+
+Egress IN (Maharashtra), Chrome 153.0.8010.54, playwright-core 1.63.0, concurrency 4.
