@@ -483,7 +483,7 @@ const captureSite = async (context: BrowserContext, site: SiteSpec): Promise<Sit
         await page.waitForTimeout(1_500);
       }
       // THE SHIPPED COLLECTOR — same function the extension injects.
-      return page.evaluate(collectPolicyCandidatesInPage);
+      return page.evaluate(collectPolicyCandidatesInPage, POLICY_LINK_PATTERN.source);
     };
 
     let candidates: PolicyCandidate[] = await settleAndCollect();

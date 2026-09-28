@@ -3,6 +3,7 @@ import {
   collectPolicyCandidatesInPage,
   computePolicyHash,
   fetchDocumentInPage,
+  POLICY_LINK_PATTERN,
   rankPolicyCandidates,
   wellKnownPolicyPaths,
 } from '@extension/unshafted-core';
@@ -123,7 +124,9 @@ export const discoverActiveTabPolicies = async (): Promise<PolicyDiscoveryResult
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tab?.id || !isSupportedUrl(tab.url)) return { status: 'unsupported-page' };
 
-    const candidates = (await runInPage(tab.id, collectPolicyCandidatesInPage, [])) ?? ([] as PolicyCandidate[]);
+    const candidates =
+      (await runInPage(tab.id, collectPolicyCandidatesInPage, [POLICY_LINK_PATTERN.source])) ??
+      ([] as PolicyCandidate[]);
 
     return {
       status: 'discovered',

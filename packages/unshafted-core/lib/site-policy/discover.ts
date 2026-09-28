@@ -235,14 +235,31 @@ const rankPolicyCandidates = (
 
 /**
  * INJECTED INTO THE PAGE — must stay entirely self-contained. See the module comment.
+ *
+ * The link pattern arrives as an argument — every caller passes `POLICY_LINK_PATTERN.source` —
+ * because a function that is stringified cannot close over the constant, and the literal copy it
+ * used to carry instead went stale: `policy`, `disclosure` and `consent` reached the exported
+ * pattern after the Part 3 capture and never reached the copy that actually runs in the page.
+ *
+ * Footer-region matches are returned before the rest, and the footer landmark's anchors are read
+ * before the rest of the page. The result is capped, and in plain document order a header
+ * mega-menu of "Privacy settings"-style links could spend the whole cap before the footer — where
+ * the documents are — was ever reached.
  */
-const collectPolicyCandidatesInPage = (): PolicyCandidate[] => {
-  const pattern = /privacy|terms|cookie|legal|eula|conditions|do\s*not\s*sell/i;
-  const anchors = Array.from(document.querySelectorAll('a[href]')).slice(0, 2000);
+const collectPolicyCandidatesInPage = (patternSource: string): PolicyCandidate[] => {
+  const pattern = new RegExp(patternSource, 'i');
+  const anchors = new Set<Element>([
+    ...Array.from(document.querySelectorAll('footer a[href], [role="contentinfo"] a[href]')),
+    ...Array.from(document.querySelectorAll('a[href]')),
+  ]);
   const documentHeight = Math.max(document.body?.scrollHeight ?? 0, 1);
-  const results: PolicyCandidate[] = [];
+  const footerRegion: PolicyCandidate[] = [];
+  const elsewhere: PolicyCandidate[] = [];
+  let scanned = 0;
 
   for (const anchor of anchors) {
+    scanned += 1;
+    if (scanned > 5000) break;
     const href = anchor.getAttribute('href') ?? '';
     const text = (anchor.textContent ?? '').replace(/\s+/g, ' ').trim().slice(0, 120);
     if (!href || href.startsWith('#')) continue;
@@ -259,11 +276,12 @@ const collectPolicyCandidatesInPage = (): PolicyCandidate[] => {
       // whose position cannot be measured is simply judged on its landmark alone.
     }
 
-    results.push({ href, text, inFooterRegion: inLandmark || inLowerPage });
-    if (results.length >= 100) break;
+    const inFooterRegion = inLandmark || inLowerPage;
+    (inFooterRegion ? footerRegion : elsewhere).push({ href, text, inFooterRegion });
+    if (footerRegion.length >= 100) break;
   }
 
-  return results;
+  return [...footerRegion, ...elsewhere].slice(0, 100);
 };
 
 /**
